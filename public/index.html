@@ -1,1 +1,1370 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartDent ERP — Dashboard</title>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Feather icons -->
+  <script src="https://unpkg.com/feather-icons"></script>
+
+ <style>
+
+
+
+*,
+::before,
+::after {
+  --tw-border-spacing-x:0;
+  --tw-border-spacing-y:0;
+  --tw-translate-x:0;
+  --tw-translate-y:0;
+  --tw-rotate:0;
+  --tw-skew-x:0;
+  --tw-skew-y:0;
+  --tw-scale-x:1;
+  --tw-scale-y:1;
+  --tw-pan-x: ;
+  --tw-pan-y: ;
+  --tw-pinch-zoom: ;
+  --tw-scroll-snap-strictness:proximity;
+  --tw-gradient-from-position: ;
+  --tw-gradient-via-position: ;
+  --tw-gradient-to-position: ;
+  --tw-ordinal: ;
+  --tw-slashed-zero: ;
+  --tw-numeric-figure: ;
+  --tw-numeric-spacing: ;
+  --tw-numeric-fraction: ;
+  --tw-ring-inset: ;
+  --tw-ring-offset-width:0px;
+  --tw-ring-offset-color:#fff;
+  --tw-ring-color:rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow:0 0 #0000;
+  --tw-ring-shadow:0 0 #0000;
+  --tw-shadow:0 0 #0000;
+  --tw-shadow-colored:0 0 #0000;
+  --tw-blur: ;
+  --tw-brightness: ;
+  --tw-contrast: ;
+  --tw-grayscale: ;
+  --tw-hue-rotate: ;
+  --tw-invert: ;
+  --tw-saturate: ;
+  --tw-sepia: ;
+  --tw-drop-shadow: ;
+  --tw-backdrop-blur: ;
+  --tw-backdrop-brightness: ;
+  --tw-backdrop-contrast: ;
+  --tw-backdrop-grayscale: ;
+  --tw-backdrop-hue-rotate: ;
+  --tw-backdrop-invert: ;
+  --tw-backdrop-opacity: ;
+  --tw-backdrop-saturate: ;
+  --tw-backdrop-sepia: ;
+  --tw-contain-size: ;
+  --tw-contain-layout: ;
+  --tw-contain-paint: ;
+  --tw-contain-style: 
+}
+::backdrop {
+  --tw-border-spacing-x:0;
+  --tw-border-spacing-y:0;
+  --tw-translate-x:0;
+  --tw-translate-y:0;
+  --tw-rotate:0;
+  --tw-skew-x:0;
+  --tw-skew-y:0;
+  --tw-scale-x:1;
+  --tw-scale-y:1;
+  --tw-pan-x: ;
+  --tw-pan-y: ;
+  --tw-pinch-zoom: ;
+  --tw-scroll-snap-strictness:proximity;
+  --tw-gradient-from-position: ;
+  --tw-gradient-via-position: ;
+  --tw-gradient-to-position: ;
+  --tw-ordinal: ;
+  --tw-slashed-zero: ;
+  --tw-numeric-figure: ;
+  --tw-numeric-spacing: ;
+  --tw-numeric-fraction: ;
+  --tw-ring-inset: ;
+  --tw-ring-offset-width:0px;
+  --tw-ring-offset-color:#fff;
+  --tw-ring-color:rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow:0 0 #0000;
+  --tw-ring-shadow:0 0 #0000;
+  --tw-shadow:0 0 #0000;
+  --tw-shadow-colored:0 0 #0000;
+  --tw-blur: ;
+  --tw-brightness: ;
+  --tw-contrast: ;
+  --tw-grayscale: ;
+  --tw-hue-rotate: ;
+  --tw-invert: ;
+  --tw-saturate: ;
+  --tw-sepia: ;
+  --tw-drop-shadow: ;
+  --tw-backdrop-blur: ;
+  --tw-backdrop-brightness: ;
+  --tw-backdrop-contrast: ;
+  --tw-backdrop-grayscale: ;
+  --tw-backdrop-hue-rotate: ;
+  --tw-backdrop-invert: ;
+  --tw-backdrop-opacity: ;
+  --tw-backdrop-saturate: ;
+  --tw-backdrop-sepia: ;
+  --tw-contain-size: ;
+  --tw-contain-layout: ;
+  --tw-contain-paint: ;
+  --tw-contain-style: 
+}
+/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,
+::after,
+::before {
+  box-sizing:border-box;
+  border-width:0;
+  border-style:solid;
+  border-color:#e5e7eb
+}
+::after,
+::before {
+  --tw-content:''
+}
+:host,
+html {
+  line-height:1.5;
+  -webkit-text-size-adjust:100%;
+  -moz-tab-size:4;
+  tab-size:4;
+  font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-feature-settings:normal;
+  font-variation-settings:normal;
+  -webkit-tap-highlight-color:transparent
+}
+body {
+  margin:0;
+  line-height:inherit
+}
+hr {
+  height:0;
+  color:inherit;
+  border-top-width:1px
+}
+abbr:where([title]) {
+  -webkit-text-decoration:underline dotted;
+  text-decoration:underline dotted
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size:inherit;
+  font-weight:inherit
+}
+a {
+  color:inherit;
+  text-decoration:inherit
+}
+b,
+strong {
+  font-weight:bolder
+}
+code,
+kbd,
+pre,
+samp {
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-feature-settings:normal;
+  font-variation-settings:normal;
+  font-size:1em
+}
+small {
+  font-size:80%
+}
+sub,
+sup {
+  font-size:75%;
+  line-height:0;
+  position:relative;
+  vertical-align:baseline
+}
+sub {
+  bottom:-.25em
+}
+sup {
+  top:-.5em
+}
+table {
+  text-indent:0;
+  border-color:inherit;
+  border-collapse:collapse
+}
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family:inherit;
+  font-feature-settings:inherit;
+  font-variation-settings:inherit;
+  font-size:100%;
+  font-weight:inherit;
+  line-height:inherit;
+  letter-spacing:inherit;
+  color:inherit;
+  margin:0;
+  padding:0
+}
+button,
+select {
+  text-transform:none
+}
+button,
+input:where([type=button]),
+input:where([type=reset]),
+input:where([type=submit]) {
+  -webkit-appearance:button;
+  background-color:transparent;
+  background-image:none
+}
+:-moz-focusring {
+  outline:auto
+}
+:-moz-ui-invalid {
+  box-shadow:none
+}
+progress {
+  vertical-align:baseline
+}
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height:auto
+}
+[type=search] {
+  -webkit-appearance:textfield;
+  outline-offset:-2px
+}
+::-webkit-search-decoration {
+  -webkit-appearance:none
+}
+::-webkit-file-upload-button {
+  -webkit-appearance:button;
+  font:inherit
+}
+summary {
+  display:list-item
+}
+blockquote,
+dd,
+dl,
+figure,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+p,
+pre {
+  margin:0
+}
+fieldset {
+  margin:0;
+  padding:0
+}
+legend {
+  padding:0
+}
+menu,
+ol,
+ul {
+  list-style:none;
+  margin:0;
+  padding:0
+}
+dialog {
+  padding:0
+}
+textarea {
+  resize:vertical
+}
+input::placeholder,
+textarea::placeholder {
+  opacity:1;
+  color:#9ca3af
+}
+[role=button],
+button {
+  cursor:pointer
+}
+:disabled {
+  cursor:default
+}
+audio,
+canvas,
+embed,
+iframe,
+img,
+object,
+svg,
+video {
+  display:block;
+  vertical-align:middle
+}
+img,
+video {
+  max-width:100%;
+  height:auto
+}
+[hidden]:where(:not([hidden=until-found])) {
+  display:none
+}
+.container {
+  width:100%
+}
+@media (min-width: 640px) {
+  .container {
+    max-width:640px
+  }
+}
+@media (min-width: 768px) {
+  .container {
+    max-width:768px
+  }
+}
+@media (min-width: 1024px) {
+  .container {
+    max-width:1024px
+  }
+}
+@media (min-width: 1280px) {
+  .container {
+    max-width:1280px
+  }
+}
+@media (min-width: 1536px) {
+  .container {
+    max-width:1536px
+  }
+}
+.absolute {
+  position:absolute
+}
+.relative {
+  position:relative
+}
+.inset-0 {
+  inset:0px
+}
+.left-0 {
+  left:0px
+}
+.right-0 {
+  right:0px
+}
+.z-10 {
+  z-index:10
+}
+.mx-auto {
+  margin-left:auto;
+  margin-right:auto
+}
+.-mt-12 {
+  margin-top:1rem;
+}
+.mb-3 {
+  margin-bottom:0.75rem
+}
+.ml-1 {
+  margin-left:0.25rem
+}
+.mt-1 {
+  margin-top:0.25rem
+}
+.mt-2 {
+  margin-top:0.5rem
+}
+.mt-4 {
+  margin-top:1rem
+}
+.mt-8 {
+  margin-top:2rem
+}
+.block {
+  display:block
+}
+.flex {
+  display:flex
+}
+.inline-flex {
+  display:inline-flex
+}
+.grid {
+  display:grid
+}
+.hidden {
+  display:none
+}
+.h-10 {
+  height:2.5rem
+}
+.h-3 {
+  height:0.75rem
+}
+.h-4 {
+  height:1rem
+}
+.h-5 {
+  height:1.25rem
+}
+.h-64 {
+  height:16rem
+}
+.h-8 {
+  height:2rem
+}
+.h-full {
+  height:100%
+}
+.w-10 {
+  width:2.5rem
+}
+.w-3 {
+  width:0.75rem
+}
+.w-4 {
+  width:1rem
+}
+.w-44 {
+  width:11rem
+}
+.w-48 {
+  width:12rem
+}
+.w-5 {
+  width:1.25rem
+}
+.w-8 {
+  width:2rem
+}
+.w-full {
+  width:100%
+}
+.max-w-3xl {
+  max-width:48rem
+}
+.flex-1 {
+  flex:1 1 0%
+}
+.transform {
+  transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))
+}
+.grid-cols-1 {
+  grid-template-columns:repeat(1, minmax(0, 1fr))
+}
+.items-start {
+  align-items:flex-start
+}
+.items-center {
+  align-items:center
+}
+.justify-center {
+  justify-content:center
+}
+.justify-between {
+  justify-content:space-between
+}
+.gap-2 {
+  gap:0.5rem
+}
+.gap-3 {
+  gap:0.75rem
+}
+.gap-4 {
+  gap:1rem
+}
+.gap-6 {
+  gap:1.5rem
+}
+.space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse:0;
+  margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))
+}
+.space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse:0;
+  margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))
+}
+.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse:0;
+  margin-top:calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom:calc(1.5rem * var(--tw-space-y-reverse))
+}
+.divide-y > :not([hidden]) ~ :not([hidden]) {
+  --tw-divide-y-reverse:0;
+  border-top-width:calc(1px * calc(1 - var(--tw-divide-y-reverse)));
+  border-bottom-width:calc(1px * var(--tw-divide-y-reverse))
+}
+.overflow-hidden {
+  overflow:hidden
+}
+.rounded-full {
+  border-radius:9999px
+}
+.rounded-lg {
+  border-radius:0.5rem
+}
+.rounded-md {
+  border-radius:0.375rem
+}
+.rounded-b-2xl {
+  border-bottom-right-radius:1rem;
+  border-bottom-left-radius:1rem
+}
+.border {
+  border-width:1px
+}
+.border-white\/30 {
+  border-color:rgb(255 255 255 / 0.3)
+}
+.bg-emerald-500 {
+  --tw-bg-opacity:1;
+  background-color:rgb(16 185 129 / var(--tw-bg-opacity, 1))
+}
+.bg-gray-50 {
+  --tw-bg-opacity:1;
+  background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))
+}
+.bg-green-50 {
+  --tw-bg-opacity:1;
+  background-color:rgb(240 253 244 / var(--tw-bg-opacity, 1))
+}
+.bg-indigo-50 {
+  --tw-bg-opacity:1;
+  background-color:rgb(238 242 255 / var(--tw-bg-opacity, 1))
+}
+.bg-indigo-600 {
+  --tw-bg-opacity:1;
+  background-color:rgb(79 70 229 / var(--tw-bg-opacity, 1))
+}
+.bg-rose-50 {
+  --tw-bg-opacity:1;
+  background-color:rgb(255 241 242 / var(--tw-bg-opacity, 1))
+}
+.bg-white {
+  --tw-bg-opacity:1;
+  background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))
+}
+.bg-white\/20 {
+  background-color:rgb(255 255 255 / 0.2)
+}
+.bg-white\/90 {
+  background-color:rgb(255 255 255 / 0.9)
+}
+.bg-white\/95 {
+  background-color:rgb(255 255 255 / 0.95)
+}
+.bg-yellow-50 {
+  --tw-bg-opacity:1;
+  background-color:rgb(254 252 232 / var(--tw-bg-opacity, 1))
+}
+.bg-orange-100 {
+  --tw-bg-opacity:1;
+  background-color:rgb(255 237 213 / var(--tw-bg-opacity, 1))
+}
+.object-cover {
+  object-fit:cover
+}
+.p-2 {
+  padding:0.5rem
+}
+.p-3 {
+  padding:0.75rem
+}
+.px-2 {
+  padding-left:0.5rem;
+  padding-right:0.5rem
+}
+.px-3 {
+  padding-left:0.75rem;
+  padding-right:0.75rem
+}
+.px-4 {
+  padding-left:1rem;
+  padding-right:1rem
+}
+.py-1 {
+  padding-top:0.25rem;
+  padding-bottom:0.25rem
+}
+.py-2 {
+  padding-top:0.5rem;
+  padding-bottom:0.5rem
+}
+.py-4 {
+  padding-top:1rem;
+  padding-bottom:1rem
+}
+.py-3 {
+  padding-top:0.75rem;
+  padding-bottom:0.75rem
+}
+.text-center {
+  text-align:center
+}
+.text-right {
+  text-align:right
+}
+.font-sans {
+  font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"
+}
+.text-2xl {
+  font-size:1.5rem;
+  line-height:2rem
+}
+.text-lg {
+  font-size:1.125rem;
+  line-height:1.75rem
+}
+.text-sm {
+  font-size:0.875rem;
+  line-height:1.25rem
+}
+.text-xl {
+  font-size:1.25rem;
+  line-height:1.75rem
+}
+.text-xs {
+  font-size:0.75rem;
+  line-height:1rem
+}
+.font-extrabold {
+  font-weight:800
+}
+.font-medium {
+  font-weight:500
+}
+.font-semibold {
+  font-weight:600
+}
+.text-amber-600 {
+  --tw-text-opacity:1;
+  color:rgb(217 119 6 / var(--tw-text-opacity, 1))
+}
+.text-amber-700 {
+  --tw-text-opacity:1;
+  color:rgb(180 83 9 / var(--tw-text-opacity, 1))
+}
+.text-gray-500 {
+  --tw-text-opacity:1;
+  color:rgb(107 114 128 / var(--tw-text-opacity, 1))
+}
+.text-gray-800 {
+  --tw-text-opacity:1;
+  color:rgb(31 41 55 / var(--tw-text-opacity, 1))
+}
+.text-green-600 {
+  --tw-text-opacity:1;
+  color:rgb(22 163 74 / var(--tw-text-opacity, 1))
+}
+.text-indigo-600 {
+  --tw-text-opacity:1;
+  color:rgb(79 70 229 / var(--tw-text-opacity, 1))
+}
+.text-rose-500 {
+  --tw-text-opacity:1;
+  color:rgb(244 63 94 / var(--tw-text-opacity, 1))
+}
+.text-white {
+  --tw-text-opacity:1;
+  color:rgb(0, 0, 0);
+}
+.text-white\/90 {
+  color:rgb(255 255 255 / 0.9)
+}
+.text-yellow-600 {
+  --tw-text-opacity:1;
+  color:rgb(202 138 4 / var(--tw-text-opacity, 1))
+}
+.text-rose-600 {
+  --tw-text-opacity:1;
+  color:rgb(225 29 72 / var(--tw-text-opacity, 1))
+}
+.antialiased {
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale
+}
+.opacity-0 {
+  opacity:0
+}
+.shadow {
+  --tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);
+  box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)
+}
+.shadow-lg {
+  --tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
+  box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)
+}
+.shadow-sm {
+  --tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);
+  box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)
+}
+.ring-1 {
+  --tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow:var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000)
+}
+.ring-black {
+  --tw-ring-opacity:1;
+  --tw-ring-color:rgb(0 0 0 / var(--tw-ring-opacity, 1))
+}
+.ring-opacity-5 {
+  --tw-ring-opacity:0.05
+}
+.drop-shadow {
+  --tw-drop-shadow:drop-shadow(0 1px 2px rgb(0 0 0 / 0.1)) drop-shadow(0 1px 1px rgb(0 0 0 / 0.06));
+  filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)
+}
+.transition-opacity {
+  transition-property:opacity;
+  transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration:150ms
+}
+.duration-1000 {
+  transition-duration:1000ms
+}
+.hover\:bg-gray-100:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))
+}
+.hover\:bg-green-100:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(220 252 231 / var(--tw-bg-opacity, 1))
+}
+.hover\:bg-indigo-100:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(224 231 255 / var(--tw-bg-opacity, 1))
+}
+.hover\:bg-rose-100:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(255 228 230 / var(--tw-bg-opacity, 1))
+}
+.hover\:bg-white\/10:hover {
+  background-color:rgb(96, 165, 250);
+}
+.hover\:bg-yellow-100:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(254 249 195 / var(--tw-bg-opacity, 1))
+}
+@media (min-width: 640px) {
+  .sm\:grid-cols-2 {
+    grid-template-columns:repeat(2, minmax(0, 1fr))
+  }
+}
+@media (min-width: 768px) {
+  .md\:col-span-2 {
+    grid-column:span 2 / span 2
+  }
+  .md\:mt-12 {
+    margin-top:20rem;
+  }
+  .md\:inline-block {
+    display:inline-block
+  }
+  .md\:flex {
+    display:flex
+  }
+  .md\:h-80 {
+    height:20rem
+  }
+  .md\:grid-cols-3 {
+    grid-template-columns:repeat(3, minmax(0, 1fr))
+  }
+  .md\:py-6 {
+    padding-top:1.5rem;
+    padding-bottom:1.5rem
+  }
+  .md\:text-4xl {
+    font-size:2.25rem;
+    line-height:2.5rem
+  }
+}
+@media (min-width: 1024px) {
+  .lg\:col-span-2 {
+    grid-column:span 2 / span 2
+  }
+  .lg\:h-96 {
+    height:64rem;
+  }
+  .lg\:grid-cols-3 {
+    grid-template-columns:repeat(3, minmax(0, 1fr))
+  }
+  .lg\:grid-cols-4 {
+    grid-template-columns:repeat(4, minmax(0, 1fr))
+  }
+}
+
+    /* small custom helpers */
+    .card { @apply bg-white rounded-2xl shadow p-4; }
+    .glass { background: rgba(255,255,255,0.65); backdrop-filter: blur(6px); }
+    /* slideshow overlay */
+    .header-gradient { background: linear-gradient(90deg, rgba(99,102,241,0.12), rgba(236,72,153,0.06)); }
+    /* dropdown visibility (for keyboard/touch) */
+    .dropdown-hidden { display: none; }
+    /* keep charts responsive */
+    .chart-wrap { height: 260px; }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 antialiased">
+
+  <!-- ===== Top navigation over slideshow header ===== -->
+  <header class="relative">
+    <!-- Slideshow -->
+    <div id="slideshow" class="h-64 md:h-80 lg:h-96 relative overflow-hidden rounded-b-2xl">
+      <!-- slides (replace/extend images as needed) -->
+      <img class="slide absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000" 
+           src="assets/images/image (3).jpg" alt="clinic 1">
+      <img class="slide absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000" 
+           src="assets/images/image (2).jpg" alt="clinic 2">
+      <img class="slide absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000" 
+           src="image (1).jpg" alt="clinic 3">
+      <img class="slide absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-1000" 
+           src="assets/images/image (4).jpg" alt="clinic 4">
+      <!-- header overlay content -->
+      <div class="absolute inset-0 header-gradient">
+        <div class="container mx-auto px-4 py-4 md:py-6">
+          <!-- top nav (floating, modern minimal) -->
+          <nav class="flex items-center justify-between">
+            <!-- left: brand + nav links -->
+            <div class="flex items-center gap-6">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow">
+                  <!-- small tooth icon as logo (feather 'zap' used as placeholder) -->
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3v6"></path><path d="M8 10s1 2 4 2 4-2 4-2"></path><path d="M6 21s2-4 6-4 6 4 6 4"></path>
+                  </svg>
+                </div>
+                <div class="text-white font-semibold">SmaitDent</div>
+              </div>
+
+              <!-- nav links (large screens) -->
+              <ul class="hidden md:flex items-center gap-2 text-white/90">
+                <li class="relative group">
+                  <a href="#" class="px-3 py-2 inline-flex items-center gap-2 hover:bg-white/10 rounded-md">
+                    <i data-feather="home" class="h-4 w-4"></i> Dashboard
+                  </a>
+                </li>
+
+                <li>
+                  <a href="patients.html" class="px-3 py-2 inline-flex items-center gap-2 hover:bg-white/10 rounded-md">
+                    <i data-feather="file-text" class="h-4 w-4"></i> Patients 
+                  </a>
+                </li>
+
+                <li>
+                  <a href="clinical.html" class="px-3 py-2 inline-flex items-center gap-2 hover:bg-white/10 rounded-md">
+                    <i data-feather="file-text" class="h-4 w-4"></i> Clinical
+                  </a>
+                </li>
+
+                <li>
+                  <a href="billing.html" class="px-3 py-2 inline-flex items-center gap-2 hover:bg-white/10 rounded-md">
+                    <i data-feather="file-text" class="h-4 w-4"></i> Billing
+                  </a>
+                </li>
+
+                <li>
+                  <a href="hr.html" class="px-3 py-2 inline-flex items-center gap-2 hover:bg-white/10 rounded-md">
+                    <i data-feather="credit-card" class="h-4 w-4"></i> HR
+                  </a>
+                </li>
+
+                <li>
+                  <a href="reports.html" class="px-3 py-2 inline-flex items-center gap-2 hover:bg-white/10 rounded-md">
+                    <i data-feather="bar-chart-2" class="h-4 w-4"></i> Reports
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <!-- right: quick actions + profile -->
+            <div class="flex items-center gap-3">
+              <div class="hidden md:flex items-center gap-2">
+                <button id="quickAdd" class="bg-white/95 text-indigo-600 px-3 py-2 rounded-md inline-flex items-center gap-2 shadow-sm">
+                  <i data-feather="plus-circle" class="h-4 w-4"></i> Quick Add
+                </button>
+              </div>
+
+              <!-- profile dropdown -->
+              <div class="relative">
+                <button id="profileBtn" class="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-full shadow-sm">
+                  <img src="assets/images/avatar(1).jpg" alt="profile" class="w-8 h-8 rounded-full object-cover">
+                  <span class="hidden md:inline-block text-sm">Dr. ______</span>
+                  <i data-feather="chevron-down" class="h-4 w-4"></i>
+                </button>
+                <div id="profileDropdown" class="dropdown-hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 ring-1 ring-black ring-opacity-5">
+                  <a class="block px-4 py-2 hover:bg-gray-100" href="#">Profile</a>
+                  <a class="block px-4 py-2 hover:bg-gray-100" href="#">Settings</a>
+                  <a class="block px-4 py-2 hover:bg-gray-100" href="#">Sign out</a>
+                </div>
+              </div>
+            </div>
+          </nav>
+
+          <!-- header text / CTAs - centered -->
+          <div class="mt-8 md:mt-12 text-center text-white max-w-3xl mx-auto">
+            <h2 class="text-2xl md:text-4xl font-extrabold drop-shadow">Your clinic operations — streamlined</h2>
+            <p class="mt-2 text-white/90">Appointments, clinical records, billing, payroll and inventory — all in one place.</p>
+            <div class="mt-4 flex items-center justify-center gap-3">
+              <button class="px-4 py-2 bg-white text-indigo-600 rounded-md font-medium shadow inline-flex items-center gap-2">
+                <i data-feather="calendar"></i> New Appointment
+              </button>
+              <button class="px-4 py-2 bg-white/20 text-white border border-white/30 rounded-md inline-flex items-center gap-2">
+                <i data-feather="users"></i> New Patient
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== Main page content ===== -->
+  <main class="container mx-auto px-4 -mt-12 relative z-10">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- main column (left) -->
+      <section class="lg:col-span-2 space-y-6">
+        <!-- overview cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="card flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-indigo-50">
+              <i data-feather="users" class="text-indigo-600 h-5 w-5"></i>
+            </div>
+            <div>
+              <div class="text-sm text-gray-500">Total Patients</div>
+              <div class="text-xl font-semibold">1,420</div>
+              <div class="text-xs text-green-600 mt-1">+3.4% this month</div>
+            </div>
+          </div>
+
+          <div class="card flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-rose-50">
+              <i data-feather="calendar" class="text-rose-500 h-5 w-5"></i>
+            </div>
+            <div>
+              <div class="text-sm text-gray-500">Appointments Today</div>
+              <div class="text-xl font-semibold">38</div>
+              <div class="text-xs text-amber-600 mt-1">5 pending confirmations</div>
+            </div>
+          </div>
+
+          <div class="card flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-green-50">
+              <i data-feather="dollar-sign" class="text-green-600 h-5 w-5"></i>
+            </div>
+            <div>
+              <div class="text-sm text-gray-500">Revenue (YTD)</div>
+              <div class="text-xl font-semibold">$162,400</div>
+              <div class="text-xs text-green-600 mt-1">+12.5% vs last year</div>
+            </div>
+          </div>
+
+          <div class="card flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-yellow-50">
+              <i data-feather="package" class="text-yellow-600 h-5 w-5"></i>
+            </div>
+            <div>
+              <div class="text-sm text-gray-500">Stock Alerts</div>
+              <div class="text-xl font-semibold">7 low items</div>
+              <div class="text-xs text-gray-500 mt-1">Auto-reorder enabled</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- charts -->
+        <div class="card">
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h3 class="font-semibold">Revenue Trend</h3>
+              <p class="text-sm text-gray-500">Monthly revenue across services</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="px-3 py-1 border rounded-md text-sm">30d</button>
+              <button class="px-3 py-1 border rounded-md text-sm">6m</button>
+              <button class="px-3 py-1 border rounded-md text-sm">1y</button>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="card md:col-span-2">
+            <h4 class="font-semibold mb-3">Service Breakdown</h4>
+            <div class="flex gap-6 items-center">
+              <div style="width:240px;height:200px;"><canvas id="serviceChart"></canvas></div>
+              <div class="space-y-2">
+                <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full" style="background:#60A5FA"></span><div><div class="text-sm font-medium">Fillings</div><div class="text-xs text-gray-500">45% of services</div></div></div>
+                <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full" style="background:#34D399"></span><div><div class="text-sm font-medium">Cleaning</div><div class="text-xs text-gray-500">25% of services</div></div></div>
+                <div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full" style="background:#FBBF24"></span><div><div class="text-sm font-medium">Root Canal</div><div class="text-xs text-gray-500">15% of services</div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h4 class="font-semibold mb-3">Quick Actions</h4>
+            <div class="grid gap-3">
+              <button class="flex items-center gap-3 px-4 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100"><i data-feather="calendar"></i> Schedule</button>
+              <button class="flex items-center gap-3 px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100"><i data-feather="users"></i> Manage Patients</button>
+              <button class="flex items-center gap-3 px-4 py-2 rounded-lg bg-rose-50 hover:bg-rose-100"><i data-feather="file-text"></i> Invoicing</button>
+              <button class="flex items-center gap-3 px-4 py-2 rounded-lg bg-yellow-50 hover:bg-yellow-100"><i data-feather="settings"></i> Settings</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- right column -->
+      <aside class="space-y-6">
+        <!-- Payroll -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h4 class="font-semibold">Payroll</h4>
+              <p class="text-sm text-gray-500">Monthly payroll summary</p>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-gray-500">Total</div>
+              <div id="payrollTotal" class="font-semibold">$12,300</div>
+            </div>
+          </div>
+
+          <div id="payrollList" class="divide-y"></div>
+
+          <div class="mt-4 flex gap-2">
+            <button id="runPayroll" class="flex-1 px-4 py-2 rounded-md bg-emerald-500 text-white">Run Payroll</button>
+            <button id="exportPayroll" class="px-4 py-2 rounded-md border">Export</button>
+          </div>
+        </div>
+
+        <!-- Currency converter -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-semibold">Multi-Currency Converter</h4>
+            <div id="rateIndicator" class="text-xs text-gray-500">Rates: —</div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="flex gap-2">
+              <input id="convAmount" type="number" value="1000" class="flex-1 px-3 py-2 border rounded-md" />
+              <select id="fromCurr" class="px-3 py-2 border rounded-md"></select>
+            </div>
+
+            <div class="flex gap-2">
+              <div class="flex-1 px-3 py-2 border rounded-md bg-gray-50 text-sm" id="fromCode">USD</div>
+              <select id="toCurr" class="px-3 py-2 border rounded-md"></select>
+            </div>
+
+            <div class="text-sm">
+              <div class="font-medium">Converted</div>
+              <div id="convertedValue" class="text-lg">—</div>
+              <div id="ratesError" class="text-xs text-amber-700 mt-2"></div>
+            </div>
+
+            <div class="flex gap-2 mt-2">
+              <button id="applyToPayroll" class="flex-1 px-3 py-2 rounded-md bg-indigo-600 text-white">Apply to Payroll</button>
+              <button id="refreshRates" class="px-3 py-2 rounded-md border">Refresh</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- recent patients -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-semibold">Recent Patients</h4>
+            <div class="flex items-center gap-2">
+              <input id="patientSearch" class="px-2 py-1 border rounded-md" placeholder="Search" />
+              <button id="searchBtn" class="p-2 rounded-md border"><i data-feather="search"></i></button>
+            </div>
+          </div>
+          <ul id="patientList" class="space-y-3"></ul>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="mt-8 text-sm text-gray-500 text-center">
+      SmartDent ERP • Empowering Dental Practices with Precision
+    </footer>
+  </main>
+  <script src="core.js"></script>
+  <!-- ===== Scripts: icons, slideshow, dropdowns, charts, currency, payroll demo ===== -->
+  <script>
+    // activate feather icons
+    feather.replace();
+
+    /* ----------------------
+       Slideshow (auto + manual)
+       ---------------------- */
+    (function initSlideshow(){
+      const slides = Array.from(document.querySelectorAll('#slideshow .slide'));
+      if(!slides.length) return;
+      let idx = 0;
+      slides.forEach((s, i) => s.style.opacity = i === 0 ? '1' : '0');
+
+      function show(i){
+        slides.forEach((s, j) => s.style.opacity = j === i ? '1' : '0');
+      }
+      // auto-advance every 5 seconds
+      setInterval(() => { idx = (idx + 1) % slides.length; show(idx); }, 5000);
+    })();
+
+    /* ----------------------
+       Dropdown helpers (top nav)
+       ---------------------- */
+    (function initDropdowns(){
+      const toggles = document.querySelectorAll('[data-dropdown-target]');
+      toggles.forEach(btn => {
+        const id = btn.getAttribute('data-dropdown-target');
+        const menu = document.getElementById(id);
+        if(!menu) return;
+
+        // show/hide on click (works for touch and keyboard)
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const visible = menu.style.display === 'block';
+          document.querySelectorAll('.dropdown-hidden').forEach(d => d.style.display = 'none');
+          menu.style.display = visible ? 'none' : 'block';
+        });
+      });
+
+      // profile dropdown
+      const profileBtn = document.getElementById('profileBtn');
+      const profileDropdown = document.getElementById('profileDropdown');
+      profileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.style.display = profileDropdown.style.display === 'block' ? 'none' : 'block';
+      });
+
+      // close on outside click
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.dropdown-hidden').forEach(d => d.style.display = 'none');
+      });
+    })();
+
+    /* ----------------------
+       Charts (Chart.js)
+       ---------------------- */
+    (function initCharts(){
+      // revenue line chart
+      const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+      const revenueChart = new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+          labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],
+          datasets: [{
+            label: 'Revenue',
+            data: [12000,15000,14000,18000,17000,20000,21000,23000,19000],
+            borderWidth: 3,
+            tension: 0.4,
+            borderColor: '#6366F1',
+            pointRadius: 3,
+            fill: false
+          }]
+        },
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: false } },
+          responsive: true,
+          maintainAspectRatio: false
+        }
+      });
+
+      // service breakdown pie
+      const serviceCtx = document.getElementById('serviceChart').getContext('2d');
+      const serviceChart = new Chart(serviceCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Fillings','Cleaning','Root Canal','Cosmetic','Ortho'],
+          datasets: [{ data: [45,25,15,10,5], backgroundColor: ['#60A5FA','#34D399','#FBBF24','#F87171','#A78BFA'] }]
+        },
+        options: { plugins: { legend: { position: 'right' } }, responsive: true, maintainAspectRatio: false }
+      });
+    })();
+
+    /* ----------------------
+       Payroll demo rendering
+       ---------------------- */
+    (function initPayroll(){
+      const employees = [
+        { id:1, name:'Dr. Alice Mwansa', role:'Dentist', baseSalary:5000, currency:'USD' },
+        { id:2, name:'Dr. Brian Zulu', role:'Orthodontist', baseSalary:6200, currency:'USD' },
+        { id:3, name:'Nurse Chipo', role:'Dental Nurse', baseSalary:1200, currency:'USD' },
+        { id:4, name:'Receptionist Tinashe', role:'Admin', baseSalary:900, currency:'USD' }
+      ];
+
+      function render(){
+        const list = document.getElementById('payrollList'); list.innerHTML = '';
+        let total = 0;
+        employees.forEach(emp => {
+          const tax = +(emp.baseSalary * 0.12).toFixed(2);
+          const net = +(emp.baseSalary - tax).toFixed(2);
+          total += emp.baseSalary;
+          const div = document.createElement('div');
+          div.className = 'py-3 flex items-center justify-between';
+          div.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="p-2 rounded-md bg-indigo-50"><i data-feather="user" class="text-indigo-600"></i></div>
+              <div>
+                <div class="font-medium">${emp.name}</div>
+                <div class="text-xs text-gray-500">${emp.role}</div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm">$${emp.baseSalary.toLocaleString()}</div>
+              <div class="text-xs text-gray-500">Net $${net.toLocaleString()}</div>
+            </div>
+          `;
+          list.appendChild(div);
+        });
+        document.getElementById('payrollTotal').textContent = `$${total.toLocaleString()}`;
+        feather.replace();
+      }
+      render();
+
+      document.getElementById('runPayroll').addEventListener('click', () => {
+        alert('Payroll simulated: payments queued (demo).');
+      });
+      document.getElementById('exportPayroll').addEventListener('click', () => {
+        alert('Export simulated: CSV generated. (Demo)');
+      });
+    })();
+
+    /* ----------------------
+       Recent patients demo + search
+       ---------------------- */
+    (function initPatients(){
+      const patients = [
+        {name:'Alice Mukuka', note:'Cleaning', date:'Oct 01', status:'Paid'},
+        {name:'Brian Zulu', note:'Root Canal', date:'Sep 28', status:'Invoice'},
+        {name:'Nadine Clarke', note:'Crown Fitting', date:'Sep 25', status:'Overdue'}
+      ];
+      const ul = document.getElementById('patientList');
+      function render(list){
+        ul.innerHTML = '';
+        list.forEach(p => {
+          const li = document.createElement('li');
+          li.className = 'flex items-center justify-between';
+          const initials = p.name.split(' ').map(s=>s[0]).slice(0,2).join('');
+          li.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center font-semibold">${initials}</div>
+              <div>
+                <div class="font-medium">${p.name}</div>
+                <div class="text-xs text-gray-500">${p.note} — ${p.date}</div>
+              </div>
+            </div>
+            <div class="text-sm ${p.status==='Paid'?'text-green-600':p.status==='Overdue'?'text-rose-600':'text-amber-600'}">${p.status}</div>
+          `;
+          ul.appendChild(li);
+        });
+      }
+      render(patients);
+
+      document.getElementById('searchBtn').addEventListener('click', () => {
+        const q = document.getElementById('patientSearch').value.toLowerCase();
+        render(patients.filter(p => p.name.toLowerCase().includes(q) || p.note.toLowerCase().includes(q)));
+      });
+    })();
+
+    /* ----------------------
+       Currency converter (live fetch with fallback)
+       ---------------------- */
+    (function initConverter(){
+      let rates = null;
+      const rateIndicator = document.getElementById('rateIndicator');
+      const ratesErrorEl = document.getElementById('ratesError');
+
+      async function fetchRates(){
+        rateIndicator.textContent = 'Rates: Loading…';
+        try{
+          const res = await fetch('https://api.exchangerate.host/latest?base=USD');
+          const data = await res.json();
+          if(data && data.rates){
+            rates = data.rates;
+            populateSelects(Object.keys(rates));
+            rateIndicator.textContent = 'Rates: Live';
+            ratesErrorEl.textContent = '';
+            updateConversion();
+          } else throw new Error('No rates returned');
+        }catch(err){
+          // fallback sample rates
+          rates = { USD:1, ZMW:24.5, EUR:0.92, GBP:0.78, ZAR:18.2 };
+          populateSelects(Object.keys(rates));
+          rateIndicator.textContent = 'Rates: Sample (offline)';
+          ratesErrorEl.textContent = 'Could not fetch live rates — using sample rates.';
+          updateConversion();
+        }
+      }
+
+      function populateSelects(list){
+        const from = document.getElementById('fromCurr');
+        const to = document.getElementById('toCurr');
+        if(from.options.length) return;
+        // keep the most-used currencies up front
+        const preferred = ['USD','EUR','GBP','ZMW','ZAR'];
+        const ordered = [...new Set([...preferred, ...list])];
+        ordered.slice(0,40).forEach(c => {
+          const o1 = document.createElement('option'); o1.value = c; o1.textContent = c; from.appendChild(o1);
+          const o2 = document.createElement('option'); o2.value = c; o2.textContent = c; to.appendChild(o2);
+        });
+        from.value = 'USD';
+        to.value = 'ZMW';
+        document.getElementById('fromCode').textContent = 'USD';
+      }
+
+      function updateConversion(){
+        const amt = Number(document.getElementById('convAmount').value) || 0;
+        const from = document.getElementById('fromCurr').value || 'USD';
+        const to = document.getElementById('toCurr').value || 'ZMW';
+        document.getElementById('fromCode').textContent = from;
+        if(!rates){ document.getElementById('convertedValue').textContent='—'; return; }
+        const rateFrom = rates[from] || 1;
+        const rateTo = rates[to] || 1;
+        const converted = (amt / rateFrom) * rateTo;
+        document.getElementById('convertedValue').textContent = `${converted.toFixed(2)} ${to}`;
+      }
+
+      document.getElementById('convAmount').addEventListener('input', updateConversion);
+      document.getElementById('fromCurr').addEventListener('change', updateConversion);
+      document.getElementById('toCurr').addEventListener('change', updateConversion);
+      document.getElementById('refreshRates').addEventListener('click', fetchRates);
+      document.getElementById('applyToPayroll').addEventListener('click', () => {
+        const converted = document.getElementById('convertedValue').textContent;
+        if(!converted || converted === '—') return alert('No converted amount available');
+        alert(`Converted (${converted}) applied to payroll (demo).`);
+      });
+
+      // initial fetch
+      fetchRates();
+    })();
+
+  </script>
+</body>
+</html>
+
+
+
+
 
