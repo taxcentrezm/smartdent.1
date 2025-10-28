@@ -1,17 +1,25 @@
-// db.js
-import { createClient } from "@libsql/client/node"; // Node.js client for server-side use
+import { createClient } from "@libsql/client/node";
 
-// Initialize the client
+const url = process.env.chomadentistry_TURSO_DATABASE_URL;
+const authToken = process.env.chomadentistry_TURSO_AUTH_TOKEN;
+
+if (!url || !authToken) {
+  throw new Error(
+    "❌ Turso DB connection failed: Environment variables are missing!"
+  );
+}
+
+console.log("Connecting to Turso DB at:", url);
+
 export const client = createClient({
-  url: process.env.TURSO_DATABASE_URL,   // from your Vercel secrets
-  authToken: process.env.TURSO_AUTH_TOKEN, // from your Vercel secrets
+  url,
+  authToken,
 });
 
-// Test the connection immediately (optional)
 (async () => {
   try {
     await client.execute("SELECT 1;");
-    console.log("✅ Turso DB connected successfully.");
+    console.log("✅ Turso DB connected successfully");
   } catch (err) {
     console.error("❌ Turso DB connection failed:", err.message);
   }
