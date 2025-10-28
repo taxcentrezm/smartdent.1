@@ -1,0 +1,1408 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartDent ERP — Patients</title>
+  <script src="https://unpkg.com/feather-icons"></script>
+<style>
+/* Schedule Modal */
+#scheduleModal {
+  @apply fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50;
+}
+
+#scheduleModal .modal-content {
+  @apply bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative;
+}
+
+#scheduleModal .modal-header {
+  @apply text-lg font-semibold mb-4;
+}
+
+#scheduleModal button.close-btn {
+  @apply absolute top-3 right-3 text-gray-500;
+}
+
+#scheduleModal input, #scheduleModal select {
+  @apply w-full px-3 py-2 border rounded-md mb-3;
+}
+
+#scheduleModal .modal-actions button {
+  @apply px-4 py-2 rounded-md;
+}
+
+#scheduleModal .modal-actions .cancel-btn {
+  @apply border;
+}
+
+#scheduleModal .modal-actions .save-btn {
+  @apply bg-indigo-600 text-white;
+}
+
+
+    /* Upcoming Appointments Table */
+#appointmentsTableBody tr:hover {
+  @apply bg-gray-50;
+}
+
+#appointmentsTableBody td {
+  @apply border px-3 py-2 text-sm;
+}
+
+#appointmentsTableBody td:first-child {
+  @apply font-medium;
+}
+
+#appointmentsTableBody td[colspan="4"] {
+  @apply text-center text-gray-500 p-3;
+}
+
+.card h3 {
+  @apply font-semibold mb-3;
+}
+
+table {
+  @apply w-full table-auto border-collapse border border-gray-200;
+}
+
+thead th {
+  @apply bg-gray-100 border px-3 py-2 text-left text-sm font-medium;
+}
+
+    .card { @apply bg-white rounded-2xl shadow p-4; }
+    .glass {
+      background: rgba(255,255,255,0.8);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    .modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+      animation: fadeIn 0.25s ease;
+    }
+    .modal.active { display: flex; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+    *,
+::before,
+::after {
+  --tw-border-spacing-x:0;
+  --tw-border-spacing-y:0;
+  --tw-translate-x:0;
+  --tw-translate-y:0;
+  --tw-rotate:0;
+  --tw-skew-x:0;
+  --tw-skew-y:0;
+  --tw-scale-x:1;
+  --tw-scale-y:1;
+  --tw-pan-x: ;
+  --tw-pan-y: ;
+  --tw-pinch-zoom: ;
+  --tw-scroll-snap-strictness:proximity;
+  --tw-gradient-from-position: ;
+  --tw-gradient-via-position: ;
+  --tw-gradient-to-position: ;
+  --tw-ordinal: ;
+  --tw-slashed-zero: ;
+  --tw-numeric-figure: ;
+  --tw-numeric-spacing: ;
+  --tw-numeric-fraction: ;
+  --tw-ring-inset: ;
+  --tw-ring-offset-width:0px;
+  --tw-ring-offset-color:#fff;
+  --tw-ring-color:rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow:0 0 #0000;
+  --tw-ring-shadow:0 0 #0000;
+  --tw-shadow:0 0 #0000;
+  --tw-shadow-colored:0 0 #0000;
+  --tw-blur: ;
+  --tw-brightness: ;
+  --tw-contrast: ;
+  --tw-grayscale: ;
+  --tw-hue-rotate: ;
+  --tw-invert: ;
+  --tw-saturate: ;
+  --tw-sepia: ;
+  --tw-drop-shadow: ;
+  --tw-backdrop-blur: ;
+  --tw-backdrop-brightness: ;
+  --tw-backdrop-contrast: ;
+  --tw-backdrop-grayscale: ;
+  --tw-backdrop-hue-rotate: ;
+  --tw-backdrop-invert: ;
+  --tw-backdrop-opacity: ;
+  --tw-backdrop-saturate: ;
+  --tw-backdrop-sepia: ;
+  --tw-contain-size: ;
+  --tw-contain-layout: ;
+  --tw-contain-paint: ;
+  --tw-contain-style: 
+}
+::backdrop {
+  --tw-border-spacing-x:0;
+  --tw-border-spacing-y:0;
+  --tw-translate-x:0;
+  --tw-translate-y:0;
+  --tw-rotate:0;
+  --tw-skew-x:0;
+  --tw-skew-y:0;
+  --tw-scale-x:1;
+  --tw-scale-y:1;
+  --tw-pan-x: ;
+  --tw-pan-y: ;
+  --tw-pinch-zoom: ;
+  --tw-scroll-snap-strictness:proximity;
+  --tw-gradient-from-position: ;
+  --tw-gradient-via-position: ;
+  --tw-gradient-to-position: ;
+  --tw-ordinal: ;
+  --tw-slashed-zero: ;
+  --tw-numeric-figure: ;
+  --tw-numeric-spacing: ;
+  --tw-numeric-fraction: ;
+  --tw-ring-inset: ;
+  --tw-ring-offset-width:0px;
+  --tw-ring-offset-color:#fff;
+  --tw-ring-color:rgb(59 130 246 / 0.5);
+  --tw-ring-offset-shadow:0 0 #0000;
+  --tw-ring-shadow:0 0 #0000;
+  --tw-shadow:0 0 #0000;
+  --tw-shadow-colored:0 0 #0000;
+  --tw-blur: ;
+  --tw-brightness: ;
+  --tw-contrast: ;
+  --tw-grayscale: ;
+  --tw-hue-rotate: ;
+  --tw-invert: ;
+  --tw-saturate: ;
+  --tw-sepia: ;
+  --tw-drop-shadow: ;
+  --tw-backdrop-blur: ;
+  --tw-backdrop-brightness: ;
+  --tw-backdrop-contrast: ;
+  --tw-backdrop-grayscale: ;
+  --tw-backdrop-hue-rotate: ;
+  --tw-backdrop-invert: ;
+  --tw-backdrop-opacity: ;
+  --tw-backdrop-saturate: ;
+  --tw-backdrop-sepia: ;
+  --tw-contain-size: ;
+  --tw-contain-layout: ;
+  --tw-contain-paint: ;
+  --tw-contain-style: 
+}
+/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,
+::after,
+::before {
+  box-sizing:border-box;
+  border-width:0;
+  border-style:solid;
+  border-color:#e5e7eb
+}
+::after,
+::before {
+  --tw-content:''
+}
+:host,
+html {
+  line-height:1.5;
+  -webkit-text-size-adjust:100%;
+  -moz-tab-size:4;
+  tab-size:4;
+  font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-feature-settings:normal;
+  font-variation-settings:normal;
+  -webkit-tap-highlight-color:transparent
+}
+body {
+  margin:0;
+  line-height:inherit
+}
+hr {
+  height:0;
+  color:inherit;
+  border-top-width:1px
+}
+abbr:where([title]) {
+  -webkit-text-decoration:underline dotted;
+  text-decoration:underline dotted
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size:inherit;
+  font-weight:inherit
+}
+a {
+  color:inherit;
+  text-decoration:inherit
+}
+b,
+strong {
+  font-weight:bolder
+}
+code,
+kbd,
+pre,
+samp {
+  font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-feature-settings:normal;
+  font-variation-settings:normal;
+  font-size:1em
+}
+small {
+  font-size:80%
+}
+sub,
+sup {
+  font-size:75%;
+  line-height:0;
+  position:relative;
+  vertical-align:baseline
+}
+sub {
+  bottom:-.25em
+}
+sup {
+  top:-.5em
+}
+table {
+  text-indent:0;
+  border-color:inherit;
+  border-collapse:collapse
+}
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family:inherit;
+  font-feature-settings:inherit;
+  font-variation-settings:inherit;
+  font-size:100%;
+  font-weight:inherit;
+  line-height:inherit;
+  letter-spacing:inherit;
+
+  margin:0;
+  padding:0
+}
+button,
+select {
+  text-transform:none
+}
+button,
+input:where([type=button]),
+input:where([type=reset]),
+input:where([type=submit]) {
+  -webkit-appearance:button;
+  background-color:transparent;
+  background-image:none
+}
+:-moz-focusring {
+  outline:auto
+}
+:-moz-ui-invalid {
+  box-shadow:none
+}
+progress {
+  vertical-align:baseline
+}
+::-webkit-inner-spin-button,
+::-webkit-outer-spin-button {
+  height:auto
+}
+[type=search] {
+  -webkit-appearance:textfield;
+  outline-offset:-2px
+}
+::-webkit-search-decoration {
+  -webkit-appearance:none
+}
+::-webkit-file-upload-button {
+  -webkit-appearance:button;
+  font:inherit
+}
+summary {
+  display:list-item
+}
+blockquote,
+dd,
+dl,
+figure,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+hr,
+p,
+pre {
+  margin:0
+}
+fieldset {
+  margin:0;
+  padding:0
+}
+legend {
+  padding:0
+}
+menu,
+ol,
+ul {
+  list-style:none;
+  margin:0;
+  padding:0
+}
+dialog {
+  padding:0
+}
+textarea {
+  resize:vertical
+}
+input::placeholder,
+textarea::placeholder {
+  opacity:1;
+  color:#9ca3af
+}
+[role=button],
+button {
+  cursor:pointer
+}
+:disabled {
+  cursor:default
+}
+audio,
+canvas,
+embed,
+iframe,
+img,
+object,
+svg,
+video {
+  display:block;
+  vertical-align:middle
+}
+img,
+video {
+  max-width:100%;
+  height:auto
+}
+[hidden]:where(:not([hidden=until-found])) {
+  display:none
+}
+.container {
+  width:100%
+}
+@media (min-width: 640px) {
+  .container {
+    max-width:640px
+  }
+}
+@media (min-width: 768px) {
+  .container {
+    max-width:768px
+  }
+}
+@media (min-width: 1024px) {
+  .container {
+    max-width:1024px
+  }
+}
+@media (min-width: 1280px) {
+  .container {
+    max-width:1280px
+  }
+}
+@media (min-width: 1536px) {
+  .container {
+    max-width:1536px
+  }
+}
+.absolute {
+  position:absolute
+}
+.relative {
+  position:relative
+}
+.right-0 {
+  right:0px
+}
+.mx-auto {
+  margin-left:auto;
+  margin-right:auto
+}
+.mb-3 {
+  margin-bottom:0.75rem
+}
+.mb-4 {
+  margin-bottom:1rem
+}
+.mt-2 {
+  margin-top:0.5rem
+}
+.mt-8 {
+  margin-top:2rem
+}
+.block {
+  display:block
+}
+.flex {
+  display:flex
+}
+.inline-flex {
+  display:inline-flex
+}
+.grid {
+  display:grid
+}
+.hidden {
+  display:none
+}
+.h-10 {
+  height:2.5rem
+}
+.h-8 {
+  height:2rem
+}
+.w-10 {
+  width:2.5rem
+}
+.w-40 {
+  width:10rem
+}
+.w-8 {
+  width:2rem
+}
+.w-full {
+  width:100%
+}
+.max-w-md {
+  max-width:28rem
+}
+.cursor-pointer {
+  cursor:pointer
+}
+.grid-cols-1 {
+  grid-template-columns:repeat(1, minmax(0, 1fr))
+}
+.items-center {
+  align-items:center
+}
+.justify-end {
+  justify-content:flex-end
+}
+.justify-center {
+  justify-content:center
+}
+.justify-between {
+  justify-content:space-between
+}
+.gap-2 {
+  gap:0.5rem
+}
+.gap-3 {
+  gap:0.75rem
+}
+.gap-6 {
+  gap:1.5rem
+}
+.space-y-2 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse:0;
+  margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))
+}
+.space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse:0;
+  margin-top:calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom:calc(0.75rem * var(--tw-space-y-reverse))
+}
+.space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse:0;
+  margin-top:calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom:calc(1rem * var(--tw-space-y-reverse))
+}
+.space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse:0;
+  margin-top:calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom:calc(1.5rem * var(--tw-space-y-reverse))
+}
+.rounded {
+  border-radius:0.25rem
+}
+.rounded-2xl {
+  border-radius:1rem
+}
+.rounded-full {
+  border-radius:9999px
+}
+.rounded-lg {
+  border-radius:0.5rem
+}
+.rounded-md {
+  border-radius:0.375rem
+}
+.rounded-xl {
+  border-radius:0.75rem
+}
+.border {
+  border-width:1px
+}
+.bg-gray-50 {
+  --tw-bg-opacity:1;
+  background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))
+}
+.bg-green-50 {
+  --tw-bg-opacity:1;
+  background-color:rgb(240 253 244 / var(--tw-bg-opacity, 1))
+}
+.bg-indigo-50 {
+  --tw-bg-opacity:1;
+  background-color:rgb(238 242 255 / var(--tw-bg-opacity, 1))
+}
+.bg-indigo-600 {
+  --tw-bg-opacity:1;
+  background-color:rgb(79 70 229 / var(--tw-bg-opacity, 1))
+}
+.bg-rose-50 {
+  --tw-bg-opacity:1;
+  background-color:rgb(255 241 242 / var(--tw-bg-opacity, 1))
+}
+.bg-white {
+  --tw-bg-opacity:1;
+  background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))
+}
+.bg-white\/90 {
+  background-color:rgb(255 255 255 / 0.9)
+}
+.object-cover {
+  object-fit:cover
+}
+.p-2 {
+  padding:0.5rem
+}
+.p-6 {
+  padding:1.5rem
+}
+.px-3 {
+  padding-left:0.75rem;
+  padding-right:0.75rem
+}
+.px-4 {
+  padding-left:1rem;
+  padding-right:1rem
+}
+.py-2 {
+  padding-top:0.5rem;
+  padding-bottom:0.5rem
+}
+.py-4 {
+  padding-top:1rem;
+  padding-bottom:1rem
+}
+.py-6 {
+  padding-top:1.5rem;
+  padding-bottom:1.5rem
+}
+.pt-2 {
+  padding-top:0.5rem
+}
+.text-left {
+  text-align:left
+}
+.text-center {
+  text-align:center
+}
+.font-sans {
+  font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"
+}
+.text-lg {
+  font-size:1.125rem;
+  line-height:1.75rem
+}
+.text-sm {
+  font-size:0.875rem;
+  line-height:1.25rem
+}
+.text-xl {
+  font-size:1.25rem;
+  line-height:1.75rem
+}
+.text-xs {
+  font-size:0.75rem;
+  line-height:1rem
+}
+.font-semibold {
+  font-weight:600
+}
+.font-medium {
+  font-weight:500
+}
+.text-gray-500 {
+  --tw-text-opacity:1;
+  color:rgb(107 114 128 / var(--tw-text-opacity, 1))
+}
+.text-gray-800 {
+  --tw-text-opacity:1;
+  color:rgb(31 41 55 / var(--tw-text-opacity, 1))
+}
+.text-indigo-600 {
+  --tw-text-opacity:1;
+  color:rgb(79 70 229 / var(--tw-text-opacity, 1))
+}
+.text-rose-600 {
+  --tw-text-opacity:1;
+  color:rgb(225 29 72 / var(--tw-text-opacity, 1))
+}
+.text-white {
+  --tw-text-opacity:1;
+  color:rgb(215, 0, 0);
+}
+.text-amber-600 {
+  --tw-text-opacity:1;
+  color:rgb(217 119 6 / var(--tw-text-opacity, 1))
+}
+.text-green-600 {
+  --tw-text-opacity:1;
+  color:rgb(22 163 74 / var(--tw-text-opacity, 1))
+}
+.antialiased {
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale
+}
+.shadow {
+  --tw-shadow:0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);
+  box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)
+}
+.shadow-md {
+  --tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);
+  box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)
+}
+.shadow-sm {
+  --tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);
+  box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)
+}
+.transition {
+  transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
+  transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+  transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;
+  transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration:150ms
+}
+.hover\:bg-gray-100:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(243 244 246 / var(--tw-bg-opacity, 1))
+}
+.hover\:bg-green-100:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(220 252 231 / var(--tw-bg-opacity, 1))
+}
+.hover\:bg-indigo-100:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(224 231 255 / var(--tw-bg-opacity, 1))
+}
+.hover\:bg-indigo-700:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(67 56 202 / var(--tw-bg-opacity, 1))
+}
+.hover\:bg-rose-100:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(255 228 230 / var(--tw-bg-opacity, 1))
+}
+.hover\:bg-white:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))
+}
+.hover\:bg-gray-50:hover {
+  --tw-bg-opacity:1;
+  background-color:rgb(249 250 251 / var(--tw-bg-opacity, 1))
+}
+@media (min-width: 768px) {
+  .md\:inline-block {
+    display:inline-block
+  }
+}
+@media (min-width: 1024px) {
+  .lg\:col-span-2 {
+    grid-column:span 2 / span 2
+  }
+  .lg\:grid-cols-3 {
+    grid-template-columns:repeat(3, minmax(0, 1fr))
+  }
+}
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+.datetimebox {
+  display: flex;
+  line-height: normal;
+  white-space: nowrap;
+  /* TODO: Enable selection once bug 1455893 is fixed */
+  user-select: none;
+}
+
+.datetime-input-box-wrapper {
+  display: inline-flex;
+  flex: 1;
+  background-color: inherit;
+  min-width: 0;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.datetime-input-edit-wrapper {
+  overflow: hidden;
+  flex-grow: 1;
+}
+
+.datetime-edit-field {
+  display: inline;
+  text-align: center;
+  padding: 1px 3px;
+  border: 0;
+  margin: 0;
+  ime-mode: disabled;
+  outline: none;
+
+  &:focus {
+    background-color: Highlight;
+    color: HighlightText;
+    outline: none;
+  }
+}
+
+.datetime-calendar-button {
+  -moz-context-properties: fill;
+  color: color-mix(in srgb, currentColor 65%, transparent);
+  font-size: inherit;
+  fill: currentColor;
+  background-color: transparent;
+  border: none;
+  border-radius: 0.2em;
+  flex: none;
+  margin-block: 0;
+  margin-inline: 0.075em 0.15em;
+  padding: 0 0.15em;
+  line-height: 1;
+
+  &:focus-visible {
+    outline: 0.15em solid SelectedItem;
+  }
+
+  &:focus-visible,
+  &:hover {
+    color: inherit;
+  }
+
+  @media (prefers-contrast) {
+    background-color: ButtonFace;
+    color: ButtonText;
+
+    > .datetime-calendar-button-svg {
+      background-color: ButtonFace;
+      -moz-context-properties: fill;
+      fill: ButtonText;
+    }
+
+    &:focus-visible,
+    &:hover {
+      background-color: SelectedItem;
+
+      > .datetime-calendar-button-svg {
+        background-color: SelectedItem;
+        -moz-context-properties: fill;
+        fill: SelectedItemText;
+      }
+    }
+  }
+}
+
+.datetime-calendar-button-svg {
+  pointer-events: none;
+  /* When using a very small font-size, we don't want the button to take extra
+   * space (which will affect the baseline of the form control) */
+  max-width: 1em;
+  max-height: 1em;
+}
+
+:host(:is(:disabled, :read-only, [type="time"])) .datetime-calendar-button {
+  display: none;
+}
+
+:host(:is(:disabled, :read-only)) .datetime-edit-field {
+  user-select: none;
+  pointer-events: none;
+  -moz-user-focus: none;
+}
+
+    @keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out;
+}
+  </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 antialiased">
+
+  <!-- Header -->
+  <header class="bg-indigo-600 text-white py-4 shadow">
+    <div class="container mx-auto px-4 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v6"></path><path d="M8 10s1 2 4 2 4-2 4-2"></path><path d="M6 21s2-4 6-4 6 4 6 4"></path>
+          </svg>
+        </div>
+        <div class="font-semibold text-lg">SmartDent ERP</div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="addBtn" class="bg-white/90 text-indigo-600 px-3 py-2 rounded-md inline-flex items-center gap-2 shadow-sm hover:bg-white">
+          <i data-feather="plus-circle"></i> Add Patient
+        </button>
+        <div class="relative" id="doctorMenu">
+          <button id="doctorBtn" class="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-full shadow-sm hover:bg-white">
+            <img src="assets/images/avatar.jpg" class="w-8 h-8 rounded-full object-cover">
+            <span class="hidden md:inline-block text-sm">Dr.___</span>
+            <i data-feather="chevron-down"></i>
+          </button>
+          <div id="doctorDropdown" class="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-md p-2 hidden">
+            <button class="block w-full text-left px-3 py-2 rounded hover:bg-gray-100" id="profileBtn">Profile</button>
+            <button class="block w-full text-left px-3 py-2 rounded hover:bg-gray-100" id="settingsBtn">Settings</button>
+            <button class="block w-full text-left px-3 py-2 rounded hover:bg-gray-100 text-rose-600" id="logoutBtn">Logout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="container mx-auto px-4 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Patient List -->
+      <section class="lg:col-span-2 space-y-6">
+        <div class="card">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold">Patient Records</h2>
+            <div class="flex gap-2">
+              <input id="searchInput" type="text" placeholder="Search…" class="px-3 py-2 border rounded-md" />
+              <button id="searchBtn" class="px-3 py-2 border rounded-md"><i data-feather="search"></i></button>
+            </div>
+          </div>
+          <ul id="patientList" class="space-y-4"></ul>
+        </div>
+      </section>
+
+      <!-- Sidebar -->
+      <aside class="space-y-6">
+        <div class="card">
+          <h3 class="font-semibold mb-3">Appointments Summary</h3>
+          <ul class="space-y-2 text-sm">
+            <li class="flex justify-between"><span>Today</span><span>38</span></li>
+            <li class="flex justify-between"><span>Pending</span><span>5</span></li>
+            <li class="flex justify-between"><span>Upcoming</span><span>12</span></li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3 class="font-semibold mb-3">Quick Actions</h3>
+          <div class="grid gap-3">
+            <button id="scheduleBtn" class="flex items-center gap-3 px-4 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100"><i data-feather="calendar"></i> Schedule</button>
+            <button id="manageBtn" class="flex items-center gap-3 px-4 py-2 rounded-lg bg-green-50 hover:bg-green-100"><i data-feather="users"></i>Manage Patients</button>
+           <button onclick="openInvoiceModal()" class="flex items-center gap-3 px-4 py-2 rounded-lg bg-rose-50 hover:bg-rose-100"><i data-feather="file-text"></i> Invoicing</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <!-- Upcoming Appointments -->
+<div class="card mt-6">
+  <h3 class="font-semibold mb-3">Upcoming Appointments</h3>
+  <table class="w-full table-auto border-collapse border border-gray-200">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="border px-3 py-2 text-left">Patient</th>
+        <th class="border px-3 py-2 text-left">Dentist</th>
+        <th class="border px-3 py-2 text-left">Date</th>
+        <th class="border px-3 py-2 text-left">Time</th>
+      </tr>
+    </thead>
+    <tbody id="appointmentsTableBody">
+      <!-- Appointments will be injected here -->
+    </tbody>
+  </table>
+</div>
+
+  <footer class="mt-8 text-sm text-gray-500 text-center">
+    SmartDent ERP • Patient Management Simplified
+  </footer>
+
+  <!-- Patient Modal -->
+  <div id="patientModal" class="modal">
+    <div class="glass rounded-2xl p-6 w-full max-w-md relative">
+      <h2 id="modalTitle" class="text-lg font-semibold mb-4">Add Patient</h2>
+      <form id="patientForm" class="space-y-3">
+        <input type="hidden" id="editIndex" />
+        <input id="name" required placeholder="Full Name" class="w-full border rounded-md px-3 py-2" />
+        <input id="note" required placeholder="Treatment / Note" class="w-full border rounded-md px-3 py-2" />
+        <input id="date" type="date" class="w-full border rounded-md px-3 py-2" />
+        <select id="status" class="w-full border rounded-md px-3 py-2">
+          <option value="Paid">Paid</option>
+          <option value="Invoice">Invoice</option>
+          <option value="Overdue">Overdue</option>
+        </select>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" id="deleteBtn" class="hidden px-3 py-2 bg-rose-50 text-rose-600 rounded-md hover:bg-rose-100">Delete</button>
+          <button type="button" id="cancelBtn" class="px-3 py-2 border rounded-md">Cancel</button>
+          <button type="submit" class="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- INVOICE MODAL -->
+<!-- New Invoice Modal -->
+<div id="invoiceModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+  <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+    <h3 class="text-lg font-semibold mb-4">Create Invoice</h3>
+    <form id="invoiceForm" class="space-y-3">
+      <!-- Invoice Date -->
+      <input id="invoiceDate" type="date" class="w-full px-3 py-2 border rounded-md" />
+
+      <!-- Patient Dropdown -->
+      <select id="invoicePatient" class="w-full px-3 py-2 border rounded-md"></select>
+
+      <!-- Dentist Dropdown -->
+      <select id="invoiceDentist" class="w-full px-3 py-2 border rounded-md"></select>
+
+      <!-- Service List -->
+      <div id="serviceList" class="space-y-2"></div>
+      <button type="button" onclick="addServiceLine()" class="px-3 py-2 bg-gray-100 rounded-md">Add Service</button>
+
+      <!-- Total -->
+      <div class="text-right font-semibold">Total: <span id="invoiceTotal">$0.00</span></div>
+
+      <!-- Submit -->
+      <div class="mt-4 flex justify-end gap-2">
+        <button type="button" onclick="closeInvoiceModal()" class="px-4 py-2 border rounded-md">Cancel</button>
+        <button type="submit" class="px-4 py-2 bg-rose-600 text-white rounded-md">Save Invoice</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+  <!-- Schedule Appointment Modal -->
+<div id="scheduleModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md relative">
+    <button onclick="closeScheduleModal()" class="absolute top-3 right-3 text-gray-500">
+      <i data-feather="x"></i>
+    </button>
+    <h3 class="text-lg font-semibold mb-4">Schedule Appointment</h3>
+    <form id="scheduleForm" class="space-y-3">
+      <select id="schedulePatient" class="w-full px-3 py-2 border rounded-md">
+        <option value="">Select Patient</option>
+      </select>
+      <input type="date" id="scheduleDate" class="w-full px-3 py-2 border rounded-md" />
+      <input type="time" id="scheduleTime" class="w-full px-3 py-2 border rounded-md" />
+      <select id="scheduleDentist" class="w-full px-3 py-2 border rounded-md">
+        <option value="">Select Dentist</option>
+      </select>
+      <div class="flex justify-end gap-2 mt-4">
+        <button type="button" onclick="closeScheduleModal()" class="px-4 py-2 border rounded-md">Cancel</button>
+        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-md">Schedule</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+<script>
+feather.replace();
+
+// ===== PATIENT MANAGEMENT =====
+const patientModal = document.getElementById('patientModal');
+const patientForm = document.getElementById('patientForm');
+const patientList = document.getElementById('patientList');
+const deleteBtn = document.getElementById('deleteBtn');
+const editIndex = document.getElementById('editIndex');
+const modalTitle = document.getElementById('modalTitle');
+
+let patients = JSON.parse(localStorage.getItem('patients')) || [];
+
+function savePatients() {
+  localStorage.setItem('patients', JSON.stringify(patients));
+}
+
+function renderPatients(list = patients) {
+  patientList.innerHTML = '';
+  list.forEach((p, i) => {
+    const initials = p.name.split(' ').map(s => s[0]).slice(0,2).join('');
+    const color = p.status === 'Paid' ? 'text-green-600' :
+                  p.status === 'Overdue' ? 'text-rose-600' : 'text-amber-600';
+    const li = document.createElement('li');
+    li.className = 'flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg cursor-pointer transition';
+    li.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center font-semibold">${initials}</div>
+        <div>
+          <div class="font-medium">${p.name}</div>
+          <div class="text-xs text-gray-500">${p.note} — ${p.date}</div>
+        </div>
+      </div>
+      <div class="text-sm ${color}">${p.status}</div>
+    `;
+    li.onclick = () => openPatientModal(i);
+    patientList.appendChild(li);
+  });
+}
+
+function openPatientModal(index = null) {
+  patientModal.classList.add('active');
+  if (index !== null) {
+    const p = patients[index];
+    modalTitle.textContent = 'Edit Patient';
+    patientForm.name.value = p.name;
+    patientForm.note.value = p.note;
+    patientForm.date.value = p.date;
+    patientForm.status.value = p.status;
+    editIndex.value = index;
+    deleteBtn.classList.remove('hidden');
+  } else {
+    modalTitle.textContent = 'Add Patient';
+    patientForm.reset();
+    patientForm.date.value = new Date().toISOString().split('T')[0];
+    editIndex.value = '';
+    deleteBtn.classList.add('hidden');
+  }
+}
+
+function closePatientModal() {
+  patientModal.classList.remove('active');
+}
+
+patientForm.onsubmit = e => {
+  e.preventDefault();
+  const data = {
+    name: patientForm.name.value.trim(),
+    note: patientForm.note.value.trim(),
+    date: patientForm.date.value,
+    status: patientForm.status.value
+  };
+  if (editIndex.value !== '') patients[editIndex.value] = data;
+  else patients.push(data);
+  savePatients();
+  renderPatients();
+  closePatientModal();
+};
+
+deleteBtn.onclick = () => {
+  const pwd = prompt("Enter password to delete:");
+  if (pwd === "admin123") {
+    patients.splice(editIndex.value, 1);
+    savePatients();
+    renderPatients();
+    closePatientModal();
+  } else alert("Incorrect password!");
+};
+
+document.getElementById('cancelBtn').onclick = closePatientModal;
+document.getElementById('addBtn').onclick = () => openPatientModal();
+window.onclick = e => { if (e.target === patientModal) closePatientModal(); };
+
+// Search
+document.getElementById('searchBtn').onclick = () => {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  renderPatients(patients.filter(p => 
+    p.name.toLowerCase().includes(q) || p.note.toLowerCase().includes(q)
+  ));
+};
+
+// Doctor dropdown
+const doctorBtn = document.getElementById('doctorBtn');
+const doctorDropdown = document.getElementById('doctorDropdown');
+if (doctorBtn && doctorDropdown) {
+  doctorBtn.onclick = () => doctorDropdown.classList.toggle('hidden');
+  window.addEventListener('click', e => {
+    if (!doctorBtn.contains(e.target) && !doctorDropdown.contains(e.target)) {
+      doctorDropdown.classList.add('hidden');
+    }
+  });
+}
+
+document.getElementById('profileBtn').onclick = () => alert("Doctor Profile Page (coming soon)");
+document.getElementById('settingsBtn').onclick = () => alert("Settings Page (coming soon)");
+document.getElementById('logoutBtn').onclick = () => {
+  if (confirm("Log out of SmartDent ERP?")) alert("Logged out successfully!");
+};
+
+// ===== INVOICING LOGIC =====
+const invoiceModal = document.getElementById('invoiceModal');
+const invoiceForm = document.getElementById('invoiceForm');
+const invoiceDate = document.getElementById('invoiceDate');
+const invoicePatient = document.getElementById('invoicePatient');
+const invoiceDentist = document.getElementById('invoiceDentist');
+const serviceList = document.getElementById('serviceList');
+const invoiceTotal = document.getElementById('invoiceTotal');
+
+let invoices = JSON.parse(localStorage.getItem('invoices')) || [];
+
+function openInvoiceModal() {
+  renderPatientOptions();
+  renderDentistOptions();
+  invoiceDate.value = new Date().toISOString().split('T')[0];
+  invoiceModal.classList.remove('hidden');
+  invoiceModal.classList.add('flex');
+}
+
+function closeInvoiceModal() {
+  invoiceModal.classList.add('hidden');
+  invoiceModal.classList.remove('flex');
+}
+
+if (invoiceModal) {
+  invoiceModal.addEventListener('click', e => {
+    if (e.target === invoiceModal) closeInvoiceModal();
+  });
+}
+
+function renderPatientOptions() {
+  if (!invoicePatient) return;
+  invoicePatient.innerHTML = '<option value="">Select Patient</option>';
+  patients.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = p.name;
+    invoicePatient.appendChild(opt);
+  });
+}
+
+function renderDentistOptions() {
+  if (!invoiceDentist) return;
+  let dentists = JSON.parse(localStorage.getItem('dentists') || '[]');
+  if (dentists.length === 0) {
+    dentists = [{name: "Dr. Phiri"}, {name: "Dr. Mwale"}];
+    localStorage.setItem('dentists', JSON.stringify(dentists));
+  }
+  invoiceDentist.innerHTML = '<option value="">Select Dentist</option>';
+  dentists.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.name;
+    opt.textContent = d.name;
+    invoiceDentist.appendChild(opt);
+  });
+}
+
+function addServiceLine() {
+  if (!serviceList) return;
+  const div = document.createElement('div');
+  div.className = 'flex gap-2';
+  div.innerHTML = `
+    <input type="text" placeholder="Service Description" class="flex-1 border rounded-md px-2 py-1">
+    <input type="number" placeholder="Amount" class="w-24 border rounded-md px-2 py-1 text-right">
+  `;
+  serviceList.appendChild(div);
+}
+
+if (serviceList) {
+  serviceList.addEventListener('input', () => {
+    const amounts = [...serviceList.querySelectorAll('input[type="number"]')].map(i => parseFloat(i.value) || 0);
+    invoiceTotal.textContent = `$${amounts.reduce((a,b)=>a+b,0).toFixed(2)}`;
+  });
+}
+
+if (invoiceForm) {
+  invoiceForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const patient = invoicePatient?.value;
+    const dentist = invoiceDentist?.value;
+    const date = invoiceDate?.value;
+    const services = [...serviceList.querySelectorAll('div')].map(div => {
+      const [desc, amt] = div.querySelectorAll('input');
+      return { desc: desc.value.trim(), amt: parseFloat(amt.value) || 0 };
+    });
+    const total = services.reduce((a,b)=>a+b.amt,0);
+
+    if (!patient || !dentist || services.length === 0) {
+      alert('Please fill in all details');
+      return;
+    }
+
+    invoices.push({ patient, dentist, date, services, total });
+    localStorage.setItem('invoices', JSON.stringify(invoices));
+
+    alert(`Invoice saved for ${patient} by ${dentist}`);
+    closeInvoiceModal();
+  });
+}
+
+  // ===== SCHEDULE APPOINTMENT LOGIC =====
+const scheduleModal = document.getElementById('scheduleModal');
+const scheduleForm = document.getElementById('scheduleForm');
+const schedulePatient = document.getElementById('schedulePatient');
+const scheduleDentist = document.getElementById('scheduleDentist');
+const scheduleDate = document.getElementById('scheduleDate');
+const scheduleTime = document.getElementById('scheduleTime');
+
+function openScheduleModal() {
+  // Populate patients
+  schedulePatient.innerHTML = '<option value="">Select Patient</option>';
+  patients.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = p.name;
+    schedulePatient.appendChild(opt);
+  });
+
+  // Populate dentists
+  let dentists = JSON.parse(localStorage.getItem('dentists') || '[]');
+  if (dentists.length === 0) {
+    dentists = [{name: "Dr. Phiri"}, {name: "Dr. Mwale"}];
+    localStorage.setItem('dentists', JSON.stringify(dentists));
+  }
+  scheduleDentist.innerHTML = '<option value="">Select Dentist</option>';
+  dentists.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.name;
+    opt.textContent = d.name;
+    scheduleDentist.appendChild(opt);
+  });
+
+  // Set current date/time defaults
+  scheduleDate.value = new Date().toISOString().split('T')[0];
+  scheduleTime.value = "09:00";
+
+  scheduleModal.classList.remove('hidden');
+  scheduleModal.classList.add('flex');
+}
+
+function closeScheduleModal() {
+  scheduleModal.classList.add('hidden');
+  scheduleModal.classList.remove('flex');
+}
+
+if (scheduleModal) {
+  scheduleModal.addEventListener('click', e => {
+    if (e.target === scheduleModal) closeScheduleModal();
+  });
+}
+
+// Handle schedule form submission
+if (scheduleForm) {
+  scheduleForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const patient = schedulePatient.value;
+    const dentist = scheduleDentist.value;
+    const date = scheduleDate.value;
+    const time = scheduleTime.value;
+
+    if (!patient || !dentist || !date || !time) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    // Demo: forward appointment to patient email
+    alert(`Appointment for ${patient} with ${dentist} on ${date} at ${time} has been forwarded to patient's email.`);
+
+    closeScheduleModal();
+  });
+}
+
+// Connect quick action button
+document.addEventListener('DOMContentLoaded', () => {
+  const scheduleBtn = document.getElementById('scheduleBtn');
+  if (scheduleBtn) scheduleBtn.onclick = openScheduleModal;
+});
+
+
+  // ===== APPOINTMENTS TRACKING =====
+let appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
+
+const appointmentsTableBody = document.getElementById('appointmentsTableBody');
+
+function saveAppointments() {
+  localStorage.setItem('appointments', JSON.stringify(appointments));
+}
+
+function renderAppointments() {
+  if (!appointmentsTableBody) return;
+  appointmentsTableBody.innerHTML = '';
+  if (appointments.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="4" class="text-center p-3 text-gray-500">No upcoming appointments</td>`;
+    appointmentsTableBody.appendChild(tr);
+    return;
+  }
+
+  appointments.forEach(a => {
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-gray-50';
+    tr.innerHTML = `
+      <td class="border px-3 py-2">${a.patient}</td>
+      <td class="border px-3 py-2">${a.dentist}</td>
+      <td class="border px-3 py-2">${a.date}</td>
+      <td class="border px-3 py-2">${a.time}</td>
+    `;
+    appointmentsTableBody.appendChild(tr);
+  });
+}
+
+// Update schedule form submission to save and render appointments
+if (scheduleForm) {
+  scheduleForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const patient = schedulePatient.value;
+    const dentist = scheduleDentist.value;
+    const date = scheduleDate.value;
+    const time = scheduleTime.value;
+
+    if (!patient || !dentist || !date || !time) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    // Save appointment
+    appointments.push({ patient, dentist, date, time });
+    saveAppointments();
+    renderAppointments();
+
+    // Demo alert
+    alert(`Appointment for ${patient} with ${dentist} on ${date} at ${time} has been forwarded to patient's email.`);
+
+    closeScheduleModal();
+  });
+}
+
+// Render on page load
+document.addEventListener('DOMContentLoaded', renderAppointments);
+
+// Quick Actions
+document.addEventListener('DOMContentLoaded', () => {
+  const manageBtn = document.getElementById('manageBtn');
+
+
+  if (manageBtn) manageBtn.onclick = openPatientModal;
+});
+
+// Initialize
+renderPatients();
+</script>
+
+
+</body>
+</html>
