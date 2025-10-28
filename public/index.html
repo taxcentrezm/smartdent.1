@@ -1121,18 +1121,18 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ======================
      Slideshow (auto + manual)
   ====================== */
-  (function initSlideshow(){
+  (() => {
     const slides = Array.from(document.querySelectorAll('#slideshow .slide'));
-    if(!slides.length) return;
+    if (!slides.length) return;
 
     let idx = 0;
-    slides.forEach((s,i)=> s.style.opacity = i===0?'1':'0');
+    slides.forEach((s, i) => s.style.opacity = i === 0 ? '1' : '0');
 
-    function show(i){
-      slides.forEach((s,j)=> s.style.opacity = j===i?'1':'0');
+    function show(i) {
+      slides.forEach((s, j) => s.style.opacity = j === i ? '1' : '0');
     }
 
-    setInterval(()=> {
+    setInterval(() => {
       idx = (idx + 1) % slides.length;
       show(idx);
     }, 5000);
@@ -1141,99 +1141,110 @@ document.addEventListener('DOMContentLoaded', () => {
   /* ======================
      Dropdowns (top nav + profile)
   ====================== */
-  (function initDropdowns(){
+  (() => {
     const toggles = document.querySelectorAll('[data-dropdown-target]');
     toggles.forEach(btn => {
       const menu = document.getElementById(btn.dataset.dropdownTarget);
-      if(!menu) return;
+      if (!menu) return;
       btn.addEventListener('click', e => {
         e.stopPropagation();
         const visible = menu.style.display === 'block';
-        document.querySelectorAll('.dropdown-hidden').forEach(d=>d.style.display='none');
+        document.querySelectorAll('.dropdown-hidden').forEach(d => d.style.display = 'none');
         menu.style.display = visible ? 'none' : 'block';
       });
     });
 
     const profileBtn = document.getElementById('profileBtn');
     const profileDropdown = document.getElementById('profileDropdown');
-    if(profileBtn && profileDropdown){
+    if (profileBtn && profileDropdown) {
       profileBtn.addEventListener('click', e => {
         e.stopPropagation();
-        profileDropdown.style.display = profileDropdown.style.display==='block'?'none':'block';
+        profileDropdown.style.display = profileDropdown.style.display === 'block' ? 'none' : 'block';
       });
     }
 
     document.addEventListener('click', () => {
-      document.querySelectorAll('.dropdown-hidden').forEach(d=>d.style.display='none');
+      document.querySelectorAll('.dropdown-hidden').forEach(d => d.style.display = 'none');
     });
   })();
 
   /* ======================
      Charts (live API)
   ====================== */
-  (async function initCharts(){
+  (async () => {
     try {
-      // Revenue Line Chart
-      const revenueData = await fetch(`/api/appointments?clinic=1&period=monthly`).then(r=>r.json());
+      const revenueRes = await fetch(`/api/appointments?clinic=1&period=monthly`);
+      const revenueData = await revenueRes.json();
       const revenueCtx = document.getElementById('revenueChart').getContext('2d');
       new Chart(revenueCtx, {
-        type:'line',
-        data:{
+        type: 'line',
+        data: {
           labels: revenueData.labels,
-          datasets:[{
-            label:'Revenue',
+          datasets: [{
+            label: 'Revenue',
             data: revenueData.values,
-            borderColor:'#6366F1',
-            borderWidth:3,
-            tension:0.4,
-            pointRadius:3,
-            fill:false
+            borderColor: '#6366F1',
+            borderWidth: 3,
+            tension: 0.4,
+            pointRadius: 3,
+            fill: false
           }]
         },
-        options:{
-          plugins:{legend:{display:false}},
-          scales:{y:{beginAtZero:false}},
-          responsive:true,
-          maintainAspectRatio:false
+        options: {
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: false } },
+          responsive: true,
+          maintainAspectRatio: false
         }
       });
 
-      // Service Breakdown Pie
-      const serviceData = await fetch(`/api/services?clinic=1`).then(r=>r.json());
+      const serviceRes = await fetch(`/api/services?clinic=1`);
+      const serviceData = await serviceRes.json();
       const serviceCtx = document.getElementById('serviceChart').getContext('2d');
-      new Chart(serviceCtx,{
-        type:'doughnut',
-        data:{
-          labels:serviceData.labels,
-          datasets:[{data:serviceData.values, backgroundColor:serviceData.colors}]
+      new Chart(serviceCtx, {
+        type: 'doughnut',
+        data: {
+          labels: serviceData.labels,
+          datasets: [{ data: serviceData.values, backgroundColor: serviceData.colors }]
         },
-        options:{plugins:{legend:{position:'right'}}, responsive:true, maintainAspectRatio:false}
+        options: {
+          plugins: { legend: { position: 'right' } },
+          responsive: true,
+          maintainAspectRatio: false
+        }
       });
 
-    } catch(err){
-      console.error('Charts initialization failed:', err);
+    } catch (err) {
+      console.error('❌ Charts initialization failed:', err);
     }
   })();
 
   /* ======================
      Payroll (live API)
   ====================== */
-  (async function initPayroll(){
+  (async () => {
     let employees = [];
     try {
-      employees = await fetch(`/api/payroll?clinic=1`).then(r=>r.json());
-    } catch(err){
-      console.error('Payroll fetch failed:', err);
+      const res = await fetch(`/api/payroll?clinic=1`);
+      employees = await res.json();
+    } catch (err) {
+      console.error('❌ Payroll fetch failed:', err);
       return;
     }
 
     const listEl = document.getElementById('payrollList');
-    function render(){
+    function renderPayroll() {
       listEl.innerHTML = '';
       let total = 0;
-      employees.forEach(emp=>{
-        const tax = +(emp.baseSalary*0.12).toFixed(2);
-        const net = +(emp.baseSalary-tax).toFixed(2);
+
+      if (!Array.isArray(employees)) {
+        console.error('❌ Expected employees to be an array:', employees);
+        return;
+      }
+
+      employees.forEach(emp => {
+        const tax = +(emp.baseSalary * 0.12).toFixed(2);
+        const net = +(emp.baseSalary - tax).toFixed(2);
         total += emp.baseSalary;
 
         const div = document.createElement('div');
@@ -1253,34 +1264,42 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         listEl.appendChild(div);
       });
+
       document.getElementById('payrollTotal').textContent = `$${total.toLocaleString()}`;
       feather.replace();
     }
 
-    render();
-    document.getElementById('runPayroll').addEventListener('click', ()=> alert('Payroll processed (live).'));
-    document.getElementById('exportPayroll').addEventListener('click', ()=> alert('Export completed (live).'));
+    renderPayroll();
+    document.getElementById('runPayroll').addEventListener('click', () => alert('Payroll processed (live).'));
+    document.getElementById('exportPayroll').addEventListener('click', () => alert('Export completed (live).'));
   })();
 
   /* ======================
      Recent Patients (live API + search)
   ====================== */
-  (async function initPatients(){
+  (async () => {
     let patients = [];
-    try{
-      patients = await fetch(`/api/patients?clinic=1&limit=10`).then(r=>r.json());
-    }catch(err){
-      console.error('Patients fetch failed:', err);
+    try {
+      const res = await fetch(`/api/patients?clinic=1&limit=10`);
+      patients = await res.json();
+    } catch (err) {
+      console.error('❌ Patients fetch failed:', err);
       return;
     }
 
     const ul = document.getElementById('patientList');
-    function render(list){
-      ul.innerHTML='';
-      list.forEach(p=>{
+    function renderPatients(list) {
+      ul.innerHTML = '';
+
+      if (!Array.isArray(list)) {
+        console.error('❌ Expected patient list to be an array:', list);
+        return;
+      }
+
+      list.forEach(p => {
         const li = document.createElement('li');
-        li.className='flex items-center justify-between';
-        const initials = p.name.split(' ').map(s=>s[0]).slice(0,2).join('');
+        li.className = 'flex items-center justify-between';
+        const initials = p.name?.split(' ').map(s => s[0]).slice(0, 2).join('') || '??';
         li.innerHTML = `
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center font-semibold">${initials}</div>
@@ -1289,23 +1308,26 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="text-xs text-gray-500">${p.note} — ${p.date}</div>
             </div>
           </div>
-          <div class="text-sm ${p.status==='Paid'?'text-green-600':p.status==='Overdue'?'text-rose-600':'text-amber-600'}">${p.status}</div>
+          <div class="text-sm ${p.status === 'Paid' ? 'text-green-600' : p.status === 'Overdue' ? 'text-rose-600' : 'text-amber-600'}">${p.status}</div>
         `;
         ul.appendChild(li);
       });
     }
 
-    render(patients);
-    document.getElementById('searchBtn').addEventListener('click', ()=>{
+    renderPatients(patients);
+    document.getElementById('searchBtn').addEventListener('click', () => {
       const q = document.getElementById('patientSearch').value.toLowerCase();
-      render(patients.filter(p=>p.name.toLowerCase().includes(q)||p.note.toLowerCase().includes(q)));
+      const filtered = patients.filter(p =>
+        p.name?.toLowerCase().includes(q) || p.note?.toLowerCase().includes(q)
+      );
+      renderPatients(filtered);
     });
   })();
 
   /* ======================
      Currency Converter (live API with fallback)
   ====================== */
-  (async function initConverter(){
+  (async () => {
     let rates = null;
     const rateIndicator = document.getElementById('rateIndicator');
     const ratesErrorEl = document.getElementById('ratesError');
@@ -1314,52 +1336,73 @@ document.addEventListener('DOMContentLoaded', () => {
     const amountInput = document.getElementById('convAmount');
     const convertedEl = document.getElementById('convertedValue');
 
-    async function fetchRates(){
-      rateIndicator.textContent='Rates: Loading…';
-      try{
-        const data = await fetch('/api/integrations/exchange?base=USD').then(r=>r.json());
+    async function fetchRates() {
+      rateIndicator.textContent = 'Rates: Loading…';
+      try {
+        const res = await fetch('/api/integrations/exchange?base=USD');
+        const data = await res.json();
         rates = data.rates;
         populateSelects(Object.keys(rates));
-        rateIndicator.textContent='Rates: Live';
-        ratesErrorEl.textContent='';
+        rateIndicator.textContent = 'Rates: Live';
+        ratesErrorEl.textContent = '';
         updateConversion();
-      }catch(err){
-        console.warn('Live rates fetch failed, using sample rates.');
-        rates = {USD:1,ZMW:24.5,EUR:0.92,GBP:0.78,ZAR:18.2};
+      } catch (err) {
+        console.warn('⚠️ Live rates fetch failed, using sample rates.');
+        rates = { USD: 1, ZMW: 24.5, EUR: 0.92, GBP: 0.78, ZAR: 18.2 };
         populateSelects(Object.keys(rates));
-        rateIndicator.textContent='Rates: Sample (offline)';
-        ratesErrorEl.textContent='Could not fetch live rates — using sample rates.';
+        rateIndicator.textContent = 'Rates: Sample (offline)';
+        ratesErrorEl.textContent = 'Could not fetch live rates — using sample rates.';
         updateConversion();
       }
     }
 
-    function populateSelects(list){
-      if(fromSelect.options.length) return;
-      const preferred = ['USD','EUR','GBP','ZMW','ZAR'];
-      const ordered = [...new Set([...preferred,...list])];
-      ordered.slice(0,40).forEach(c=>{
-        const o1=document.createElement('option'); o1.value=o1.textContent=c; fromSelect.appendChild(o1);
-        const o2=document.createElement('option'); o2.value=o2.textContent=c; toSelect.appendChild(o2);
+    function populateSelects(list) {
+           if (fromSelect.options.length) return;
+
+      const preferred = ['USD', 'EUR', 'GBP', 'ZMW', 'ZAR'];
+      const ordered = [...new Set([...preferred, ...list])];
+
+      ordered.slice(0, 40).forEach(code => {
+        const o1 = document.createElement('option');
+        o1.value = o1.textContent = code;
+        fromSelect.appendChild(o1);
+
+        const o2 = document.createElement('option');
+        o2.value = o2.textContent = code;
+        toSelect.appendChild(o2);
       });
-      fromSelect.value='USD';
-      toSelect.value='ZMW';
-      document.getElementById('fromCode').textContent='USD';
+
+      fromSelect.value = 'USD';
+      toSelect.value = 'ZMW';
+      document.getElementById('fromCode').textContent = 'USD';
     }
 
-    function updateConversion(){
-      const amt = Number(amountInput.value)||0;
-      const from = fromSelect.value||'USD';
-      const to = toSelect.value||'ZMW';
+    function updateConversion() {
+      const amt = Number(amountInput.value) || 0;
+      const from = fromSelect.value || 'USD';
+      const to = toSelect.value || 'ZMW';
       document.getElementById('fromCode').textContent = from;
-      if(!rates){ convertedEl.textContent='—'; return; }
-      const converted = (amt / (rates[from]||1)) * (rates[to]||1);
+
+      if (!rates || !rates[from] || !rates[to]) {
+        convertedEl.textContent = '—';
+        return;
+      }
+
+      const converted = (amt / rates[from]) * rates[to];
       convertedEl.textContent = `${converted.toFixed(2)} ${to}`;
     }
 
-    [amountInput,fromSelect,toSelect].forEach(el=>el.addEventListener('input', updateConversion));
+    [amountInput, fromSelect, toSelect].forEach(el => {
+      el.addEventListener('input', updateConversion);
+    });
+
     document.getElementById('refreshRates').addEventListener('click', fetchRates);
-    document.getElementById('applyToPayroll').addEventListener('click', ()=>{
-      if(!convertedEl.textContent || convertedEl.textContent==='—') return alert('No converted amount available');
+
+    document.getElementById('applyToPayroll').addEventListener('click', () => {
+      if (!convertedEl.textContent || convertedEl.textContent === '—') {
+        alert('No converted amount available');
+        return;
+      }
       alert(`Converted (${convertedEl.textContent}) applied to payroll (demo).`);
     });
 
@@ -1368,7 +1411,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 </script>
-
 
 </body>
 </html>
