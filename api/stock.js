@@ -1,46 +1,36 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import { client } from "../db.js";
 
-async function openDb(){ return open({ filename:'./database.db', driver:sqlite3.Database }); }
+export default async function handler(req, res) {
+  try {
+    if (req.method === "GET") {
+      const result = await client.execute("SELECT * FROM stock;");
+      res.status(200).json(result.rows);
 
-export default async function handler(req,res){
-  const db = await openDb();
-  const { method } = req;
+    } else if (req.method === "POST") {
+      const { clinic_id, name, quantity, reorder_level, auto_reorder } = req.body;
+      const result = await client.execute(
+        "INSERT INTO stock (clinic_id, name, quantity, reorder_level, auto_reorder) VALUES (?, ?, ?, ?, ?);",
+        [clinic_id, name, quantity, reorder_level, auto_reorder]
+      );
+      res.status(201).json({ stock_id: result.lastInsertRowid });
 
-  try{
-    switch(method){
-      case 'GET': return res.json(await db.all('SELECT * FROM stock'));
+    } else if (req.method === "PUT") {
+      const { stock_id, quantity, reorder_level, auto_reorder } = req.body;
+      await client.execute(
+        "UPDATE stock SET quantity=?, reorder_level=?, auto_reorder=? WHERE stock_id=?;",
+        [quantity, reorder_level, auto_reorder, stock_id]
+      );
+      res.status(200).json({ message: "Updated" });
 
-      case 'POST': {
-        const { clinic_id, name, quantity, reorder_level, auto_reorder } = req.body;
-        const stmt = await db.run(
-          'INSERT INTO stock (clinic_id, name, quantity, reorder_level, auto_reorder) VALUES (?,?,?,?,?)',
-          [clinic_id, name, quantity, reorder_level, auto_reorder]
-        );
-        const item = await db.get('SELECT * FROM stock WHERE stock_id=?', stmt.lastID);
-        return res.status(201).json(item);
-      }
+    } else if (req.method === "DELETE") {
+      const { stock_id } = req.body;
+      await client.execute("DELETE FROM stock WHERE stock_id=?;", [stock_id]);
+      res.status(200).json({ message: "Deleted" });
 
-      case 'PUT': {
-        const { stock_id, quantity, reorder_level, auto_reorder } = req.body;
-        await db.run(
-          'UPDATE stock SET quantity=?, reorder_level=?, auto_reorder=? WHERE stock_id=?',
-          [quantity, reorder_level, auto_reorder, stock_id]
-        );
-        const item = await db.get('SELECT * FROM stock WHERE stock_id=?', stock_id);
-        return res.json(item);
-      }
+    } else res.status(405).json({ error: "Method not allowed" });
 
-      case 'DELETE': {
-        const { stock_id } = req.body;
-        await db.run('DELETE FROM stock WHERE stock_id=?',[stock_id]);
-        return res.json({ success:true });
-      }
-
-      default:
-        res.setHeader('Allow',['GET','POST','PUT','DELETE']);
-        return res.status(405).end();
-    }
-  } catch(e){ console.error(e); return res.status(500).json({ error:e.message }); }
-  finally{ await db.close(); }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
 }
