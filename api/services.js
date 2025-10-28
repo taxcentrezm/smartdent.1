@@ -1,4 +1,3 @@
-// api/services.js
 import { client } from "../db.js";
 
 export default async function handler(req, res) {
@@ -11,16 +10,13 @@ export default async function handler(req, res) {
       }
       case "POST": {
         const { name, price, description } = req.body;
-
         if (!name || !price) {
           return res.status(400).json({ error: "name and price are required." });
         }
-
         await client.execute(
           "INSERT INTO services (name, price, description) VALUES (?, ?, ?);",
           [name, price, description || null]
         );
-
         res.status(201).json({ message: "Service created" });
         break;
       }
@@ -29,7 +25,7 @@ export default async function handler(req, res) {
         res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
   } catch (err) {
-    console.error("❌ API Error (services):", err);
+    console.error("❌ API Error (services):", err.message);
     res.status(500).json({ error: err.message });
   }
 }
