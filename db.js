@@ -1,15 +1,9 @@
-import { createClient } from "@libsql/client/web";
+import { createClient } from '@libsql/client';
 
-export const client = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN,
+// This must match your environment variable
+const client = createClient({
+  url: process.env.DATABASE_URL,
+  auth: { token: process.env.DATABASE_TOKEN } // if using token
 });
 
-(async () => {
-  try {
-    await client.execute("SELECT 1;");
-    console.log("✅ Turso DB connected");
-  } catch (err) {
-    console.error("❌ Turso DB connection failed:", err.message);
-  }
-})();
+export default client;
