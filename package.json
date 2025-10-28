@@ -21,7 +21,7 @@
     "vercel": "^28.18.5"
   },
   "engines": {
-  "node": "18.x"
+   "node": "22.x"
 },
   "keywords": [
     "vercel",
