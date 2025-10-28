@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartDent ERP — HR</title>
+  <style>
+    .card { @apply bg-white rounded-2xl shadow p-4; }
+  </style>
+<!-- Tailwind & icons -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/feather-icons"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- jsPDF UMD -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+<!-- QR library -->
+<script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+
+<!-- FONTS -->
+ 
+<script src="assets/fonts/doksen-normal.js"></script>
+<script src="assets/fonts/Poppins-Regular-normal.js"></script>
+<script src="assets/fonts/dentiSmart/Poppins-Bold-bold.js"></script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 antialiased">
+
+  <!-- Header -->
+  <header class="bg-green-600 text-white py-4 shadow">
+    <div class="container mx-auto px-4 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v6"></path><path d="M8 10s1 2 4 2 4-2 4-2"></path><path d="M6 21s2-4 6-4 6 4 6 4"></path>
+          </svg>
+        </div>
+        <div class="font-semibold text-lg">SmartDent ERP</div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="openStaffModal()" class="bg-white/90 text-green-600 px-3 py-2 rounded-md inline-flex items-center gap-2 shadow-sm">
+  <i data-feather="user-plus"></i> Add Staff
+</button>
+        <div class="relative">
+          <button class="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-full shadow-sm">
+            <img src="avatar.jpg" class="w-8 h-8 rounded-full object-cover">
+            <span class="hidden md:inline-block text-sm">Dr. Phiri</span>
+            <i data-feather="chevron-down"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+ <main class="container mx-auto px-4 py-6 space-y-6">
+  <!-- Staff Directory -->
+  <div class="card">
+    <h2 class="text-xl font-semibold mb-4">Staff Directory</h2>
+    <ul id="staffList" class="divide-y"></ul>
+  </div>
+
+  <!-- Payroll & Leave -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Payroll Summary -->
+    <div class="card">
+      <h3 class="font-semibold mb-3">Payroll Summary</h3>
+      <ul id="payrollSummary" class="space-y-2 text-sm"></ul>
+      <div class="mt-4 flex gap-2">
+        <button onclick="runPayroll()" class="flex-1 px-4 py-2 rounded-md bg-green-600 text-white">Run Payroll</button>
+        <button onclick="exportPayroll()" class="px-4 py-2 rounded-md border">Export</button>
+      </div>
+      <div class="card">
+  <h3 class="font-semibold mb-3">Payroll History Chart</h3>
+  <canvas id="payrollChart" height="200"></canvas>
+</div>
+    </div>
+    
+
+    <!-- Leave Tracker -->
+    <div class="card">
+      <h3 class="font-semibold mb-3">Leave Tracker</h3>
+      <ul id="leaveTracker" class="space-y-2 text-sm"></ul>
+      <br/>
+      <br/>
+  <canvas id="leaveChart" height="200" ></canvas>
+      <div id="leaveKey" class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2 text-gray-700"></div>
+</div>
+  </div>
+   
+
+
+  <!-- Add Staff Modal -->
+  <div id="staffModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+      <h3 class="text-lg font-semibold mb-4">Add New Staff</h3>
+      <div class="space-y-3">
+        <input id="staffName" type="text" placeholder="Full Name" class="w-full px-3 py-2 border rounded-md" />
+        <input id="staffRole" type="text" placeholder="Role" class="w-full px-3 py-2 border rounded-md" />
+        <input id="staffSalary" type="number" placeholder="Salary" class="w-full px-3 py-2 border rounded-md" />
+        <input id="staffPhoto" type="text" placeholder="Photo URL" class="w-full px-3 py-2 border rounded-md" />
+        <input id="staffDept" type="text" placeholder="Department" class="w-full px-3 py-2 border rounded-md" />
+      </div>
+      <div class="mt-4 flex justify-end gap-2">
+        <button onclick="closeStaffModal()" class="px-4 py-2 border rounded-md">Cancel</button>
+        <button onclick="addStaff()" class="px-4 py-2 bg-green-600 text-white rounded-md">Add</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+  <footer class="mt-8 text-sm text-gray-500 text-center">
+    SmartDent ERP • Human Resources & Payroll
+  </footer>
+  <script src="core.js"></script>
+
+  <!-- Scripts -->
+<script>
+  feather.replace();
+ 
+  let staff = [];
+
+  // ============================
+  // LOAD / SAVE STAFF DATA
+  // ============================
+  function loadStaff() {
+    const stored = localStorage.getItem("smartdent_staff");
+    
+    function generateFullYearPayroll(salary) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const net = salary * 0.88;
+  return months.map(month => ({ month, net }));
+}
+
+    staff = stored ? JSON.parse(stored) : [
+  {
+    name: 'Dr. Alice Mwansa',
+    role: 'Dentist',
+    salary: 5000,
+    photo: 'female (2).jpg',
+    department: 'Dental',
+    leave: 2,
+    payroll: generateFullYearPayroll(5000)
+  },
+  {
+    name: 'Dr. Brian Zulu',
+    role: 'Orthodontist',
+    salary: 6200,
+    photo: 'male (2).jpg',
+    department: 'Ortho',
+    leave: 1,
+    payroll: generateFullYearPayroll(6200)
+  },
+  {
+    name: 'Nurse Chipo',
+    role: 'Dental Nurse',
+    salary: 1200,
+    photo: 'female (1).jpg',
+    department: 'Support',
+    leave: 1,
+    payroll: generateFullYearPayroll(1200)
+  },
+  {
+    name: 'Receptionist Tinashe',
+    role: 'Admin',
+    salary: 900,
+    photo: 'male (1).jpg',
+    department: 'Admin',
+    leave: 0,
+    payroll: generateFullYearPayroll(900)
+  }
+];
+saveStaff();
+  }
+
+  function saveStaff() {
+    localStorage.setItem("smartdent_staff", JSON.stringify(staff));
+  }
+
+  // ============================
+  // RENDER FUNCTIONS
+  // ============================
+  function renderPayrollSummary() {
+    const ul = document.getElementById("payrollSummary");
+    const totalStaff = staff.length;
+
+    const totalPayroll = staff.reduce((sum, emp) => {
+      const latest = emp.payroll?.slice(-1)[0];
+      return sum + (latest?.net || 0);
+    }, 0);
+
+    const lastRun = staff[0]?.payroll?.slice(-1)[0]?.month || "—";
+
+    ul.innerHTML = `
+      <li class="flex justify-between"><span>Total Staff</span><span>${totalStaff}</span></li>
+      <li class="flex justify-between"><span>Total Payroll</span><span>$${totalPayroll.toLocaleString()}</span></li>
+      <li class="flex justify-between text-green-600"><span>Last Run</span><span>${lastRun}</span></li>
+    `;
+  }
+
+  function renderStaff() {
+    const ul = document.getElementById("staffList");
+    ul.innerHTML = "";
+
+    staff.forEach((emp, index) => {
+      const li = document.createElement("li");
+      li.className = "py-3 flex items-center justify-between";
+
+      li.innerHTML = `
+        <div class="flex items-center gap-3">
+          <img src="${emp.photo}" class="w-10 h-10 rounded-full object-cover border" />
+          <div>
+            <div class="font-medium">${emp.name}</div>
+            <div class="text-xs text-gray-500">${emp.role} • ${emp.department}</div>
+            <div class="text-xs text-gray-500">Leave: ${emp.leave || 0} days</div>
+            <button onclick="approveLeave(${index})" class="text-xs text-green-600 underline mt-1">Approve 1 Day Leave</button>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm">$${emp.salary.toLocaleString()}</div>
+          <div class="text-xs text-gray-500">Net $${(emp.salary * 0.88).toFixed(2)}</div>
+        <button onclick="generatePayslip(${index})"class="text-xs text-green-600 underline mt-1">Payslip</button>  
+
+        </div>
+      `;
+      ul.appendChild(li);
+    });
+
+    feather.replace();
+  }
+function getEmployeeColors() {
+  const palette = [
+    '#34D399', '#60A5FA', '#FBBF24', '#F87171',
+    '#A78BFA', '#F472B6', '#10B981', '#F59E0B'
+  ];
+  return staff.map((_, i) => palette[i % palette.length]);
+}
+
+let payrollChartInstance = null;
+
+function renderPayrollChart() {
+  const ctx = document.getElementById('payrollChart').getContext('2d');
+
+  if (payrollChartInstance) {
+    payrollChartInstance.destroy();
+  }
+
+  const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const currentMonthIndex = new Date().getMonth(); // 0-based
+  const months = allMonths.slice(0, currentMonthIndex + 1);
+
+  const totals = months.map(month =>
+    staff.reduce((sum, emp) => {
+      const entry = emp.payroll?.find(p => p.month === month);
+      return sum + (entry?.net || 0);
+    }, 0)
+  );
+
+  const backgroundColors = months.map((_, i) =>
+    i === currentMonthIndex
+      ? 'rgba(239,68,68,0.7)'   // red for current month
+      : 'rgba(34,197,94,0.6)'   // green for others
+  );
+
+  const borderColors = months.map((_, i) =>
+    i === currentMonthIndex
+      ? 'rgba(239,68,68,1)'
+      : 'rgba(34,197,94,1)'
+  );
+
+  payrollChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Total Net Payroll',
+        data: totals,
+        backgroundColor: backgroundColors,
+        borderColor: borderColors,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: context => `$${context.raw.toLocaleString()}`
+          }
+        }
+      }
+    }
+  });
+}
+
+
+  function renderLeaveTracker() {
+    const ul = document.getElementById("leaveTracker");
+    ul.innerHTML = "";
+
+    staff.forEach(emp => {
+      const li = document.createElement("li");
+      li.className = "flex justify-between";
+      li.innerHTML = `<span>${emp.name}</span><span>${emp.leave || 0} days</span>`;
+      ul.appendChild(li);
+    });
+  }
+
+let leaveChartInstance = null;
+
+function renderLeaveChart() {
+  const ctx = document.getElementById('leaveChart').getContext('2d');
+  const colors = getEmployeeColors();
+
+  if (leaveChartInstance) {
+    leaveChartInstance.destroy();
+  }
+
+  const labels = staff.map(emp => emp.name);
+  const data = staff.map(emp => emp.leave || 0);
+
+  leaveChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Leave Days',
+        data,
+        backgroundColor: colors,
+        borderColor: colors,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  function renderLeaveKey(colors) {
+  const container = document.getElementById('leaveKey');
+  container.innerHTML = '';
+
+  staff.forEach((emp, i) => {
+    const item = document.createElement('div');
+    item.className = 'flex items-center gap-2 text-sm mb-1';
+    item.innerHTML = `
+      <div class="w-4 h-4 rounded" style="background-color:${colors[i]}"></div>
+      <span>${emp.name}</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
+  renderLeaveKey(colors);
+}
+
+  // ============================
+  // PAYROLL ACTIONS
+  // ============================
+  function runPayroll() {
+    const today = new Date();
+    const month = today.toLocaleString("en-US", { month: "short" });
+
+    staff.forEach(emp => {
+      const net = emp.salary * 0.88;
+      emp.payroll = emp.payroll || [];
+      emp.payroll.push({ month, net });
+    });
+
+    saveStaff();
+    renderPayrollSummary();
+    renderPayrollChart();
+  }
+
+  function exportPayroll() {
+    const { jsPDF } = window.jspdf;
+    if (!jsPDF) return alert("jsPDF is not loaded. Please check your script tag.");
+
+    const pdf = new jsPDF();
+    
+    pdf.setFontSize(16);
+    pdf.text("SmartDent ERP — Payroll Summary", 15, 20);
+
+    let y = 35;
+    staff.forEach(emp => {
+      const latest = emp.payroll?.slice(-1)[0];
+      pdf.setFontSize(12);
+      pdf.text(`${emp.name} (${emp.role})`, 15, y);
+      pdf.text(`Net: $${latest?.net?.toFixed(2) || "0.00"}`, 150, y);
+      y += 10;
+    });
+
+    pdf.save("SmartDent-Payroll-Summary.pdf");
+  }
+
+  // ============================
+  // STAFF MODAL & ACTIONS
+  // ============================
+  function openStaffModal() {
+    document.getElementById("staffModal").style.display = "flex";
+  }
+
+  function closeStaffModal() {
+    document.getElementById("staffModal").style.display = "none";
+  }
+
+  document
+    .querySelector('[data-feather="user-plus"]')
+    ?.parentElement.addEventListener("click", openStaffModal);
+
+  function addStaff() {
+    const name = document.getElementById("staffName")?.value.trim();
+    const role = document.getElementById("staffRole")?.value.trim();
+    const salary = parseFloat(document.getElementById("staffSalary")?.value);
+    const photo = document.getElementById("staffPhoto")?.value.trim();
+    const department = document.getElementById("staffDept")?.value.trim();
+
+    if (!name || !role || isNaN(salary) || !photo || !department) {
+      alert("Please fill all fields correctly.");
+      return;
+    }
+
+    staff.push({
+      name,
+      role,
+      salary,
+      photo,
+      department,
+      leave: 0,
+      payroll: [{ month: "Oct", net: salary * 0.88 }],
+    });
+
+    saveStaff();
+    closeStaffModal();
+    renderStaff();
+  }
+
+  function approveLeave(index) {
+    staff[index].leave += 1;
+    saveStaff();
+    renderStaff();
+  }
+
+ 
+document.addEventListener("DOMContentLoaded", () => {
+  window.generatePayslip = async function(index) {
+    // ✅ Get jsPDF from UMD
+    const { jsPDF } = window.jspdf;
+    if (!jsPDF) return alert("❌ jsPDF not loaded.");
+
+    const themeColor = [34, 197, 94]; // SmartDent green
+    const emp = staff[index];
+
+    // ====== INITIALIZE PDF ======
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+
+    // ====== FONT SETUP ======
+ 
+
+    // ====== PAY DATA ======
+    const earnings = { Basic: emp.salary, Transport: 500, Food: 300, Housing: 800, Bonus: 200 };
+    const deductions = { PAYE: emp.salary * 0.15, NAPSA: emp.salary * 0.05, NHIMA: emp.salary * 0.01, Loan: 250 };
+    const totalEarnings = Object.values(earnings).reduce((a,b)=>a+b,0);
+    const totalDeductions = Object.values(deductions).reduce((a,b)=>a+b,0);
+    const netPay = totalEarnings - totalDeductions;
+    const ytdEarnings = totalEarnings * 10; // example YTD
+    const ytdDeductions = totalDeductions * 10;
+
+    const month = new Date().toLocaleString("en-US", { month: "long" });
+    const year = new Date().getFullYear();
+    const payrollPeriod = `${month} 01 – ${month} 31, ${year}`;
+    const employeeId = "EMP-" + (index+1).toString().padStart(4,"0");
+    const logoUrl = "assets/image/logo.jpeg";
+
+    // ====== LOAD LOGO ======
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = logoUrl;
+
+    img.onload = () => {
+      // ====== HEADER ======
+      const logoWidth = 25, logoHeight = 25;
+      pdf.addImage(img, "PNG", 15, 10, logoWidth, logoHeight);
+
+      // Company name
+      pdf.setFont("doksen", "normal");
+      pdf.setFontSize(16);
+      pdf.setTextColor(...themeColor);
+      pdf.text("SmartDent Clinic", 15 + logoWidth + 5, 26);
+
+      // Payslip subtitle
+    pdf.setFont("Poppins-Bold", "bold");
+      pdf.setFontSize(12);
+      pdf.setTextColor(0);
+      pdf.text("— Payslip —", 15 + logoWidth + 5, 33);
+
+      // Payroll info
+      pdf.setFont("Poppins-Regular", "normal");
+      pdf.setFontSize(10);
+      pdf.text(`Payroll Period: ${payrollPeriod}`, 15, 45);
+      pdf.text(`Employee ID: ${employeeId}`, 150, 45);
+
+      // Employee details
+      pdf.setFontSize(8);
+      pdf.text("Name:", 15, 55);
+      pdf.text("Role:", 65, 55);
+      pdf.text("Dept:", 105, 55);
+      pdf.text("Date:", 150, 55);
+
+      pdf.setFont("Poppins-Regular", "normal");
+      pdf.text(emp.name, 28, 55);
+      pdf.text(emp.role, 77, 55);
+      pdf.text(emp.department, 118, 55);
+      pdf.text(new Date().toLocaleDateString(), 163, 55);
+
+     // ====== EARNINGS / DEDUCTIONS TABLE ======
+let y = 60;
+pdf.setFontSize(12);
+pdf.setFillColor(245, 245, 245);
+pdf.rect(15, y, 180, 8, "F");
+
+// Table headers
+pdf.setFont("Poppins-Bold", "bold");
+pdf.text("EARNINGS", 25, y + 5);
+pdf.text("DEDUCTIONS", 120, y + 5);
+
+// Move down before first row
+y += 15; // was 8 → gives better separation
+
+// Table rows
+pdf.setFont("Poppins-Regular", "normal");
+const rows = Math.max(Object.keys(earnings).length, Object.keys(deductions).length);
+for (let i = 0; i < rows; i++) {
+  const eLabel = Object.keys(earnings)[i], eVal = Object.values(earnings)[i];
+  const dLabel = Object.keys(deductions)[i], dVal = Object.values(deductions)[i];
+
+  if (eLabel) pdf.text(eLabel, 25, y);
+  if (eVal) pdf.text(`$${eVal.toFixed(2)}`, 80, y, { align: "right" });
+  if (dLabel) pdf.text(dLabel, 120, y);
+  if (dVal) pdf.text(`$${dVal.toFixed(2)}`, 185, y, { align: "right" });
+
+  y += 7;
+}
+
+// Totals
+pdf.setDrawColor(...themeColor);
+pdf.line(15, y + 2, 195, y + 2);
+pdf.setFont("Poppins-Bold", "bold");
+pdf.text("Total Earnings:", 25, y + 8);
+pdf.text(`$${totalEarnings.toFixed(2)}`, 80, y + 8, { align: "right" });
+pdf.text("Total Deductions:", 120, y + 8);
+pdf.text(`$${totalDeductions.toFixed(2)}`, 185, y + 8, { align: "right" });
+
+
+      // Net Pay
+      pdf.setFontSize(14);
+      pdf.setTextColor(...themeColor);
+      pdf.text("Net Pay:", 25, y+20);
+      pdf.text(`$${netPay.toFixed(2)}`, 80, y+20, {align:"right"});
+
+      // ====== YTD TABLE ======
+      pdf.setFont("Poppins-Bold", "bold");
+      pdf.setFontSize(11);
+      pdf.text("Year-to-Date Summary", 15, y+40);
+      pdf.setFillColor(240,240,240);
+      pdf.rect(15, y+43, 180, 8, "F");
+      pdf.setFontSize(10);
+      pdf.text("Description", 20, y+48);
+      pdf.text("Amount (ZMW)", 100, y+48);
+
+      pdf.setFont("Poppins-Regular", "normal");
+      pdf.setFillColor(255,255,255);
+      pdf.rect(15, y+51, 180, 7, "F");
+      pdf.rect(15, y+58, 180, 7, "F");
+      pdf.text("YTD Earnings", 20, y+55);
+      pdf.text(`ZMW ${ytdEarnings.toFixed(2)}`, 100, y+55);
+      pdf.text("YTD Deductions", 20, y+62);
+      pdf.text(`ZMW ${ytdDeductions.toFixed(2)}`, 100, y+62);
+
+      // ====== QR CODE ======
+      const qrCanvas = document.createElement("canvas");
+      new QRious({element: qrCanvas, value:`https://smartdent.com/payslip/${employeeId}`, size:100});
+      pdf.addImage(qrCanvas.toDataURL("image/png"), "PNG", 150, 210, 40, 40);
+
+      // ====== SIGNATURE ======
+      pdf.setFontSize(10);
+      pdf.text("Authorized Signature: ___________________________", 15, 265);
+
+      // ====== FOOTER ======
+      pdf.setDrawColor(230,57,70);
+      pdf.line(15,270,195,270);
+      pdf.setFontSize(10);
+      pdf.setTextColor(100);
+      pdf.text("SmartDent Clinic • +260 97 000 0000 • info@smartdent.com", 15, 275);
+
+      // ====== SAVE PDF ======
+      pdf.save(`Payslip-${emp.name.replace(/\s+/g,"-")}.pdf`);
+    };
+
+    img.onerror = () => alert("❌ Failed to load logo image.");
+  };
+});
+ 
+
+
+  // ============================
+  // INIT
+  // ============================
+loadStaff();
+renderStaff();
+renderLeaveTracker();
+renderPayrollSummary();
+renderPayrollChart();
+renderLeaveChart();
+</script>
+</body>
+</html>
