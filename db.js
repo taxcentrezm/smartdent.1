@@ -1,23 +1,17 @@
-import { createClient } from "@libsql/client/node";
+// db.js
+import { createClient } from "@libsql/client";
 
-const url = process.env.chomadentistry_TURSO_DATABASE_URL;
-const authToken = process.env.chomadentistry_TURSO_AUTH_TOKEN;
-
-if (!url || !authToken) {
-  throw new Error("❌ Turso DB connection failed: missing environment variables");
-}
-
-// Disable automatic migration checks
+// Initialize Turso client using env variables
 export const client = createClient({
-  url,
-  authToken,
-  fetchMigrations: false, // << important for Vercel
+  url: process.env.chomadentistry_TURSO_DATABASE_URL,
+  authToken: process.env.chomadentistry_TURSO_AUTH_TOKEN,
+  fetch // required in Vercel serverless environment
 });
 
-// Test connection once (optional)
+// Optional: test connection immediately (for logs)
 (async () => {
   try {
-    await client.execute("SELECT 1;");
+    await client.execute("SELECT 1;"); // simple test query
     console.log("✅ Turso DB connected successfully");
   } catch (err) {
     console.error("❌ Turso DB connection failed:", err.message);
