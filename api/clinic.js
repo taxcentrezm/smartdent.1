@@ -1,49 +1,54 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-
-async function openDb() {
-  return open({ filename: './database.db', driver: sqlite3.Database });
-}
+// api/clinic.js
+import { client } from "../db.js";
 
 export default async function handler(req, res) {
-  const db = await openDb();
-  const { method } = req;
-
   try {
-    switch (method) {
-      case 'GET': {
-        const clinics = await db.all('SELECT * FROM clinics');
-        const integrations = await db.all('SELECT * FROM integrations');
-        const result = clinics.map(clinic => ({
-          ...clinic,
-          integrations: integrations.filter(i => i.clinic_id === clinic.clinic_id)
-        }));
-        return res.json(result);
-      }
-      case 'POST': {
-        const { name, address, phone, email } = req.body;
-        const stmt = await db.run(
-          `INSERT INTO clinics (name, address, phone, email) VALUES (?,?,?,?)`,
-          [name, address || '', phone || '', email || '']
-        );
-        const newClinic = await db.get('SELECT * FROM clinics WHERE clinic_id=?', stmt.lastID);
-        return res.status(201).json(newClinic);
-      }
-      case 'PUT': {
-        const { clinic_id, name, address, phone, email } = req.body;
-        await db.run(
-          `UPDATE clinics SET name=?, address=?, phone=?, email=? WHERE clinic_id=?`,
-          [name, address, phone, email, clinic_id]
-        );
-        const updatedClinic = await db.get('SELECT * FROM clinics WHERE clinic_id=?', clinic_id);
-        return res.json(updatedClinic);
-      }
-      default:
-        res.setHeader('Allow', ['GET','POST','PUT']);
-        return res.status(405).end(`Method ${method} Not Allowed`);
+    if (req.method === "GET") {
+      // Fetch all clinics
+      const result = await client.execute("SELECT * FROM clinics;");
+      const clinics = result.rows.map(row => ({
+        clinic_id: row.clinic_id,
+        name: row.name,
+        address: row.address,
+        phone: row.phone,
+        email: row.email,
+        created_at: row.created_at
+      }));
+      res.status(200).json(clinics);
+
+    } else if (req.method === "POST") {
+      // Add a new clinic
+      const { name, address, phone, email } = req.body;
+      const result = await client.execute(
+        "INSERT INTO clinics (name, address, phone, email) VALUES (?, ?, ?, ?);",
+        [name, address, phone, email]
+      );
+      res.status(201).json({ clinic_id: result.lastInsertRowid });
+
+    } else if (req.method === "PUT") {
+      // Update clinic details
+      const { clinic_id, name, address, phone, email } = req.body;
+      await client.execute(
+        "UPDATE clinics SET name=?, address=?, phone=?, email=? WHERE clinic_id=?;",
+        [name, address, phone, email, clinic_id]
+      );
+      res.status(200).json({ message: "Clinic updated" });
+
+    } else if (req.method === "DELETE") {
+      // Delete a clinic
+      const { clinic_id } = req.body;
+      await client.execute(
+        "DELETE FROM clinics WHERE clinic_id=?;",
+        [clinic_id]
+      );
+      res.status(200).json({ message: "Clinic deleted" });
+
+    } else {
+      res.status(405).json({ error: "Method not allowed" });
     }
+
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: err.message });
-  } finally { await db.close(); }
+    res.status(500).json({ error: "Database error" });
+  }
 }
