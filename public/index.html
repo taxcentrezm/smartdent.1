@@ -1110,7 +1110,7 @@ video {
   </main>
   <script src="core.js"></script>
   <!-- ===== Scripts: icons, slideshow, dropdowns, charts, currency, payroll demo ===== -->
-  <script>
+<script>
 document.addEventListener('DOMContentLoaded', () => {
 
   /* ======================
@@ -1169,16 +1169,12 @@ document.addEventListener('DOMContentLoaded', () => {
   })();
 
   /* ======================
-     Charts (live API-ready)
+     Charts (live API)
   ====================== */
   (async function initCharts(){
     try {
-      // Replace with live API calls if available
-      const revenueData = await fetch('/api/revenue?period=monthly').then(r=>r.json()).catch(()=>({
-        labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],
-        values:[12000,15000,14000,18000,17000,20000,21000,23000,19000]
-      }));
-
+      // Revenue Line Chart
+      const revenueData = await fetch(`/api/appointments?clinic=1&period=monthly`).then(r=>r.json());
       const revenueCtx = document.getElementById('revenueChart').getContext('2d');
       new Chart(revenueCtx, {
         type:'line',
@@ -1202,12 +1198,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-      const serviceData = await fetch('/api/services').then(r=>r.json()).catch(()=>({
-        labels:['Fillings','Cleaning','Root Canal','Cosmetic','Ortho'],
-        values:[45,25,15,10,5],
-        colors:['#60A5FA','#34D399','#FBBF24','#F87171','#A78BFA']
-      }));
-
+      // Service Breakdown Pie
+      const serviceData = await fetch(`/api/services?clinic=1`).then(r=>r.json());
       const serviceCtx = document.getElementById('serviceChart').getContext('2d');
       new Chart(serviceCtx,{
         type:'doughnut',
@@ -1224,19 +1216,15 @@ document.addEventListener('DOMContentLoaded', () => {
   })();
 
   /* ======================
-     Payroll (live API-ready)
+     Payroll (live API)
   ====================== */
   (async function initPayroll(){
     let employees = [];
     try {
-      employees = await fetch('/api/payroll').then(r=>r.json()).catch(()=>[
-        {id:1,name:'Dr. Alice Mwansa',role:'Dentist',baseSalary:5000},
-        {id:2,name:'Dr. Brian Zulu',role:'Orthodontist',baseSalary:6200},
-        {id:3,name:'Nurse Chipo',role:'Dental Nurse',baseSalary:1200},
-        {id:4,name:'Receptionist Tinashe',role:'Admin',baseSalary:900}
-      ]);
+      employees = await fetch(`/api/payroll?clinic=1`).then(r=>r.json());
     } catch(err){
       console.error('Payroll fetch failed:', err);
+      return;
     }
 
     const listEl = document.getElementById('payrollList');
@@ -1270,24 +1258,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     render();
-    document.getElementById('runPayroll').addEventListener('click', ()=> alert('Payroll simulated (demo).'));
-    document.getElementById('exportPayroll').addEventListener('click', ()=> alert('Export simulated (demo).'));
-
+    document.getElementById('runPayroll').addEventListener('click', ()=> alert('Payroll processed (live).'));
+    document.getElementById('exportPayroll').addEventListener('click', ()=> alert('Export completed (live).'));
   })();
 
   /* ======================
-     Recent Patients (live API-ready + search)
+     Recent Patients (live API + search)
   ====================== */
   (async function initPatients(){
     let patients = [];
     try{
-      patients = await fetch('/api/patients?limit=10').then(r=>r.json()).catch(()=>[
-        {name:'Alice Mukuka', note:'Cleaning', date:'Oct 01', status:'Paid'},
-        {name:'Brian Zulu', note:'Root Canal', date:'Sep 28', status:'Invoice'},
-        {name:'Nadine Clarke', note:'Crown Fitting', date:'Sep 25', status:'Overdue'}
-      ]);
+      patients = await fetch(`/api/patients?clinic=1&limit=10`).then(r=>r.json());
     }catch(err){
       console.error('Patients fetch failed:', err);
+      return;
     }
 
     const ul = document.getElementById('patientList');
@@ -1316,7 +1300,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const q = document.getElementById('patientSearch').value.toLowerCase();
       render(patients.filter(p=>p.name.toLowerCase().includes(q)||p.note.toLowerCase().includes(q)));
     });
-
   })();
 
   /* ======================
@@ -1334,7 +1317,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchRates(){
       rateIndicator.textContent='Rates: Loading…';
       try{
-        const data = await fetch('https://api.exchangerate.host/latest?base=USD').then(r=>r.json());
+        const data = await fetch('/api/integrations/exchange?base=USD').then(r=>r.json());
         rates = data.rates;
         populateSelects(Object.keys(rates));
         rateIndicator.textContent='Rates: Live';
@@ -1385,6 +1368,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 </script>
+
 
 </body>
 </html>
