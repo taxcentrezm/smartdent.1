@@ -9,17 +9,16 @@ if (!url || !authToken) {
   );
 }
 
-console.log("Connecting to Turso DB at:", url);
-
 export const client = createClient({
   url,
   authToken,
+  fetchMigrations: false, // <-- disable migration checks
 });
 
 (async () => {
   try {
     await client.execute("SELECT 1;");
-    console.log("✅ Turso DB connected successfully");
+    console.log("✅ Turso DB connected successfully (no migration check)");
   } catch (err) {
     console.error("❌ Turso DB connection failed:", err.message);
   }
