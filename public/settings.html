@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartDent ERP — Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <style>
+    .card { @apply bg-white rounded-2xl shadow p-4; }
+    .tab-active { @apply border-b-2 border-indigo-600 text-indigo-600 font-semibold; }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 antialiased">
+
+  <!-- Header -->
+  <header class="bg-indigo-600 text-white py-4 shadow">
+    <div class="container mx-auto px-4 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v6"></path><path d="M8 10s1 2 4 2 4-2 4-2"></path><path d="M6 21s2-4 6-4 6 4 6 4"></path>
+          </svg>
+        </div>
+        <div class="font-semibold text-lg">SmartDent ERP</div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="bg-white/90 text-indigo-600 px-3 py-2 rounded-md inline-flex items-center gap-2 shadow-sm">
+          <i data-feather="settings"></i> Save Settings
+        </button>
+        <div class="relative">
+          <button class="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-full shadow-sm">
+            <img src="assets/images/avatar.jpg" class="w-8 h-8 rounded-full object-cover">
+            <span class="hidden md:inline-block text-sm">Dr. ______</span>
+            <i data-feather="chevron-down"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="container mx-auto px-4 py-6">
+    <div class="card">
+      <!-- Tabs -->
+      <div class="flex gap-6 border-b mb-4 text-sm">
+        <button class="tab-active" onclick="showTab('clinic')">Clinic Info</button>
+        <button onclick="showTab('users')">Users & Roles</button>
+        <button onclick="showTab('locale')">Currency & Locale</button>
+        <button onclick="showTab('integrations')">Integrations</button>
+      </div>
+
+      <!-- Clinic Info -->
+      <div id="clinic" class="space-y-4">
+        <h2 class="text-lg font-semibold">Clinic Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input type="text" placeholder="Clinic Name" class="px-3 py-2 border rounded-md" />
+          <input type="text" placeholder="Address" class="px-3 py-2 border rounded-md" />
+          <input type="text" placeholder="Phone" class="px-3 py-2 border rounded-md" />
+          <input type="email" placeholder="Email" class="px-3 py-2 border rounded-md" />
+        </div>
+      </div>
+
+      <!-- Users & Roles -->
+      <div id="users" class="space-y-4 hidden">
+        <h2 class="text-lg font-semibold">Users & Roles</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input type="text" placeholder="Full Name" class="px-3 py-2 border rounded-md" />
+          <select class="px-3 py-2 border rounded-md">
+            <option>Admin</option>
+            <option>Dentist</option>
+            <option>Receptionist</option>
+            <option>HR</option>
+          </select>
+          <input type="email" placeholder="Email" class="px-3 py-2 border rounded-md" />
+          <input type="password" placeholder="Password" class="px-3 py-2 border rounded-md" />
+        </div>
+        <button class="mt-2 px-4 py-2 bg-indigo-600 text-white rounded-md">Add User</button>
+      </div>
+
+      <!-- Currency & Locale -->
+      <div id="locale" class="space-y-4 hidden">
+        <h2 class="text-lg font-semibold">Currency & Locale</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <select class="px-3 py-2 border rounded-md">
+            <option value="USD">USD</option>
+            <option value="ZMW">ZMW</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+          </select>
+          <select class="px-3 py-2 border rounded-md">
+            <option value="en">English</option>
+            <option value="fr">French</option>
+            <option value="pt">Portuguese</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Integrations -->
+      <div id="integrations" class="space-y-4 hidden">
+        <h2 class="text-lg font-semibold">Integrations</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input type="text" placeholder="SMS Gateway API Key" class="px-3 py-2 border rounded-md" />
+          <input type="text" placeholder="Email SMTP Server" class="px-3 py-2 border rounded-md" />
+          <input type="text" placeholder="Payment Provider Key" class="px-3 py-2 border rounded-md" />
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="mt-8 text-sm text-gray-500 text-center">
+    SmartDent ERP • Configure Your Clinic Preferences
+  </footer>
+  <script src="core.js"></script>
+  <!-- Scripts -->
+  <script>
+    feather.replace();
+
+    function showTab(id){
+      ['clinic','users','locale','integrations'].forEach(tab => {
+        document.getElementById(tab).style.display = tab === id ? 'block' : 'none';
+      });
+      document.querySelectorAll('button').forEach(btn => btn.classList.remove('tab-active'));
+      event.target.classList.add('tab-active');
+    }
+  </script>
+</body>
+</html>
