@@ -1,4 +1,3 @@
-// api/users.js
 import { client } from "../db.js";
 
 export default async function handler(req, res) {
@@ -11,16 +10,13 @@ export default async function handler(req, res) {
       }
       case "POST": {
         const { name, email, role, password } = req.body;
-
         if (!name || !email || !password) {
           return res.status(400).json({ error: "name, email, and password are required." });
         }
-
         await client.execute(
           "INSERT INTO users (name, email, role, password) VALUES (?, ?, ?, ?);",
           [name, email, role || "staff", password]
         );
-
         res.status(201).json({ message: "User created" });
         break;
       }
@@ -29,7 +25,7 @@ export default async function handler(req, res) {
         res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
   } catch (err) {
-    console.error("❌ API Error (users):", err);
+    console.error("❌ API Error (users):", err.message);
     res.status(500).json({ error: err.message });
   }
 }
