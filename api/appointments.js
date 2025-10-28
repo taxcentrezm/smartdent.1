@@ -1,4 +1,3 @@
-// api/appointments.js
 import { client } from "../db.js";
 
 export default async function handler(req, res) {
@@ -11,16 +10,13 @@ export default async function handler(req, res) {
       }
       case "POST": {
         const { patient_id, date, time, notes } = req.body;
-
         if (!patient_id || !date || !time) {
           return res.status(400).json({ error: "patient_id, date, and time are required." });
         }
-
         const result = await client.execute(
           "INSERT INTO appointments (patient_id, date, time, notes) VALUES (?, ?, ?, ?);",
           [patient_id, date, time, notes || null]
         );
-
         res.status(201).json({ message: "Appointment created", id: result.lastInsertRowid });
         break;
       }
@@ -29,7 +25,7 @@ export default async function handler(req, res) {
         res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
   } catch (err) {
-    console.error("❌ API Error (appointments):", err);
+    console.error("❌ API Error (appointments):", err.message);
     res.status(500).json({ error: err.message });
   }
 }
