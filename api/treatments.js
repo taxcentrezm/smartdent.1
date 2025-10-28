@@ -1,43 +1,38 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import { client } from "../db.js";
 
-async function openDb(){ return open({ filename:'./database.db', driver:sqlite3.Database }); }
+export default async function handler(req, res) {
+  try {
+    if (req.method === "GET") {
+      const result = await client.execute("SELECT * FROM treatments;");
+      return res.status(200).json(result.rows);
 
-export default async function handler(req,res){
-  const db = await openDb();
-  const { method } = req;
+    } else if (req.method === "POST") {
+      const { clinic_id, patient_id, service_id, staff_id, treatment_date, notes, cost } = req.body;
+      const result = await client.execute(
+        "INSERT INTO treatments (clinic_id, patient_id, service_id, staff_id, treatment_date, notes, cost) VALUES (?, ?, ?, ?, ?, ?, ?);",
+        [clinic_id, patient_id, service_id, staff_id, treatment_date, notes, cost]
+      );
+      return res.status(201).json({ treatment_id: result.lastInsertRowid });
 
-  try{
-    switch(method){
-      case 'GET': return res.json(await db.all('SELECT * FROM treatments'));
+    } else if (req.method === "PUT") {
+      const { treatment_id, notes, cost } = req.body;
+      await client.execute(
+        "UPDATE treatments SET notes=?, cost=? WHERE treatment_id=?;",
+        [notes, cost, treatment_id]
+      );
+      return res.status(200).json({ message: "Updated" });
 
-      case 'POST': {
-        const { patient_id, clinic_id, service_id, staff_id, treatment_date, notes, cost } = req.body;
-        const stmt = await db.run(
-          'INSERT INTO treatments (patient_id, clinic_id, service_id, staff_id, treatment_date, notes, cost) VALUES (?,?,?,?,?,?,?)',
-          [patient_id, clinic_id, service_id, staff_id, treatment_date, notes, cost]
-        );
-        const treatment = await db.get('SELECT * FROM treatments WHERE treatment_id=?', stmt.lastID);
-        return res.status(201).json(treatment);
-      }
+    } else if (req.method === "DELETE") {
+      const { treatment_id } = req.body;
+      await client.execute("DELETE FROM treatments WHERE treatment_id=?;", [treatment_id]);
+      return res.status(200).json({ message: "Deleted" });
 
-      case 'PUT': {
-        const { treatment_id, notes, cost } = req.body;
-        await db.run('UPDATE treatments SET notes=?, cost=? WHERE treatment_id=?',[notes,cost,treatment_id]);
-        const treatment = await db.get('SELECT * FROM treatments WHERE treatment_id=?', treatment_id);
-        return res.json(treatment);
-      }
-
-      case 'DELETE': {
-        const { treatment_id } = req.body;
-        await db.run('DELETE FROM treatments WHERE treatment_id=?',[treatment_id]);
-        return res.json({ success:true });
-      }
-
-      default:
-        res.setHeader('Allow',['GET','POST','PUT','DELETE']);
-        return res.status(405).end();
+    } else {
+      res.status(405).json({ error: "Method not allowed" });
     }
-  } catch(e){ console.error(e); return res.status(500).json({ error:e.message }); }
-  finally{ await db.close(); }
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
 }
