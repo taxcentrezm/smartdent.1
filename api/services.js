@@ -1,47 +1,45 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import { client } from "../db.js";
 
-async function openDb() { return open({ filename: './database.db', driver: sqlite3.Database }); }
-
-export default async function handler(req,res) {
-  const db = await openDb();
-  const { method } = req;
-
+export default async function handler(req, res) {
   try {
-    switch(method){
-      case 'GET':
-        return res.json(await db.all('SELECT * FROM services'));
+    if (req.method === "GET") {
+      const result = await client.execute("SELECT * FROM services;");
+      const services = result.rows.map(row => ({
+        service_id: row.service_id,
+        clinic_id: row.clinic_id,
+        name: row.name,
+        description: row.description,
+        price: row.price
+      }));
+      return res.status(200).json(services);
 
-      case 'POST': {
-        const { name, description, price, clinic_id } = req.body;
-        const stmt = await db.run(
-          'INSERT INTO services (name, description, price, clinic_id) VALUES (?,?,?,?)',
-          [name, description, price, clinic_id]
-        );
-        const service = await db.get('SELECT * FROM services WHERE service_id=?', stmt.lastID);
-        return res.status(201).json(service);
-      }
+    } else if (req.method === "POST") {
+      const { clinic_id, name, description, price } = req.body;
+      const result = await client.execute(
+        "INSERT INTO services (clinic_id, name, description, price) VALUES (?, ?, ?, ?);",
+        [clinic_id, name, description, price]
+      );
+      return res.status(201).json({ service_id: result.lastInsertRowid });
 
-      case 'PUT': {
-        const { service_id, name, description, price } = req.body;
-        await db.run(
-          'UPDATE services SET name=?, description=?, price=? WHERE service_id=?',
-          [name, description, price, service_id]
-        );
-        const service = await db.get('SELECT * FROM services WHERE service_id=?', service_id);
-        return res.json(service);
-      }
+    } else if (req.method === "PUT") {
+      const { service_id, name, description, price } = req.body;
+      await client.execute(
+        "UPDATE services SET name=?, description=?, price=? WHERE service_id=?;",
+        [name, description, price, service_id]
+      );
+      return res.status(200).json({ message: "Updated" });
 
-      case 'DELETE': {
-        const { service_id } = req.body;
-        await db.run('DELETE FROM services WHERE service_id=?', [service_id]);
-        return res.json({ success:true });
-      }
+    } else if (req.method === "DELETE") {
+      const { service_id } = req.body;
+      await client.execute("DELETE FROM services WHERE service_id=?;", [service_id]);
+      return res.status(200).json({ message: "Deleted" });
 
-      default:
-        res.setHeader('Allow',['GET','POST','PUT','DELETE']);
-        return res.status(405).end();
+    } else {
+      res.status(405).json({ error: "Method not allowed" });
     }
-  } catch(e){ console.error(e); return res.status(500).json({ error:e.message }); }
-  finally{ await db.close(); }
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
 }
