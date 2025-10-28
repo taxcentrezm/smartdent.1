@@ -1,22 +1,39 @@
 {
-  "name": "choma-dentistry-erp",
+  "name": "choma-dentistry-zm",
   "version": "1.0.0",
-  "description": "SmartDent ERP backend for Choma Dentistry",
-  "type": "module",
+  "description": "Dental ERP dashboard for Choma Dentistry",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "start": "node index.js",
-    "build": "echo \"No build step\""
+    "start": "vercel start",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
-  "keywords": ["dentistry", "ERP", "LibSQL", "Vercel"],
-  "author": "SMAIT Developers",
-  "license": "MIT",
   "dependencies": {
-    "@libsql/client": "^0.6.0",
-    "dotenv": "^16.3.1"
+    "@libsql/client": "^0.4.0",
+    "@vercel/express": "^0.1.2",
+    "@vercel/hono": "^0.2.2",
+    "@vercel/node": "^5.5.1",
+    "@vercel/static-build": "^2.8.1",
+    "chart.js": "^4.5.1",
+    "feather-icons": "^4.29.2"
   },
   "devDependencies": {
-    "vercel": "^48.6.0"
-  }
+    "vercel": "^48.6.4",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.0"
+  },
+  "engines": {
+    "node": "22.x"
+  },
+  "keywords": [
+    "vercel",
+    "turso",
+    "dentistry",
+    "dashboard",
+    "erp"
+  ],
+  "author": "Tax",
+  "license": "MIT"
 }
