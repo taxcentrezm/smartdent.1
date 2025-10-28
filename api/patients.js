@@ -1,51 +1,46 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-
-async function openDb() { 
-  return open({ filename: './database.db', driver: sqlite3.Database }); 
-}
+import { client } from "../db.js";
 
 export default async function handler(req, res) {
-  const db = await openDb();
-  const { method } = req;
-
   try {
-    switch(method) {
-      case 'GET':
-        return res.json(await db.all('SELECT * FROM patients'));
-      
-      case 'POST': {
-        const { full_name, email, phone, clinic_id } = req.body;
-        const stmt = await db.run(
-          'INSERT INTO patients (full_name,email,phone,clinic_id) VALUES (?,?,?,?)',
-          [full_name, email, phone, clinic_id]
-        );
-        const patient = await db.get('SELECT * FROM patients WHERE patient_id=?', stmt.lastID);
-        return res.status(201).json(patient);
-      }
+    if (req.method === "GET") {
+      const result = await client.execute("SELECT * FROM patients;");
+      const patients = result.rows.map(row => ({
+        patient_id: row.patient_id,
+        clinic_id: row.clinic_id,
+        full_name: row.full_name,
+        email: row.email,
+        phone: row.phone,
+        dob: row.dob
+      }));
+      return res.status(200).json(patients);
 
-      case 'PUT': {
-        const { patient_id, full_name, email, phone } = req.body;
-        await db.run(
-          'UPDATE patients SET full_name=?, email=?, phone=? WHERE patient_id=?',
-          [full_name, email, phone, patient_id]
-        );
-        const patient = await db.get('SELECT * FROM patients WHERE patient_id=?', patient_id);
-        return res.json(patient);
-      }
+    } else if (req.method === "POST") {
+      const { clinic_id, full_name, email, phone, dob } = req.body;
+      const result = await client.execute(
+        "INSERT INTO patients (clinic_id, full_name, email, phone, dob) VALUES (?, ?, ?, ?, ?);",
+        [clinic_id, full_name, email, phone, dob]
+      );
+      return res.status(201).json({ patient_id: result.lastInsertRowid });
 
-      case 'DELETE': {
-        const { patient_id } = req.body;
-        await db.run('DELETE FROM patients WHERE patient_id=?', [patient_id]);
-        return res.json({ success: true });
-      }
+    } else if (req.method === "PUT") {
+      const { patient_id, full_name, email, phone, dob } = req.body;
+      await client.execute(
+        "UPDATE patients SET full_name=?, email=?, phone=?, dob=? WHERE patient_id=?;",
+        [full_name, email, phone, dob, patient_id]
+      );
+      return res.status(200).json({ message: "Updated" });
 
-      default:
-        res.setHeader('Allow',['GET','POST','PUT','DELETE']);
-        return res.status(405).end(`Method ${method} Not Allowed`);
+    } else if (req.method === "DELETE") {
+      const { patient_id } = req.body;
+      await client.execute("DELETE FROM patients WHERE patient_id=?;", [patient_id]);
+      return res.status(200).json({ message: "Deleted" });
+
+    } else {
+      res.status(405).json({ error: "Method not allowed" });
     }
-  } catch(e) {
-    console.error(e);
-    return res.status(500).json({ error: e.message });
-  } finally { await db.close(); }
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
 }
