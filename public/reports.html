@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartDent ERP — Reports</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <style>
+    .card { @apply bg-white rounded-2xl shadow p-4; }
+    .chart-wrap { height: 260px; }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 antialiased">
+
+  <!-- Header -->
+  <header class="bg-yellow-500 text-white py-4 shadow">
+    <div class="container mx-auto px-4 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v6"></path><path d="M8 10s1 2 4 2 4-2 4-2"></path><path d="M6 21s2-4 6-4 6 4 6 4"></path>
+          </svg>
+        </div>
+        <div class="font-semibold text-lg">SmartDent ERP</div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="bg-white/90 text-yellow-600 px-3 py-2 rounded-md inline-flex items-center gap-2 shadow-sm">
+          <i data-feather="bar-chart-2"></i> Export Report
+        </button>
+        <div class="relative">
+          <button class="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-full shadow-sm">
+            <img src="assets/images/avatar.jpg" class="w-8 h-8 rounded-full object-cover">
+            <span class="hidden md:inline-block text-sm">Dr. ____</span>
+            <i data-feather="chevron-down"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="container mx-auto px-4 py-6 space-y-6">
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card">
+        <div class="text-sm text-gray-500">Total Patients</div>
+        <div class="text-xl font-semibold">1,420</div>
+        <div class="text-xs text-green-600 mt-1">+3.4% this month</div>
+      </div>
+      <div class="card">
+        <div class="text-sm text-gray-500">Appointments</div>
+        <div class="text-xl font-semibold">38 today</div>
+        <div class="text-xs text-amber-600 mt-1">5 pending</div>
+      </div>
+      <div class="card">
+        <div class="text-sm text-gray-500">Revenue (YTD)</div>
+        <div class="text-xl font-semibold">$162,400</div>
+        <div class="text-xs text-green-600 mt-1">+12.5% vs last year</div>
+      </div>
+      <div class="card">
+        <div class="text-sm text-gray-500">Stock Alerts</div>
+        <div class="text-xl font-semibold">7 low items</div>
+        <div class="text-xs text-gray-500 mt-1">Auto-reorder enabled</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card">
+        <h3 class="font-semibold mb-2">Revenue Trend</h3>
+        <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3 class="font-semibold mb-2">Service Distribution</h3>
+        <div class="chart-wrap"><canvas id="serviceChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="font-semibold mb-2">Patient Growth</h3>
+      <div class="chart-wrap"><canvas id="growthChart"></canvas></div>
+    </div>
+  </main>
+
+  <footer class="mt-8 text-sm text-gray-500 text-center">
+    SmartDent ERP • Insightful Reports for Smarter Decisions
+  </footer>
+  <script src="core.js"></script>
+  <!-- Scripts -->
+  <script>
+    feather.replace();
+
+    // Revenue Line Chart
+    new Chart(document.getElementById('revenueChart').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],
+        datasets: [{
+          label: 'Revenue',
+          data: [12000,15000,14000,18000,17000,20000,21000,23000,19000],
+          borderColor: '#F59E0B',
+          borderWidth: 3,
+          tension: 0.4,
+          pointRadius: 3,
+          fill: false
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: false } },
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+
+    // Service Distribution Pie
+    new Chart(document.getElementById('serviceChart').getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Fillings','Cleaning','Root Canal','Cosmetic','Ortho'],
+        datasets: [{
+          data: [45,25,15,10,5],
+          backgroundColor: ['#60A5FA','#34D399','#FBBF24','#F87171','#A78BFA']
+        }]
+      },
+      options: {
+        plugins: { legend: { position: 'right' } },
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+
+    // Patient Growth Bar
+    new Chart(document.getElementById('growthChart').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],
+        datasets: [{
+          label: 'New Patients',
+          data: [40,55,48,60,72,65,80,90,78],
+          backgroundColor: '#10B981'
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  </script>
+</body>
+</html>
