@@ -1,4 +1,3 @@
-// api/stock.js
 import { client } from "../db.js";
 
 export default async function handler(req, res) {
@@ -11,16 +10,13 @@ export default async function handler(req, res) {
       }
       case "POST": {
         const { item, quantity, price } = req.body;
-
         if (!item || quantity == null || price == null) {
           return res.status(400).json({ error: "item, quantity, and price are required." });
         }
-
         await client.execute(
           "INSERT INTO stock (item, quantity, price) VALUES (?, ?, ?);",
           [item, quantity, price]
         );
-
         res.status(201).json({ message: "Stock item created" });
         break;
       }
@@ -29,7 +25,7 @@ export default async function handler(req, res) {
         res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
   } catch (err) {
-    console.error("❌ API Error (stock):", err);
+    console.error("❌ API Error (stock):", err.message);
     res.status(500).json({ error: err.message });
   }
 }
