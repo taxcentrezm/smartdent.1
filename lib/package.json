@@ -1,8 +1,22 @@
 {
-  "name": "choma-dentistry-zmb",
+  "name": "choma-dentistry-erp",
   "version": "1.0.0",
+  "description": "SmartDent ERP backend for Choma Dentistry",
   "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "node index.js",
+    "build": "echo \"No build step\""
+  },
+  "keywords": ["dentistry", "ERP", "LibSQL", "Vercel"],
+  "author": "SMAIT Developers",
+  "license": "MIT",
   "dependencies": {
-    "@libsql/client": "0.3.6"
+    "@libsql/client": "^0.6.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "vercel": "^30.3.0"
   }
 }
