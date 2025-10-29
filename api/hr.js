@@ -2,8 +2,8 @@
 import { createClient } from "@libsql/client";
 
 const client = createClient({
-  url: process.env.TURSO_DATABASE_URL || process.env.CHOMADENTISTRY_TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN || process.env.CHOMADENTISTRY_TURSO_AUTH_TOKEN,
+  url: process.env.TURSO_DATABASE_URL || process.env.chomadentistry_TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN || process.env.chomadentistry_TURSO_AUTH_TOKEN,
 });
 
 export default async function handler(req, res) {
