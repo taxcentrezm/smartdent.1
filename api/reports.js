@@ -1,11 +1,9 @@
 import { createClient } from "@libsql/client";
-import dotenv from "dotenv";
 
-dotenv.config();
-
+// Initialize Turso DB client
 const client = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN,
+  url: process.env.TURSO_DATABASE_URL || process.env.chomadentistry_TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN || process.env.chomadentistry_TURSO_AUTH_TOKEN,
 });
 
 export default async function handler(req, res) {
@@ -15,28 +13,28 @@ export default async function handler(req, res) {
     const totalPatients = patients.rows[0]?.total || 0;
 
     // === Appointments today
-    const todayAppointments = await client.execute(
-      `SELECT COUNT(*) AS total
-       FROM appointments
-       WHERE DATE(appointment_date) = DATE('now', 'localtime');`
-    );
+    const todayAppointments = await client.execute(`
+      SELECT COUNT(*) AS total
+      FROM appointments
+      WHERE DATE(appointment_date) = DATE('now', 'localtime');
+    `);
     const todayCount = todayAppointments.rows[0]?.total || 0;
 
     // === Total revenue (sum of all treatment costs this year)
-    const revenue = await client.execute(
-      `SELECT SUM(cost) AS total
-       FROM treatments
-       WHERE strftime('%Y', treatment_date) = strftime('%Y', 'now');`
-    );
+    const revenue = await client.execute(`
+      SELECT SUM(cost) AS total
+      FROM treatments
+      WHERE strftime('%Y', treatment_date) = strftime('%Y', 'now');
+    `);
     const totalRevenue = revenue.rows[0]?.total || 0;
 
     // === Low stock items
-    const lowStock = await client.execute(
-      `SELECT COUNT(*) AS total FROM stock WHERE quantity <= 5;`
-    );
+    const lowStock = await client.execute(`
+      SELECT COUNT(*) AS total FROM stock WHERE quantity <= 5;
+    `);
     const lowStockCount = lowStock.rows[0]?.total || 0;
 
-    // === Service distribution (pie chart data)
+    // === Service distribution (pie chart)
     const serviceDistribution = await client.execute(`
       SELECT s.service_name, COUNT(t.treatment_id) AS total
       FROM treatments t
@@ -44,7 +42,7 @@ export default async function handler(req, res) {
       GROUP BY s.service_name;
     `);
 
-    // === Monthly patient growth (line chart data)
+    // === Monthly patient growth (line chart)
     const patientGrowth = await client.execute(`
       SELECT strftime('%m', created_at) AS month, COUNT(*) AS total
       FROM patients
@@ -53,6 +51,7 @@ export default async function handler(req, res) {
       ORDER BY month;
     `);
 
+    // ✅ Send the final response
     return res.status(200).json({
       totalPatients,
       todayAppointments: todayCount,
