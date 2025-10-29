@@ -1,6 +1,6 @@
+// api/reports.js
 import { createClient } from "@libsql/client";
 
-// Initialize Turso DB client
 const client = createClient({
   url: process.env.TURSO_DATABASE_URL || process.env.chomadentistry_TURSO_DATABASE_URL,
   authToken: process.env.TURSO_AUTH_TOKEN || process.env.chomadentistry_TURSO_AUTH_TOKEN,
@@ -8,11 +8,13 @@ const client = createClient({
 
 export default async function handler(req, res) {
   try {
-    // === Total patients
+    console.log("📊 Reports API: Fetching analytics...");
+
+    // === 1. Total Patients ===
     const patients = await client.execute("SELECT COUNT(*) AS total FROM patients;");
     const totalPatients = patients.rows[0]?.total || 0;
 
-    // === Appointments today
+    // === 2. Appointments Today ===
     const todayAppointments = await client.execute(`
       SELECT COUNT(*) AS total
       FROM appointments
@@ -20,7 +22,7 @@ export default async function handler(req, res) {
     `);
     const todayCount = todayAppointments.rows[0]?.total || 0;
 
-    // === Total revenue (sum of all treatment costs this year)
+    // === 3. Total Revenue (YTD) ===
     const revenue = await client.execute(`
       SELECT SUM(cost) AS total
       FROM treatments
@@ -28,21 +30,23 @@ export default async function handler(req, res) {
     `);
     const totalRevenue = revenue.rows[0]?.total || 0;
 
-    // === Low stock items
+    // === 4. Low Stock Items ===
     const lowStock = await client.execute(`
-      SELECT COUNT(*) AS total FROM stock WHERE quantity <= 5;
+      SELECT COUNT(*) AS total
+      FROM stock
+      WHERE quantity <= 5;
     `);
     const lowStockCount = lowStock.rows[0]?.total || 0;
 
-    // === Service distribution (pie chart)
+    // === 5. Service Distribution (Pie Chart) ===
     const serviceDistribution = await client.execute(`
-      SELECT s.service_name, COUNT(t.treatment_id) AS total
+      SELECT s.name AS service, COUNT(t.treatment_id) AS total
       FROM treatments t
       JOIN services s ON t.service_id = s.service_id
-      GROUP BY s.service_name;
+      GROUP BY s.name;
     `);
 
-    // === Monthly patient growth (line chart)
+    // === 6. Monthly Patient Growth (Line Chart) ===
     const patientGrowth = await client.execute(`
       SELECT strftime('%m', created_at) AS month, COUNT(*) AS total
       FROM patients
@@ -51,7 +55,7 @@ export default async function handler(req, res) {
       ORDER BY month;
     `);
 
-    // ✅ Send the final response
+    // === Response ===
     return res.status(200).json({
       totalPatients,
       todayAppointments: todayCount,
