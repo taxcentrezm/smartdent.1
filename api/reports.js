@@ -10,24 +10,15 @@ export default async function handler(req, res) {
   try {
     console.log("📊 Reports API: Fetching analytics...");
 
-    // Helper to safely extract single numeric values
-    const extractValue = (result, columnName, defaultValue = 0) => {
-      if (!result?.rows || result.rows.length === 0) {
-        console.warn(`⚠️ No rows returned for column "${columnName}"`);
-        return defaultValue;
-      }
-      if (!(columnName in result.rows[0])) {
-        console.warn(`⚠️ Column "${columnName}" missing in result`);
-        return defaultValue;
-      }
-      return result.rows[0][columnName] ?? defaultValue;
-    };
+    // Helper to extract safe values
+    const extractValue = (result, key, fallback = 0) =>
+      result?.rows?.[0]?.[key] ?? fallback;
 
-    // === 1. Total Patients ===
+    // === 1️⃣ Total Patients ===
     const patients = await client.execute("SELECT COUNT(*) AS total FROM patients;");
     const totalPatients = extractValue(patients, "total");
 
-    // === 2. Appointments Today ===
+    // === 2️⃣ Appointments (today & pending) ===
     const todayAppointments = await client.execute(`
       SELECT COUNT(*) AS total
       FROM appointments
@@ -35,15 +26,33 @@ export default async function handler(req, res) {
     `);
     const todayCount = extractValue(todayAppointments, "total");
 
-    // === 3. Total Revenue (YTD) ===
-    const revenue = await client.execute(`
+    const pendingAppointments = await client.execute(`
+      SELECT COUNT(*) AS total
+      FROM appointments
+      WHERE status = 'pending';
+    `);
+    const pendingCount = extractValue(pendingAppointments, "total");
+
+    // === 3️⃣ Revenue (YTD & last year comparison) ===
+    const revenueYTD = await client.execute(`
       SELECT SUM(cost) AS total
       FROM treatments
       WHERE strftime('%Y', treatment_date) = strftime('%Y', 'now');
     `);
-    const totalRevenue = extractValue(revenue, "total");
+    const totalRevenue = extractValue(revenueYTD, "total");
 
-    // === 4. Low Stock Items ===
+    const lastYearRevenue = await client.execute(`
+      SELECT SUM(cost) AS total
+      FROM treatments
+      WHERE strftime('%Y', treatment_date) = strftime('%Y', 'now', '-1 year');
+    `);
+    const lastRevenue = extractValue(lastYearRevenue, "total");
+
+    const revenueChange = lastRevenue
+      ? (((totalRevenue - lastRevenue) / lastRevenue) * 100).toFixed(1)
+      : 0;
+
+    // === 4️⃣ Low Stock ===
     const lowStock = await client.execute(`
       SELECT COUNT(*) AS total
       FROM stock
@@ -51,7 +60,7 @@ export default async function handler(req, res) {
     `);
     const lowStockCount = extractValue(lowStock, "total");
 
-    // === 5. Service Distribution (Pie Chart) ===
+    // === 5️⃣ Service Distribution (Pie) ===
     const serviceDistribution = await client.execute(`
       SELECT s.name AS service, COUNT(t.treatment_id) AS total
       FROM treatments t
@@ -62,7 +71,7 @@ export default async function handler(req, res) {
     const serviceLabels = serviceDistribution.rows.map(r => r.service);
     const serviceValues = serviceDistribution.rows.map(r => r.total);
 
-    // === 6. Monthly Patient Growth (Bar Chart) ===
+    // === 6️⃣ Monthly Patient Growth ===
     const patientGrowth = await client.execute(`
       SELECT strftime('%m', created_at) AS month, COUNT(*) AS total
       FROM patients
@@ -74,28 +83,37 @@ export default async function handler(req, res) {
     const patientMonths = patientGrowth.rows.map(r => r.month);
     const patientValues = patientGrowth.rows.map(r => r.total);
 
-    // === 7. Monthly Revenue Trend (Line Chart) ===
+    // Calculate patient % growth (current vs previous month)
+    let patientGrowthPercent = 0;
+    if (patientValues.length >= 2) {
+      const last = patientValues[patientValues.length - 1];
+      const prev = patientValues[patientValues.length - 2];
+      patientGrowthPercent = prev ? (((last - prev) / prev) * 100).toFixed(1) : 0;
+    }
+
+    // === 7️⃣ Revenue Trend (Line) ===
     const revenueTrendRaw = await client.execute(`
       SELECT strftime('%m', treatment_date) AS month, SUM(cost) AS total
       FROM treatments
       WHERE strftime('%Y', treatment_date) = strftime('%Y', 'now')
       GROUP BY month;
     `);
-
-    // Prepare arrays for all months
     const revenueMonths = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     const revenueValues = Array(12).fill(0);
     revenueTrendRaw.rows.forEach(r => {
-      const monthIndex = parseInt(r.month, 10) - 1;
-      revenueValues[monthIndex] = r.total ?? 0;
+      const idx = parseInt(r.month, 10) - 1;
+      revenueValues[idx] = r.total ?? 0;
     });
 
-    // === 8. Response ===
+    // === ✅ Response ===
     return res.status(200).json({
       totalPatients,
       todayAppointments: todayCount,
+      pendingAppointments: pendingCount,
       revenueYTD: totalRevenue,
+      revenueChange,
       lowStock: lowStockCount,
+      patientGrowth: patientGrowthPercent,
       serviceLabels,
       serviceValues,
       patientMonths,
