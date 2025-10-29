@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
     // === 1️⃣ Staff List ===
     const staffRaw = await client.execute(`
-      SELECT id, staff_id, name, role, department, salary
+      SELECT staff_id, name, role, department, salary
       FROM staff
       ORDER BY name;
     `);
@@ -43,7 +43,6 @@ export default async function handler(req, res) {
       const monthlyNet = months.map(m => empPayroll[m] || 0);
       const totalNet = monthlyNet.reduce((a,b) => a+b, 0);
       return {
-        id: emp.id,
         staff_id: emp.staff_id,
         name: emp.name,
         role: emp.role,
