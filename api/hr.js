@@ -10,68 +10,54 @@ export default async function handler(req, res) {
   try {
     console.log("📊 HR API: Fetching staff and payroll data...");
 
-    // Helper to safely extract a single value
     const extractValue = (result, key, fallback = 0) =>
       result?.rows?.[0]?.[key] ?? fallback;
 
-    // === 1️⃣ Fetch all staff ===
-    const staffResult = await client.execute(`
-      SELECT 
-        staff_id, name, role, salary, photo, department, leave_days
+    // === 1️⃣ Staff List ===
+    const staffRaw = await client.execute(`
+      SELECT id, staff_id, name, role, department, salary
       FROM staff
-      ORDER BY name
-      LIMIT 5;
+      ORDER BY name;
+    `);
+    const staff = staffRaw.rows;
+
+    // === 2️⃣ Monthly Payroll per Staff ===
+    const payrollRaw = await client.execute(`
+      SELECT staff_id, month, SUM(net) AS total_net
+      FROM payroll
+      GROUP BY staff_id, month
+      ORDER BY staff_id, month;
     `);
 
-    const staff = await Promise.all(
-      staffResult.rows.map(async (emp) => {
-        // === 2️⃣ Fetch last 10 months of payroll for this staff ===
-        const payrollResult = await client.execute(`
-          SELECT strftime('%m', pay_date) AS month, net_salary
-          FROM payroll
-          WHERE staff_id = ?
-          ORDER BY pay_date DESC
-          LIMIT 10;
-        `, [emp.staff_id]);
+    // Transform payroll into a map by staff_id
+    const payrollMap = {};
+    payrollRaw.rows.forEach(r => {
+      if (!payrollMap[r.staff_id]) payrollMap[r.staff_id] = {};
+      payrollMap[r.staff_id][r.month] = r.total_net;
+    });
 
-        // Map months to short names
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const payroll = payrollResult.rows
-          .map(p => ({
-            month: months[parseInt(p.month, 10) - 1],
-            net: p.net_salary
-          }))
-          .reverse(); // oldest → newest
-
-        return {
-          id: emp.staff_id,
-          name: emp.name,
-          role: emp.role,
-          salary: emp.salary,
-          photo: emp.photo,
-          department: emp.department,
-          leave: emp.leave_days,
-          payroll
-        };
-      })
-    );
-
-    // === 3️⃣ Summary metrics ===
-    const totalPayroll = staff.reduce((sum, emp) => {
-      const latest = emp.payroll?.slice(-1)[0];
-      return sum + (latest?.net ?? 0);
-    }, 0);
-
-    const lastRun = staff[0]?.payroll?.slice(-1)[0]?.month || "—";
+    // === 3️⃣ Staff Payroll Summary ===
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const staffPayroll = staff.map(emp => {
+      const empPayroll = payrollMap[emp.staff_id] || {};
+      const monthlyNet = months.map(m => empPayroll[m] || 0);
+      const totalNet = monthlyNet.reduce((a,b) => a+b, 0);
+      return {
+        id: emp.id,
+        staff_id: emp.staff_id,
+        name: emp.name,
+        role: emp.role,
+        department: emp.department,
+        salary: emp.salary,
+        monthlyNet,
+        totalNet
+      };
+    });
 
     // === 4️⃣ Response ===
     return res.status(200).json({
-      staff,
-      summary: {
-        totalStaff: staff.length,
-        totalPayroll,
-        lastRun
-      }
+      staffPayroll,
+      months
     });
 
   } catch (error) {
