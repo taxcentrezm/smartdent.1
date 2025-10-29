@@ -24,7 +24,7 @@
  
 <script src="assets/fonts/doksen-normal.js"></script>
 <script src="assets/fonts/Poppins-Regular-normal.js"></script>
-<script src="assets/fonts/dentiSmart/Poppins-Bold-bold.js"></script>
+<script src="assets/fonts/Poppins-Bold-bold.js"></script>
 </head>
 <body class="bg-gray-50 font-sans text-gray-800 antialiased">
 
@@ -45,7 +45,7 @@
 </button>
         <div class="relative">
           <button class="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-full shadow-sm">
-            <img src="assets/images/avatar.jpg" class="w-8 h-8 rounded-full object-cover">
+            <img src="assets/images/avatar(1).jpg" class="w-8 h-8 rounded-full object-cover">
             <span class="hidden md:inline-block text-sm">Dr. Phiri</span>
             <i data-feather="chevron-down"></i>
           </button>
@@ -338,7 +338,7 @@
     const year = new Date().getFullYear();
     const payrollPeriod = `${month} 01 – ${month} 31, ${year}`;
     const employeeId = "EMP-" + (index+1).toString().padStart(4,"0");
-    const logoUrl = "assets/image/avatar.jpg";
+    const logoUrl = "assets/image/avatar(1).jpg";
 
     // ====== LOAD LOGO ======
     const img = new Image();
@@ -468,7 +468,6 @@ pdf.text(`$${totalDeductions.toFixed(2)}`, 185, y + 8, { align: "right" });
     img.onerror = () => alert("❌ Failed to load logo image.");
   };
 });
-  });
 </script>
 
 </body>
