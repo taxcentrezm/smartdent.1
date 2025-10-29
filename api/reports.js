@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   try {
     console.log("📊 Reports API: Fetching analytics...");
 
-    // Helper to safely extract a value
+    // Helper to safely extract single numeric values
     const extractValue = (result, columnName, defaultValue = 0) => {
       if (!result?.rows || result.rows.length === 0) {
         console.warn(`⚠️ No rows returned for column "${columnName}"`);
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     `);
     const lowStockCount = extractValue(lowStock, "total");
 
-    // === 5. Service Distribution ===
+    // === 5. Service Distribution (Pie Chart) ===
     const serviceDistribution = await client.execute(`
       SELECT s.name AS service, COUNT(t.treatment_id) AS total
       FROM treatments t
@@ -59,8 +59,10 @@ export default async function handler(req, res) {
       GROUP BY s.name;
     `);
     console.log("Service distribution raw:", serviceDistribution.rows);
+    const serviceLabels = serviceDistribution.rows.map(r => r.service);
+    const serviceValues = serviceDistribution.rows.map(r => r.total);
 
-    // === 6. Monthly Patient Growth ===
+    // === 6. Monthly Patient Growth (Bar Chart) ===
     const patientGrowth = await client.execute(`
       SELECT strftime('%m', created_at) AS month, COUNT(*) AS total
       FROM patients
@@ -69,15 +71,37 @@ export default async function handler(req, res) {
       ORDER BY month;
     `);
     console.log("Patient growth raw:", patientGrowth.rows);
+    const patientMonths = patientGrowth.rows.map(r => r.month);
+    const patientValues = patientGrowth.rows.map(r => r.total);
 
-    // === Response ===
+    // === 7. Monthly Revenue Trend (Line Chart) ===
+    const revenueTrendRaw = await client.execute(`
+      SELECT strftime('%m', treatment_date) AS month, SUM(cost) AS total
+      FROM treatments
+      WHERE strftime('%Y', treatment_date) = strftime('%Y', 'now')
+      GROUP BY month;
+    `);
+
+    // Prepare arrays for all months
+    const revenueMonths = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const revenueValues = Array(12).fill(0);
+    revenueTrendRaw.rows.forEach(r => {
+      const monthIndex = parseInt(r.month, 10) - 1;
+      revenueValues[monthIndex] = r.total ?? 0;
+    });
+
+    // === 8. Response ===
     return res.status(200).json({
       totalPatients,
       todayAppointments: todayCount,
       revenueYTD: totalRevenue,
-      lowStockItems: lowStockCount,
-      serviceDistribution: serviceDistribution.rows || [],
-      patientGrowth: patientGrowth.rows || [],
+      lowStock: lowStockCount,
+      serviceLabels,
+      serviceValues,
+      patientMonths,
+      patientValues,
+      revenueMonths,
+      revenueValues
     });
 
   } catch (error) {
