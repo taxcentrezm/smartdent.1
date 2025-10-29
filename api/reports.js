@@ -1,5 +1,5 @@
 // api/reports.js
-import { client } from "../../db.js";
+import { client } from "../db.js";  // ✅ fixed import path
 
 export default async function handler(req, res) {
   try {
@@ -11,23 +11,18 @@ export default async function handler(req, res) {
       serviceDistribution,
       patientGrowth
     ] = await Promise.all([
-      // Total patients
       client.execute("SELECT COUNT(*) AS total FROM patients;"),
 
-      // Appointments today
       client.execute(
         "SELECT COUNT(*) AS total FROM appointments WHERE date = date('now');"
       ),
 
-      // Total revenue for current year (sum of treatment charges or payroll income)
       client.execute(
         "SELECT SUM(amount) AS total FROM treatments WHERE strftime('%Y', date) = strftime('%Y', 'now');"
       ),
 
-      // Low stock items
       client.execute("SELECT COUNT(*) AS total FROM stock WHERE quantity < 5;"),
 
-      // Services distribution (for pie chart)
       client.execute(`
         SELECT s.name AS service, COUNT(t.id) AS count
         FROM treatments t
@@ -37,7 +32,6 @@ export default async function handler(req, res) {
         LIMIT 5;
       `),
 
-      // Patient growth per month (for bar chart)
       client.execute(`
         SELECT strftime('%m', created_at) AS month, COUNT(*) AS count
         FROM patients
