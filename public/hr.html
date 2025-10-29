@@ -119,64 +119,27 @@
   <!-- Scripts -->
 <script>
   feather.replace();
- 
+
   let staff = [];
 
   // ============================
-  // LOAD / SAVE STAFF DATA
+  // LOAD STAFF DATA FROM DATABASE
   // ============================
-  function loadStaff() {
-    const stored = localStorage.getItem("smartdent_staff");
-    
-    function generateFullYearPayroll(salary) {
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const net = salary * 0.88;
-  return months.map(month => ({ month, net }));
-}
+  async function loadStaff() {
+    try {
+      const res = await fetch('/api/hr'); // Replace with your database API endpoint
+      const data = await res.json();
+      staff = data.staff || [];
 
-    staff = stored ? JSON.parse(stored) : [
-  {
-    name: 'Dr. Alice Mwansa',
-    role: 'Dentist',
-    salary: 5000,
-    photo: 'assets/images/female (2).jpg',
-    department: 'Dental',
-    leave: 2,
-    payroll: generateFullYearPayroll(5000)
-  },
-  {
-    name: 'Dr. Brian Zulu',
-    role: 'Orthodontist',
-    salary: 6200,
-    photo: 'assets/images/male (2).jpg',
-    department: 'Ortho',
-    leave: 1,
-    payroll: generateFullYearPayroll(6200)
-  },
-  {
-    name: 'Nurse Chipo',
-    role: 'Dental Nurse',
-    salary: 1200,
-    photo: 'assets/images/female (1).jpg',
-    department: 'Support',
-    leave: 1,
-    payroll: generateFullYearPayroll(1200)
-  },
-  {
-    name: 'Receptionist Tinashe',
-    role: 'Admin',
-    salary: 900,
-    photo: 'male (1).jpg',
-    department: 'Admin',
-    leave: 0,
-    payroll: generateFullYearPayroll(900)
-  }
-];
-saveStaff();
-  }
-
-  function saveStaff() {
-    localStorage.setItem("smartdent_staff", JSON.stringify(staff));
+      renderStaff();
+      renderLeaveTracker();
+      renderPayrollSummary();
+      renderPayrollChart();
+      renderLeaveChart();
+    } catch (err) {
+      console.error("❌ Failed to load staff data:", err);
+      alert("Failed to load staff data from database.");
+    }
   }
 
   // ============================
@@ -185,12 +148,10 @@ saveStaff();
   function renderPayrollSummary() {
     const ul = document.getElementById("payrollSummary");
     const totalStaff = staff.length;
-
     const totalPayroll = staff.reduce((sum, emp) => {
       const latest = emp.payroll?.slice(-1)[0];
       return sum + (latest?.net || 0);
     }, 0);
-
     const lastRun = staff[0]?.payroll?.slice(-1)[0]?.month || "—";
 
     ul.innerHTML = `
@@ -221,8 +182,7 @@ saveStaff();
         <div class="text-right">
           <div class="text-sm">$${emp.salary.toLocaleString()}</div>
           <div class="text-xs text-gray-500">Net $${(emp.salary * 0.88).toFixed(2)}</div>
-        <button onclick="generatePayslip(${index})"class="text-xs text-green-600 underline mt-1">Payslip</button>  
-
+          <button onclick="generatePayslip(${index})" class="text-xs text-green-600 underline mt-1">Payslip</button>
         </div>
       `;
       ul.appendChild(li);
@@ -230,79 +190,45 @@ saveStaff();
 
     feather.replace();
   }
-function getEmployeeColors() {
-  const palette = [
-    '#34D399', '#60A5FA', '#FBBF24', '#F87171',
-    '#A78BFA', '#F472B6', '#10B981', '#F59E0B'
-  ];
-  return staff.map((_, i) => palette[i % palette.length]);
-}
 
-let payrollChartInstance = null;
-
-function renderPayrollChart() {
-  const ctx = document.getElementById('payrollChart').getContext('2d');
-
-  if (payrollChartInstance) {
-    payrollChartInstance.destroy();
+  function getEmployeeColors() {
+    const palette = ['#34D399','#60A5FA','#FBBF24','#F87171','#A78BFA','#F472B6','#10B981','#F59E0B'];
+    return staff.map((_, i) => palette[i % palette.length]);
   }
 
-  const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const currentMonthIndex = new Date().getMonth(); // 0-based
-  const months = allMonths.slice(0, currentMonthIndex + 1);
+  let payrollChartInstance = null;
+  function renderPayrollChart() {
+    const ctx = document.getElementById('payrollChart').getContext('2d');
+    if (payrollChartInstance) payrollChartInstance.destroy();
 
-  const totals = months.map(month =>
-    staff.reduce((sum, emp) => {
-      const entry = emp.payroll?.find(p => p.month === month);
-      return sum + (entry?.net || 0);
-    }, 0)
-  );
+    const allMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const currentMonthIndex = new Date().getMonth();
+    const months = allMonths.slice(0, currentMonthIndex + 1);
 
-  const backgroundColors = months.map((_, i) =>
-    i === currentMonthIndex
-      ? 'rgba(239,68,68,0.7)'   // red for current month
-      : 'rgba(34,197,94,0.6)'   // green for others
-  );
+    const totals = months.map(month =>
+      staff.reduce((sum, emp) => {
+        const entry = emp.payroll?.find(p => p.month === month);
+        return sum + (entry?.net || 0);
+      }, 0)
+    );
 
-  const borderColors = months.map((_, i) =>
-    i === currentMonthIndex
-      ? 'rgba(239,68,68,1)'
-      : 'rgba(34,197,94,1)'
-  );
+    const backgroundColors = months.map((_, i) =>
+      i === currentMonthIndex ? 'rgba(239,68,68,0.7)' : 'rgba(34,197,94,0.6)'
+    );
+    const borderColors = months.map((_, i) =>
+      i === currentMonthIndex ? 'rgba(239,68,68,1)' : 'rgba(34,197,94,1)'
+    );
 
-  payrollChartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: months,
-      datasets: [{
-        label: 'Total Net Payroll',
-        data: totals,
-        backgroundColor: backgroundColors,
-        borderColor: borderColors,
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: { beginAtZero: true }
-      },
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: context => `$${context.raw.toLocaleString()}`
-          }
-        }
-      }
-    }
-  });
-}
-
+    payrollChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: months, datasets: [{ label:'Total Net Payroll', data: totals, backgroundColor: backgroundColors, borderColor: borderColors, borderWidth:1 }] },
+      options: { responsive:true, scales:{ y:{ beginAtZero:true } }, plugins:{ tooltip:{ callbacks:{ label: ctx => `$${ctx.raw.toLocaleString()}` } } } }
+    });
+  }
 
   function renderLeaveTracker() {
     const ul = document.getElementById("leaveTracker");
     ul.innerHTML = "";
-
     staff.forEach(emp => {
       const li = document.createElement("li");
       li.className = "flex justify-between";
@@ -311,66 +237,44 @@ function renderPayrollChart() {
     });
   }
 
-let leaveChartInstance = null;
+  let leaveChartInstance = null;
+  function renderLeaveChart() {
+    const ctx = document.getElementById('leaveChart').getContext('2d');
+    const colors = getEmployeeColors();
+    if (leaveChartInstance) leaveChartInstance.destroy();
 
-function renderLeaveChart() {
-  const ctx = document.getElementById('leaveChart').getContext('2d');
-  const colors = getEmployeeColors();
+    const labels = staff.map(emp => emp.name);
+    const data = staff.map(emp => emp.leave || 0);
 
-  if (leaveChartInstance) {
-    leaveChartInstance.destroy();
+    leaveChartInstance = new Chart(ctx, {
+      type:'bar',
+      data:{ labels, datasets:[{ label:'Leave Days', data, backgroundColor:colors, borderColor:colors, borderWidth:1 }] },
+      options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+    });
+
+    const container = document.getElementById('leaveKey');
+    container.innerHTML = '';
+    staff.forEach((emp,i)=>{
+      const item = document.createElement('div');
+      item.className='flex items-center gap-2 text-sm mb-1';
+      item.innerHTML=`<div class="w-4 h-4 rounded" style="background-color:${colors[i]}"></div><span>${emp.name}</span>`;
+      container.appendChild(item);
+    });
   }
-
-  const labels = staff.map(emp => emp.name);
-  const data = staff.map(emp => emp.leave || 0);
-
-  leaveChartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Leave Days',
-        data,
-        backgroundColor: colors,
-        borderColor: colors,
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
-  });
-
-  function renderLeaveKey(colors) {
-  const container = document.getElementById('leaveKey');
-  container.innerHTML = '';
-
-  staff.forEach((emp, i) => {
-    const item = document.createElement('div');
-    item.className = 'flex items-center gap-2 text-sm mb-1';
-    item.innerHTML = `
-      <div class="w-4 h-4 rounded" style="background-color:${colors[i]}"></div>
-      <span>${emp.name}</span>
-    `;
-    container.appendChild(item);
-  });
-}
-
-  renderLeaveKey(colors);
-}
 
   // ============================
   // PAYROLL ACTIONS
   // ============================
+  function approveLeave(index) {
+    staff[index].leave += 1;
+    renderStaff();
+    renderLeaveTracker();
+    renderLeaveChart();
+  }
+
   function runPayroll() {
     const today = new Date();
-    const month = today.toLocaleString("en-US", { month: "short" });
+    const month = today.toLocaleString("en-US",{ month:"short" });
 
     staff.forEach(emp => {
       const net = emp.salary * 0.88;
@@ -378,82 +282,35 @@ function renderLeaveChart() {
       emp.payroll.push({ month, net });
     });
 
-    saveStaff();
     renderPayrollSummary();
     renderPayrollChart();
   }
 
   function exportPayroll() {
     const { jsPDF } = window.jspdf;
-    if (!jsPDF) return alert("jsPDF is not loaded. Please check your script tag.");
-
+    if(!jsPDF) return alert("jsPDF not loaded.");
     const pdf = new jsPDF();
-    
     pdf.setFontSize(16);
     pdf.text("SmartDent ERP — Payroll Summary", 15, 20);
 
-    let y = 35;
-    staff.forEach(emp => {
+    let y=35;
+    staff.forEach(emp=>{
       const latest = emp.payroll?.slice(-1)[0];
       pdf.setFontSize(12);
       pdf.text(`${emp.name} (${emp.role})`, 15, y);
       pdf.text(`Net: $${latest?.net?.toFixed(2) || "0.00"}`, 150, y);
-      y += 10;
+      y+=10;
     });
-
     pdf.save("SmartDent-Payroll-Summary.pdf");
   }
 
   // ============================
-  // STAFF MODAL & ACTIONS
+  // INIT
   // ============================
-  function openStaffModal() {
-    document.getElementById("staffModal").style.display = "flex";
-  }
+  document.addEventListener("DOMContentLoaded", () => {
+    loadStaff();
 
-  function closeStaffModal() {
-    document.getElementById("staffModal").style.display = "none";
-  }
-
-  document
-    .querySelector('[data-feather="user-plus"]')
-    ?.parentElement.addEventListener("click", openStaffModal);
-
-  function addStaff() {
-    const name = document.getElementById("staffName")?.value.trim();
-    const role = document.getElementById("staffRole")?.value.trim();
-    const salary = parseFloat(document.getElementById("staffSalary")?.value);
-    const photo = document.getElementById("staffPhoto")?.value.trim();
-    const department = document.getElementById("staffDept")?.value.trim();
-
-    if (!name || !role || isNaN(salary) || !photo || !department) {
-      alert("Please fill all fields correctly.");
-      return;
-    }
-
-    staff.push({
-      name,
-      role,
-      salary,
-      photo,
-      department,
-      leave: 0,
-      payroll: [{ month: "Oct", net: salary * 0.88 }],
-    });
-
-    saveStaff();
-    closeStaffModal();
-    renderStaff();
-  }
-
-  function approveLeave(index) {
-    staff[index].leave += 1;
-    saveStaff();
-    renderStaff();
-  }
-
- 
-document.addEventListener("DOMContentLoaded", () => {
+   
   window.generatePayslip = async function(index) {
     // ✅ Get jsPDF from UMD
     const { jsPDF } = window.jspdf;
@@ -481,7 +338,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const year = new Date().getFullYear();
     const payrollPeriod = `${month} 01 – ${month} 31, ${year}`;
     const employeeId = "EMP-" + (index+1).toString().padStart(4,"0");
-    const logoUrl = "assets/image/logo.jpeg";
+    const logoUrl = "assets/image/avatar.jpg";
 
     // ====== LOAD LOGO ======
     const img = new Image();
@@ -611,18 +468,8 @@ pdf.text(`$${totalDeductions.toFixed(2)}`, 185, y + 8, { align: "right" });
     img.onerror = () => alert("❌ Failed to load logo image.");
   };
 });
- 
-
-
-  // ============================
-  // INIT
-  // ============================
-loadStaff();
-renderStaff();
-renderLeaveTracker();
-renderPayrollSummary();
-renderPayrollChart();
-renderLeaveChart();
+  });
 </script>
+
 </body>
 </html>
