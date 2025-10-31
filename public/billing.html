@@ -398,6 +398,7 @@ function closeInvoice() { document.getElementById('invoiceDetail').style.display
 // =====================================================
 async function addInvoice() {
   try {
+    // Get form values
     const patientId = document.getElementById('newInvPatient').value;
     const serviceSel = document.getElementById('newInvService');
     const treatmentSel = document.getElementById('newInvTreatment');
@@ -410,12 +411,15 @@ async function addInvoice() {
       return;
     }
 
-    // Handle "new patient"
+    // Handle new patient creation
     let finalPatientId = patientId;
+    let patientFullName = null;
+
     if (patientId === "new") {
       const name = prompt("Enter full name for new patient:");
       if (!name) return alert("Patient name required.");
 
+      // Create patient via API
       const pRes = await fetch('/api/patients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -429,12 +433,18 @@ async function addInvoice() {
 
       const pData = await pRes.json();
       finalPatientId = pData.patient_id || pData.data?.patient_id;
+      patientFullName = name;
+    } else {
+      // Existing patient: fetch name from local list or DOM
+      const selectedOption = document.getElementById('newInvPatient').selectedOptions[0];
+      patientFullName = selectedOption?.text || "Unknown";
     }
 
     // Prepare invoice payload
     const invoiceData = {
-      clinic_id: 'C001', // adapt to your active clinic
+      clinic_id: 'C001', // replace with active clinic if dynamic
       patient_id: finalPatientId,
+      patient_name: patientFullName,
       service_id: serviceSel.value,
       service_name: serviceSel.selectedOptions[0].text,
       treatment_id: treatmentSel.value,
@@ -447,7 +457,7 @@ async function addInvoice() {
       stock_used: selectedStock || [] // optional: array of {stock_id, quantity, unit}
     };
 
-    // Send POST request
+    // POST to invoices API
     const res = await fetch('/api/invoices', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -461,8 +471,8 @@ async function addInvoice() {
 
     const data = await res.json();
 
-    // Update local invoices array & UI
-    invoices.unshift(data.data || data); // support different API response structures
+    // Update local invoices array and UI
+    invoices.unshift(data.data || data);
     render();
     closeModal('invoiceModal');
     alert("✅ Invoice successfully created!");
@@ -472,6 +482,7 @@ async function addInvoice() {
     alert(`❌ Failed to save invoice: ${err.message}`);
   }
 }
+
 
 
 // =====================================================
