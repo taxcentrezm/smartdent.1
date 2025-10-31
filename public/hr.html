@@ -227,16 +227,31 @@
     });
   }
 
-  function renderLeaveTracker() {
-    const ul = document.getElementById("leaveTracker");
-    ul.innerHTML = "";
-    staff.forEach(emp => {
-      const li = document.createElement("li");
-      li.className = "flex justify-between";
-      li.innerHTML = `<span>${emp.name}</span><span>${emp.leave || 0} days</span>`;
-      ul.appendChild(li);
-    });
-  }
+function renderLeaveTracker(staff) {
+  const container = document.getElementById("leaveTracker");
+  container.innerHTML = "";
+
+  staff.forEach(emp => {
+    const leaveDays = emp.leave_days ?? 0; // ✅ read correct key safely
+
+    const card = document.createElement("div");
+    card.className = "flex justify-between items-center border-b py-2";
+    card.innerHTML = `
+      <div class="flex items-center gap-3">
+        <img src="${emp.photo || 'assets/images/avatar(1).jpg'}" class="w-10 h-10 rounded-full object-cover border" alt="${emp.name}">
+        <div>
+          <p class="font-semibold">${emp.name}</p>
+          <p class="text-sm text-gray-500">${emp.role}</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="text-blue-600 font-bold">${leaveDays}</span> days
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
 
   let leaveChartInstance = null;
   function renderLeaveChart() {
