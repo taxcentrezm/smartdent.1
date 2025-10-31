@@ -7,51 +7,66 @@ export default async function handler(req, res) {
   console.log("🔍 Method:", req.method);
 
   try {
-    // =====================================
-    // 1️⃣ FETCH SERVICES
-    // =====================================
+    // ===================================================
+    // 1️⃣ GET - Fetch all services for dropdowns
+    // ===================================================
     if (req.method === "GET") {
+      const { clinic_id = 1 } = req.query;
+
       const result = await client.execute(
-        "SELECT * FROM services WHERE clinic_id = 1;"
+        `SELECT service_id, name, description, price, clinic_id
+         FROM services
+         WHERE clinic_id = ?`,
+        [clinic_id]
       );
 
       console.log("✅ Services fetched:", result.rows.length);
+
       return res.status(200).json({
         message: "Services fetched successfully",
         data: result.rows,
       });
     }
 
-    // =====================================
-    // 2️⃣ ADD SERVICE + AUTO-INVOICE
-    // =====================================
+    // ===================================================
+    // 2️⃣ POST - Add new service + optional auto-invoice
+    // ===================================================
     if (req.method === "POST") {
-      const { clinic_id = 1, name, description, price, patient_id } = req.body;
+      const {
+        clinic_id = 1,
+        name,
+        description = "",
+        price,
+        patient_id,
+      } = req.body;
 
-      if (!name || !price)
+      if (!name || price == null) {
         return res
           .status(400)
           .json({ error: "Missing required fields: name or price" });
+      }
 
-      // 2️⃣.1 Create service
+      // 🧾 Create new service
       const service_id = randomUUID();
       await client.execute(
         `INSERT INTO services (service_id, clinic_id, name, description, price)
          VALUES (?, ?, ?, ?, ?)`,
-        [service_id, clinic_id, name, description || "", price]
+        [service_id, clinic_id, name, description, price]
       );
 
-      console.log("✅ Service added:", name);
+      console.log("✅ New service added:", name);
 
-      // 2️⃣.2 Automatically create a pending invoice item
+      // ===================================================
+      //  Auto-generate pending invoice if patient_id provided
+      // ===================================================
       if (patient_id) {
         console.log("🧾 Auto-generating pending invoice for patient:", patient_id);
 
-        // Find or create a pending invoice
+        // Check for existing pending invoice
         const existing = await client.execute(
           `SELECT invoice_id FROM invoices 
-           WHERE patient_id = ? AND status = 'pending' 
-           ORDER BY created_at DESC LIMIT 1`,
+           WHERE patient_id = ? AND status = 'pending'
+           ORDER BY date DESC LIMIT 1`,
           [patient_id]
         );
 
@@ -60,14 +75,17 @@ export default async function handler(req, res) {
           invoice_id = existing.rows[0].invoice_id;
         } else {
           invoice_id = randomUUID();
+          const today = new Date().toISOString().split("T")[0];
           await client.execute(
-            `INSERT INTO invoices (invoice_id, patient_id, clinic_id, total, status)
-             VALUES (?, ?, ?, 0, 'pending')`,
-            [invoice_id, patient_id, clinic_id]
+            `INSERT INTO invoices (invoice_id, clinic_id, patient_id, full_name, total, status, date)
+             VALUES (?, ?, ?, 
+               (SELECT full_name FROM patients WHERE patient_id = ?),
+               0, 'pending', ?)`,
+            [invoice_id, clinic_id, patient_id, patient_id, today]
           );
         }
 
-        // Add invoice item
+        // Add service as an invoice item
         const item_id = randomUUID();
         await client.execute(
           `INSERT INTO invoice_items (item_id, invoice_id, type, ref_id, description, price, quantity)
@@ -80,7 +98,8 @@ export default async function handler(req, res) {
           `UPDATE invoices
            SET total = (
              SELECT COALESCE(SUM(price * quantity), 0)
-             FROM invoice_items WHERE invoice_id = ?
+             FROM invoice_items
+             WHERE invoice_id = ?
            )
            WHERE invoice_id = ?`,
           [invoice_id, invoice_id]
@@ -95,18 +114,18 @@ export default async function handler(req, res) {
         });
       }
 
-      // If no patient provided → just return the service
+      // If no patient provided → service only
       return res.status(201).json({
         message: "Service created (no invoice linked)",
         service_id,
       });
     }
 
-    // =====================================
-    // 3️⃣ METHOD NOT ALLOWED
-    // =====================================
-    res.status(405).json({ error: "Method not allowed" });
-
+    // ===================================================
+    // ❌ Unsupported method
+    // ===================================================
+    res.setHeader("Allow", ["GET", "POST"]);
+    return res.status(405).json({ error: `Method ${req.method} not allowed` });
   } catch (err) {
     console.error("❌ API Error (services):", err);
     res.status(500).json({ error: err.message, stack: err.stack });
