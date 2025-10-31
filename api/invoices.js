@@ -44,27 +44,46 @@ export default async function handler(req, res) {
             error: "Required fields missing: clinic_id, patient_id, cost, or date",
           });
         }
+// 2️⃣ Ensure patient exists or create
+let patientFullName = full_name || "Unknown";
 
-        // 2️⃣ Ensure patient exists or create
-        let patientFullName = full_name || "Unknown";
-        try {
-          const existingPatient = await client.execute(
-            "SELECT * FROM patients WHERE patient_id = ?;",
-            [patient_id]
-          );
+try {
+  const existingPatient = await client.execute(
+    "SELECT * FROM patients WHERE patient_id = ?;",
+    [patient_id]
+  );
 
-          if (existingPatient.rows.length === 0) {
-            await client.execute(
-              "INSERT INTO patients (patient_id, full_name, clinic_id) VALUES (?, ?, ?);",
-              [patient_id, patientFullName, clinic_id]
-            );
-            console.log(`✅ Patient created: ${patientFullName}`);
-          } else {
-            patientFullName = existingPatient.rows[0].full_name;
-          }
-        } catch (err) {
-          return res.status(500).json({ error: "Failed to ensure patient exists", details: err.message });
-        }
+  if (!existingPatient || !existingPatient.rows) {
+    return res.status(500).json({ 
+      error: "Failed to fetch patient data from database." 
+    });
+  }
+
+  if (existingPatient.rows.length === 0) {
+    try {
+      await client.execute(
+        "INSERT INTO patients (patient_id, full_name, clinic_id) VALUES (?, ?, ?);",
+        [patient_id, patientFullName, clinic_id]
+      );
+      console.log(`✅ Patient created: ${patientFullName}`);
+    } catch (insertErr) {
+      console.error("❌ Failed to create new patient:", insertErr.message);
+      return res.status(500).json({ 
+        error: "Failed to create new patient", 
+        details: insertErr.message 
+      });
+    }
+  } else {
+    patientFullName = existingPatient.rows[0].full_name;
+  }
+} catch (err) {
+  console.error("❌ Failed to check patient existence:", err.message);
+  return res.status(500).json({ 
+    error: "Failed to ensure patient exists", 
+    details: err.message 
+  });
+}
+
 
         // 3️⃣ Create appointment
         try {
