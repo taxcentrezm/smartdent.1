@@ -299,61 +299,69 @@ function renderLeaveChart() {
   });
 }
 
-function showToaster(message) {
-  const toaster = document.getElementById("toaster");
-  toaster.textContent = message;
-  toaster.classList.remove("hidden");
-  setTimeout(() => toaster.classList.add("hidden"), 2000);
-}
 
   // ============================
   // PAYROLL ACTIONS
   // ============================
+// ==========================
+// TOASTER FUNCTION
+// ==========================
+function showToast(message, type = "success", duration = 3000) {
+  const toast = document.createElement("div");
+  toast.className = `
+    fixed bottom-5 right-5 z-50 px-4 py-2 rounded shadow-lg text-white 
+    ${type === "success" ? "bg-green-600" : "bg-red-600"}
+    animate-slideIn
+  `;
+  toast.innerText = message;
+  document.body.appendChild(toast);
+
+  // Remove after duration
+  setTimeout(() => {
+    toast.remove();
+  }, duration);
+}
+
+// Optional: add simple Tailwind animation
+const style = document.createElement("style");
+style.innerHTML = `
+@keyframes slideIn {
+  0% { transform: translateX(100%); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.animate-slideIn { animation: slideIn 0.3s ease-out forwards; }
+`;
+document.head.appendChild(style);
+
+// ==========================
+// APPROVE LEAVE FUNCTION
+// ==========================
 async function approveLeave(staffId) {
-  if (!staffId) return alert("❌ Invalid staff ID");
+  if (!staffId) return showToast("❌ Invalid staff ID", "error");
 
   try {
-    const res = await fetch(`/api/hr?staff_id=${staffId}`, { method: "POST" });
+    const res = await fetch(`/api/hr`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ staff_id: staffId }),
+    });
+
     if (!res.ok) throw new Error("Request failed");
 
     const data = await res.json();
-
-    if (data.updated && data.updated > 0) {
-      // ✅ Show toast or alert
-      const toast = document.createElement("div");
-      toast.className = "fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded shadow-lg z-50 animate-slide-in";
-      toast.innerText = `Leave approved for staff ID ${staffId}`;
-      document.body.appendChild(toast);
-
-      setTimeout(() => toast.remove(), 3000);
-
-      // Reload staff data and charts
-      await loadStaff();
-      renderLeaveChart();
-      renderLeaveTracker();
-    } else {
-      alert("⚠️ Leave not updated. Staff ID may not exist.");
-    }
-
     console.log("✅ Leave approved:", data);
+
+    showToast(`✅ Leave approved for ${staffId}`);
+
+    // Reload staff data so leave chart and tracker update
+    await loadStaff();
+     renderLeaveChart();
+      renderLeaveTracker();
   } catch (err) {
     console.error("❌ Error approving leave:", err);
-    alert("Failed to approve leave. See console for details.");
+    showToast("❌ Failed to approve leave", "error");
   }
 }
-
-// Simple toast function
-function showToast(message, isError = false) {
-  const toast = document.createElement("div");
-  toast.textContent = message;
-  toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded shadow text-white font-semibold ${
-    isError ? "bg-red-600" : "bg-green-600"
-  }`;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
-
-
 
   function runPayroll() {
     const today = new Date();
