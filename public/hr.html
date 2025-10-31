@@ -311,22 +311,43 @@ function showToaster(message) {
   // ============================
 async function approveLeave(staffId) {
   if (!staffId) return alert("❌ Invalid staff ID");
+
   try {
     const res = await fetch(`/api/hr?staff_id=${staffId}`, { method: "POST" });
     if (!res.ok) throw new Error("Request failed");
+
     const data = await res.json();
     console.log("✅ Leave approved:", data);
 
-    // ✅ Show a toaster/alert
-    alert(`Leave approved for ${staff.find(s => s.staff_id === staffId)?.name || staffId}`);
+    // ✅ Update the leave locally without reloading everything
+    const emp = staff.find(s => s.staff_id === staffId);
+    if (emp) {
+      emp.leave = (emp.leave || 0) + 1;
+    }
 
-    // ✅ Reload staff and refresh charts
-    await loadStaff();
+    // Re-render leave tracker and chart
+    renderLeaveTracker();
+    renderLeaveChart();
+
+    // ✅ Show toaster notification
+    showToast(`✅ Leave approved for ${emp?.name || staffId}`);
   } catch (err) {
     console.error("❌ Error approving leave:", err);
-    alert("Failed to approve leave");
+    showToast("❌ Failed to approve leave", true);
   }
 }
+
+// Simple toast function
+function showToast(message, isError = false) {
+  const toast = document.createElement("div");
+  toast.textContent = message;
+  toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded shadow text-white font-semibold ${
+    isError ? "bg-red-600" : "bg-green-600"
+  }`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
 
 
   function runPayroll() {
