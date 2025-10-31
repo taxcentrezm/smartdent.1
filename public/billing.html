@@ -300,9 +300,9 @@ function populateDropdowns() {
 
   // Treatments
   treatmentSel.innerHTML = treatments
-    .map(t => `<option value="${t.treatment_offer_id}">${t.name}</option>`)
+    .map(t => `<option value="${t.treatment_id}">${t.treatment_name} — $${t.cost || 0}</option>`)
     .join('');
-
+  
   // Doctors
   doctorSel.innerHTML = doctors
     .map(d => `<option value="${d.user_id}">${d.full_name}</option>`)
