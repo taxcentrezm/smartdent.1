@@ -340,10 +340,10 @@ async function approveLeave(staffId) {
   if (!staffId) return showToast("❌ Invalid staff ID", "error");
 
   try {
-    const res = await fetch(`/api/hr`, {
+    const res = await fetch("/api/hr", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ staff_id: staffId }),
+      body: JSON.stringify({ staff_id: staffId }), // <-- send staff_id in JSON
     });
 
     if (!res.ok) throw new Error("Request failed");
@@ -353,15 +353,14 @@ async function approveLeave(staffId) {
 
     showToast(`✅ Leave approved for ${staffId}`);
 
-    // Reload staff data so leave chart and tracker update
+    // Reload staff to update leave days in UI
     await loadStaff();
-     renderLeaveChart();
-      renderLeaveTracker();
   } catch (err) {
     console.error("❌ Error approving leave:", err);
     showToast("❌ Failed to approve leave", "error");
   }
 }
+
 
   function runPayroll() {
     const today = new Date();
