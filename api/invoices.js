@@ -17,7 +17,7 @@ export default async function handler(req, res) {
         const {
           clinic_id,
           patient_id,
-          patient_name,
+          full_name,
           service_id,
           treatment_name,
           quantity = 1,
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
           notes = "",
         } = req.body;
 
-        if (!clinic_id || !patient_id || !patient_name || !service_id || !treatment_name || !cost || !date) {
+        if (!clinic_id || !patient_id || !full_name || !service_id || !treatment_name || !cost || !date) {
           return res.status(400).json({ error: "Missing required fields" });
         }
 
@@ -40,9 +40,9 @@ export default async function handler(req, res) {
         if (existingPatient.rows.length === 0) {
           await client.execute(
             "INSERT INTO patients (patient_id, full_name, clinic_id) VALUES (?, ?, ?);",
-            [patient_id, patient_name, clinic_id]
+            [patient_id, full_name, clinic_id]
           );
-          console.log(`✅ Patient ${patient_name} created`);
+          console.log(`✅ Patient ${full_name} created`);
         }
 
         // 2️⃣ Create appointment
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
             invoice_id,
             clinic_id,
             patient_id,
-            patient_name,
+            full_name,
             service_id,
             treatment_name, // using treatment_name as service_name for simplicity
             treatment_id,
