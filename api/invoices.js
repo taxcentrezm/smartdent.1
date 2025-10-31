@@ -19,7 +19,7 @@ export default async function handler(req, res) {
         const {
           clinic_id,
           patient_id,
-          patient_name,
+          full_name,
           service_id,
           service_name,
           treatment_id,
@@ -34,7 +34,7 @@ export default async function handler(req, res) {
         }
 
         // 1️⃣ Ensure patient exists
-        let fullName = patient_name;
+        let patientFullName = full_name;
         const existingPatient = await client.execute(
           "SELECT * FROM patients WHERE patient_id = ?;",
           [patient_id]
@@ -43,21 +43,21 @@ export default async function handler(req, res) {
         if (existingPatient.rows.length === 0) {
           await client.execute(
             "INSERT INTO patients (patient_id, full_name, clinic_id) VALUES (?, ?, ?);",
-            [patient_id, patient_name || "Unknown", clinic_id]
+            [patient_id, full_name || "Unknown", clinic_id]
           );
-          console.log(`✅ Patient created: ${patient_name}`);
+          console.log(`✅ Patient created: ${full_name}`);
         } else {
-          fullName = existingPatient.rows[0].full_name;
+          patientFullName = existingPatient.rows[0].full_name;
         }
 
-        // 2️⃣ Create appointment for this patient
+        // 2️⃣ Create appointment
         await client.execute(
           "INSERT INTO appointments (clinic_id, patient_id, date, status) VALUES (?, ?, ?, ?);",
           [clinic_id, patient_id, date, "Scheduled"]
         );
         console.log("✅ Appointment created");
 
-        // 3️⃣ Create treatment record if not exists
+        // 3️⃣ Create treatment if not exists
         const existingTreatment = await client.execute(
           "SELECT * FROM treatments WHERE treatment_id = ?;",
           [treatment_id]
@@ -71,8 +71,7 @@ export default async function handler(req, res) {
           console.log("✅ Treatment created");
         }
 
-        // 4️⃣ Deduct stock if treatment requires items (simplified example)
-        // You can extend this to match actual stock items per treatment
+        // 4️⃣ Deduct stock (if applicable)
         const stockItem = await client.execute(
           "SELECT * FROM stock WHERE item = ? AND clinic_id = ?;",
           [treatment_name, clinic_id]
@@ -87,7 +86,7 @@ export default async function handler(req, res) {
           console.log(`✅ Stock deducted for ${treatment_name}`);
         }
 
-        // 5️⃣ Record the service if not exists
+        // 5️⃣ Record service if not exists
         const existingService = await client.execute(
           "SELECT * FROM services WHERE service_id = ?;",
           [service_id]
@@ -109,7 +108,7 @@ export default async function handler(req, res) {
           [
             clinic_id,
             patient_id,
-            fullName,
+            patientFullName,
             service_id,
             service_name,
             treatment_id,
