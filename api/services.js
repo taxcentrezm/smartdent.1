@@ -10,31 +10,45 @@ export default async function handler(req, res) {
 // ===================================================
 // 1️⃣ GET - Fetch all service offers for dropdowns
 // ===================================================
-if (req.method === "GET") {
-  try {
-    const result = await client.execute(`
-      SELECT 
-        service_offer_id,
-        name,
-        description
-      FROM service_offers
-      ORDER BY name;
-    `);
+case "GET": {
+  // Fetch all treatment offers from treatment_offers table
+  const query = `
+    SELECT 
+      t.treatment_offer_id,
+      t.service_offer_id,
+      t.name AS treatment_name,
+      t.description,
+      t.base_price,
+      t.duration_minutes,
+      s.name AS service_name
+    FROM treatment_offers t
+    LEFT JOIN service_offers s ON t.service_offer_id = s.service_offer_id
+    ORDER BY s.name, t.name;
+  `;
 
-    console.log("✅ Service offers fetched:", result.rows.length);
+  try {
+    const result = await client.execute(query);
+
+    console.log("✅ Treatment offers fetched:", result.rows.length);
 
     return res.status(200).json({
-      message: "Service offers fetched successfully",
+      message: "Treatment offers fetched successfully",
       data: result.rows.map(row => ({
+        treatment_id: row.treatment_offer_id,
         service_id: row.service_offer_id,
-        name: row.name,
-        description: row.description
+        name: row.treatment_name,
+        description: row.description,
+        price: row.base_price,
+        duration: row.duration_minutes,
+        service_name: row.service_name || "Unassigned"
       }))
     });
   } catch (err) {
-    console.error("❌ Error fetching service offers:", err);
-    return res.status(500).json({ error: "Failed to fetch service offers" });
+    console.error("❌ Error fetching treatment offers:", err);
+    return res.status(500).json({ error: "Failed to fetch treatment offers" });
   }
+}
+
 
 
     // ===================================================
