@@ -226,19 +226,20 @@
       options: { responsive:true, scales:{ y:{ beginAtZero:true } }, plugins:{ tooltip:{ callbacks:{ label: ctx => `$${ctx.raw.toLocaleString()}` } } } }
     });
   }
-
-function renderLeaveTracker(staff) {
+function renderLeaveTracker() {
   const container = document.getElementById("leaveTracker");
   container.innerHTML = "";
 
   staff.forEach(emp => {
-    const leaveDays = emp.leave_days ?? 0; // ✅ read correct key safely
+    const leaveDays = emp.leave_days ?? 0;
 
     const card = document.createElement("div");
     card.className = "flex justify-between items-center border-b py-2";
+
     card.innerHTML = `
       <div class="flex items-center gap-3">
-        <img src="${emp.photo || 'assets/images/avatar(1).jpg'}" class="w-10 h-10 rounded-full object-cover border" alt="${emp.name}">
+        <img src="${emp.photo || 'assets/images/avatar(1).jpg'}" 
+             class="w-10 h-10 rounded-full object-cover border" alt="${emp.name}">
         <div>
           <p class="font-semibold">${emp.name}</p>
           <p class="text-sm text-gray-500">${emp.role}</p>
@@ -251,6 +252,7 @@ function renderLeaveTracker(staff) {
     container.appendChild(card);
   });
 }
+
 
 
   let leaveChartInstance = null;
