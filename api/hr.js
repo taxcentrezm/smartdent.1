@@ -12,44 +12,35 @@ const client = createClient({
 
 export default async function handler(req, res) {
   try {
-    // =====================
-    // POST: Approve leave
-    // =====================
-    if (req.method === "POST" && req.query.staff_id) {
-      const staffId = req.query.staff_id;
 
-      // Increment leave_days in DB
-      const result = await client.execute(
-        `
-        UPDATE staff
-        SET leave_days = COALESCE(leave_days, 0) + 1
-        WHERE staff_id = ?
-      `,
-        [staffId]
-      );
+    
+   // POST: Approve leave
+if (req.method === "POST") {
+  const staffId = req.body?.staff_id || req.query?.staff_id;
+  if (!staffId) return res.status(400).json({ error: "Missing staff_id" });
 
-      if ((result?.rowsAffected || 0) > 0) {
-        // Fetch updated staff row
-        const updatedStaffRes = await client.execute(
-          `SELECT staff_id, leave_days FROM staff WHERE staff_id = ?`,
-          [staffId]
-        );
-        const updatedStaff = updatedStaffRes.rows?.[0] ?? {};
+  const result = await client.execute(
+    `UPDATE staff
+     SET leave_days = COALESCE(leave_days,0)+1
+     WHERE staff_id = ?`,
+    [staffId]
+  );
 
-        return res.status(200).json({
-          message: "Leave approved",
-          staff_id: staffId,
-          leave_days: updatedStaff.leave_days ?? 0,
-          updated: result.rowsAffected,
-        });
-      } else {
-        return res.status(404).json({
-          message: "Staff not found or leave not updated",
-          staff_id: staffId,
-          updated: 0,
-        });
-      }
-    }
+  const updatedStaffRes = await client.execute(
+    `SELECT staff_id, leave_days FROM staff WHERE staff_id = ?`,
+    [staffId]
+  );
+
+  const updatedStaff = updatedStaffRes.rows?.[0] ?? {};
+
+  return res.status(200).json({
+    message: "Leave approved",
+    staff_id: staffId,
+    leave_days: updatedStaff.leave_days ?? 0,
+    updated: result.rowsAffected || 0
+  });
+}
+
 
     // =====================
     // GET: Fetch staff + payroll
