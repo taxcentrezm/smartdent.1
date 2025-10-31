@@ -7,42 +7,34 @@ export default async function handler(req, res) {
   console.log("🔍 Method:", req.method);
 
   try {
-// ===================================================
-// 1️⃣ GET - Fetch all service offers for dropdowns
-// ===================================================
-  // ===================================================
+    // ===================================================
     // 1️⃣ GET - Fetch all service offers (for dropdowns)
     // ===================================================
     if (req.method === "GET") {
-      const query = `
+      const result = await client.execute(`
         SELECT 
-          s.service_offer_id,
-          s.name AS service_name,
-          s.description,
-          s.base_cost,
-          s.duration_minutes,
-          s.created_at
-        FROM service_offers s
-        ORDER BY s.name;
-      `;
+          service_offer_id,
+          name,
+          description,
+          base_cost,
+          created_at
+        FROM service_offers
+        ORDER BY name;
+      `);
 
-      const result = await client.execute(query);
       console.log("✅ Service offers fetched:", result.rows.length);
 
       return res.status(200).json({
         message: "Service offers fetched successfully",
         data: result.rows.map(row => ({
           service_id: row.service_offer_id,
-          name: row.service_name,
+          name: row.name,
           description: row.description,
           cost: row.base_cost,
-          duration: row.duration_minutes,
           created_at: row.created_at
         }))
       });
     }
-
-
     // ===================================================
     // 2️⃣ POST - Add new service + optional auto-invoice
     // ===================================================
