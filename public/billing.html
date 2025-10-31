@@ -239,17 +239,6 @@ let stockItems = [];
 // =====================================================
 // 1️⃣ Load invoices + supporting data
 // =====================================================
-async function loadInvoices() {
-  try {
-    const res = await fetch('/api/invoices');
-    const data = await res.json();
-    invoices = data.data || [];
-    render(invoices);
-  } catch (err) {
-    console.error("❌ Failed to load invoices:", err);
-  }
-}
-
 async function loadDropdowns() {
   try {
     const [svc, trt, pat, doc, stk] = await Promise.all([
@@ -259,6 +248,7 @@ async function loadDropdowns() {
       fetch('/api/users?role=doctor').then(r => r.json()),
       fetch('/api/stock').then(r => r.json()),
     ]);
+
     services = svc.data || [];
     treatments = trt.data || [];
     patients = pat.data || [];
@@ -277,24 +267,26 @@ function populateDropdowns() {
   const treatmentSel = document.getElementById('newInvTreatment');
   const doctorSel = document.getElementById('newInvDoctor');
 
-  // Patient
-  patientSel.innerHTML = patients
-    .map(p => `<option value="${p.patient_id}">${p.full_name}</option>`)
-    .join('') + `<option value="new">+ Add New Patient</option>`;
+  // 🧍 Patients
+  patientSel.innerHTML = `
+    ${patients.map(p => `<option value="${p.patient_id}">${p.full_name}</option>`).join('')}
+    <option value="new">+ Add New Patient</option>
+  `;
 
-  // Services
+  // 💼 Services
   serviceSel.innerHTML = services
-    .map(s => `<option value="${s.service_id}">${s.name} — $${s.cost}</option>`)
+    .map(s => `<option value="${s.service_id}">${s.name} — $${s.price || 0}</option>`)
     .join('');
 
-  // Treatments
+  // 💊 Treatments
   treatmentSel.innerHTML = treatments
-    .map(t => `<option value="${t.treatment_id}">${t.name} — $${t.price}</option>`)
+    .map(t => `<option value="${t.treatment_id}">${t.treatment_name} — $${t.cost || 0}</option>`)
     .join('');
 
-  // Doctors
+  // 🧑‍⚕️ Doctors
   doctorSel.innerHTML = doctors
-    .map(d => `<option value="${d.user_id}">${d.full_name}</option>`)
+    .filter(d => d.role === 'doctor' || d.role === 'dentist' || d.role === 'junior_dentist')
+    .map(d => `<option value="${d.user_id || d.id}">${d.full_name}</option>`)
     .join('');
 }
 
