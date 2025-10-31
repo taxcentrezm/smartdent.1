@@ -18,7 +18,6 @@ case "GET": {
         t.treatment_offer_id AS treatment_id,
         t.name AS treatment_name,
         t.description,
-        t.base_price,
         t.duration_minutes,
         s.name AS service_name
       FROM treatment_offers t
