@@ -394,66 +394,55 @@ function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function closeInvoice() { document.getElementById('invoiceDetail').style.display = 'none'; }
 
 // =====================================================
-// 5️⃣ Add new invoice
+// 5️⃣ Add new invoice (Improved version)
 // =====================================================
 async function addInvoice() {
   try {
-    // Get form values
-    const patientId = document.getElementById('newInvPatient').value;
-    const serviceSel = document.getElementById('newInvService');
-    const treatmentSel = document.getElementById('newInvTreatment');
-    const doctorId = document.getElementById('newInvDoctor').value;
-    const amount = parseFloat(document.getElementById('newInvAmount').value);
-    const status = document.getElementById('newInvStatus').value;
+    const patientId = document.getElementById("newInvPatient").value;
+    const serviceSel = document.getElementById("newInvService");
+    const treatmentSel = document.getElementById("newInvTreatment");
+    const doctorId = document.getElementById("newInvDoctor").value;
+    const amount = parseFloat(document.getElementById("newInvAmount").value);
+    const status = document.getElementById("newInvStatus").value;
 
     if (!serviceSel.value || !treatmentSel.value || !doctorId || isNaN(amount)) {
-      alert("Please fill all required fields.");
+      alert("⚠️ Please fill all required fields.");
       return;
     }
 
-    // Handle new patient creation
     let finalPatientId = patientId;
-    let patientFullName = null;
 
-if (patientId === "new") {
-  let name = "";
-  while (!name) {
-    name = prompt("Enter full name for new patient:")?.trim();
-    if (name === null) return alert("Patient creation cancelled."); // user pressed cancel
-    if (!name) alert("Patient name is required!");
-  }
+    // 🧾 Handle "new patient" creation
+    if (patientId === "new") {
+      const name = prompt("Enter full name for the new patient:");
+      if (!name || !name.trim()) {
+        alert("❌ Patient name is required.");
+        return;
+      }
 
-  const phone = prompt("Enter patient phone number:")?.trim() || "Unknown";
+      // Optional: ask for phone (since your DB requires it)
+      const phone = prompt("Enter phone number (optional):") || "N/A";
 
-  const pRes = await fetch('/api/patients', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ full_name: name, phone })
-  });
+      const pRes = await fetch("/api/patients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ full_name: name.trim(), phone })
+      });
 
-  if (!pRes.ok) {
-    const err = await pRes.json();
-    throw new Error(err.error || "Failed to create new patient.");
-  }
+      const pData = await pRes.json();
+      if (!pRes.ok) {
+        throw new Error(pData.error || "Failed to create new patient.");
+      }
 
-  const pData = await pRes.json();
-  finalPatientId = pData.patient_id || pData.data?.patient_id;
-
-  if (!finalPatientId) throw new Error("Patient creation returned no ID");
-
-  patientFullName = name;
-}
-else {
-      // Existing patient: fetch name from local list or DOM
-      const selectedOption = document.getElementById('newInvPatient').selectedOptions[0];
-      patientFullName = selectedOption?.text || "Unknown";
+      finalPatientId = pData.patient_id || pData.data?.patient_id;
+      console.log("✅ New patient created:", finalPatientId);
     }
 
-    // Prepare invoice payload
+    // 🧾 Prepare invoice payload
     const invoiceData = {
-      clinic_id: 'C001', // replace with active clinic if dynamic
+      clinic_id: "C001", // adapt to your clinic
       patient_id: finalPatientId,
-      patient_name: patientFullName,
+      full_name: serviceSel.selectedOptions[0].text || "Unknown", // fallback
       service_id: serviceSel.value,
       service_name: serviceSel.selectedOptions[0].text,
       treatment_id: treatmentSel.value,
@@ -463,29 +452,24 @@ else {
       quantity: 1,
       date: new Date().toISOString(), // auto-generate current date
       status,
-      stock_used: selectedStock || [] // optional: array of {stock_id, quantity, unit}
+      stock_used: selectedStock || [] // optional: {stock_id, quantity, unit}
     };
 
-    // POST to invoices API
-    const res = await fetch('/api/invoices', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    // 🚀 Send to API
+    const res = await fetch("/api/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(invoiceData)
     });
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || "Failed to save invoice.");
-    }
-
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to save invoice.");
 
-    // Update local invoices array and UI
+    // ✅ Success UI update
     invoices.unshift(data.data || data);
     render();
-    closeModal('invoiceModal');
+    closeModal("invoiceModal");
     alert("✅ Invoice successfully created!");
-
   } catch (err) {
     console.error("❌ addInvoice error:", err);
     alert(`❌ Failed to save invoice: ${err.message}`);
