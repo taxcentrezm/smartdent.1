@@ -239,6 +239,19 @@ let stockItems = [];
 // =====================================================
 // 1️⃣ Load invoices + supporting data
 // =====================================================
+  async function loadInvoices() {
+
+
+  try {
+    const res = await fetch('/api/invoices');
+    const data = await res.json();
+    invoices = data.data || [];
+    render(invoices);
+  } catch (err) {
+    console.error("❌ Failed to load invoices:", err);
+  }
+}
+  
 async function loadDropdowns() {
   try {
     const [svc, trt, pat, doc, stk] = await Promise.all([
