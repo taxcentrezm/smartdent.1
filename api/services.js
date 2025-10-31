@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     // 1️⃣ GET - Fetch all services for dropdowns
     // ===================================================
     if (req.method === "GET") {
-      const { clinic_id = 1 } = req.query;
+      const { clinic_id = c1 } = req.query;
 
       const result = await client.execute(
         `SELECT service_id, name, description, price, clinic_id
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     // ===================================================
     if (req.method === "POST") {
       const {
-        clinic_id = 1,
+        clinic_id = c1,
         name,
         description = "",
         price,
