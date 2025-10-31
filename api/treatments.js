@@ -7,23 +7,35 @@ export default async function handler(req, res) {
 
   try {
     switch (req.method) {
-      // =====================================================
-      // 1️⃣ GET: Fetch all treatments (for dropdowns)
-      // =====================================================
-      case "GET": {
-        const { clinic_id = 1 } = req.query;
- const result = await client.execute(`
-  SELECT s.*, c.name AS clinic_name
-  FROM services s
-  LEFT JOIN clinics c ON s.clinic_id = c.clinic_id;
-`);
+        
+// =====================================================
+// 1️⃣ GET: Fetch all treatment offers (for dropdowns)
+// =====================================================
+case "GET": {
+  try {
+    const result = await client.execute(`
+      SELECT 
+        t.treatment_offer_id AS treatment_id,
+        t.name AS treatment_name,
+        t.description,
+        t.base_price,
+        t.duration_minutes,
+        s.name AS service_name
+      FROM treatment_offers t
+      LEFT JOIN service_offers s ON t.service_offer_id = s.service_offer_id
+      ORDER BY s.name, t.name;
+    `);
 
-        console.log("✅ Treatments fetched:", result.rows.length);
-        return res.status(200).json({
-          message: "Treatments fetched successfully",
-          data: result.rows,
-        });
-      }
+    console.log("✅ Treatment offers fetched:", result.rows.length);
+    return res.status(200).json({
+      message: "Treatment offers fetched successfully",
+      data: result.rows,
+    });
+  } catch (err) {
+    console.error("❌ Error fetching treatment offers:", err);
+    return res.status(500).json({ error: "Failed to fetch treatment offers" });
+  }
+}
 
       // =====================================================
       // 2️⃣ POST: Add new treatment + auto-invoice + stock deduction
