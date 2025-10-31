@@ -262,11 +262,11 @@ async function loadDropdowns() {
       fetch('/api/stock').then(r => r.json()),
     ]);
 
-    services = svc.data || [];
-    treatments = trt.data || [];
-    patients = pat.data || [];
-    doctors = doc.data || [];
-    stockItems = stk.data || [];
+    services = svc.data || [];        
+    treatments = trt.data || [];      
+    patients = pat.data || [];        
+    doctors = doc.data || [];         
+    stockItems = Array.isArray(stk) ? stk : (stk.data || []);   
 
     populateDropdowns();
   } catch (err) {
@@ -279,27 +279,33 @@ function populateDropdowns() {
   const serviceSel = document.getElementById('newInvService');
   const treatmentSel = document.getElementById('newInvTreatment');
   const doctorSel = document.getElementById('newInvDoctor');
+  const stockSel = document.getElementById('stockItemSelect'); // new select element
 
-  // 🧍 Patients
-  patientSel.innerHTML = `
-    ${patients.map(p => `<option value="${p.patient_id}">${p.full_name}</option>`).join('')}
-    <option value="new">+ Add New Patient</option>
-  `;
+  // Stock dropdown
+  if (stockSel) {
+    stockSel.innerHTML = stockItems
+      .map(s => `<option value="${s.stock_id}">${s.name} (Available: ${s.quantity})</option>`)
+      .join('');
+  }
 
-  // 💼 Services
+  // Patient
+  patientSel.innerHTML = patients
+    .map(p => `<option value="${p.patient_id}">${p.full_name}</option>`)
+    .join('') + `<option value="new">+ Add New Patient</option>`;
+
+  // Services
   serviceSel.innerHTML = services
-    .map(s => `<option value="${s.service_id}">${s.name} — $${s.price || 0}</option>`)
+    .map(s => `<option value="${s.service_offer_id}">${s.name}</option>`)
     .join('');
 
-  // 💊 Treatments
+  // Treatments
   treatmentSel.innerHTML = treatments
-    .map(t => `<option value="${t.treatment_id}">${t.treatment_name} — $${t.cost || 0}</option>`)
+    .map(t => `<option value="${t.treatment_offer_id}">${t.name}</option>`)
     .join('');
 
-  // 🧑‍⚕️ Doctors
+  // Doctors
   doctorSel.innerHTML = doctors
-    .filter(d => d.role === 'Dentist' || d.role === 'Dentist' || d.role === 'junior_dentist')
-    .map(d => `<option value="${d.user_id || d.id}">${d.full_name}</option>`)
+    .map(d => `<option value="${d.user_id}">${d.full_name}</option>`)
     .join('');
 }
 
