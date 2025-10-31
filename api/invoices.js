@@ -44,46 +44,40 @@ export default async function handler(req, res) {
             error: "Required fields missing: clinic_id, patient_id, cost, or date",
           });
         }
-// 2️⃣ Ensure patient exists or create
-let patientFullName = full_name || "Unknown";
 
-try {
-  const existingPatient = await client.execute(
-    "SELECT * FROM patients WHERE patient_id = ?;",
-    [patient_id]
-  );
+        // 2️⃣ Check if patient exists
+        let patientFullName = full_name?.trim() || "";
 
-  if (!existingPatient || !existingPatient.rows) {
-    return res.status(500).json({ 
-      error: "Failed to fetch patient data from database." 
-    });
-  }
+        try {
+          const existingPatient = await client.execute(
+            "SELECT * FROM patients WHERE patient_id = ?;",
+            [patient_id]
+          );
 
-  if (existingPatient.rows.length === 0) {
-    try {
-      await client.execute(
-        "INSERT INTO patients (patient_id, full_name, clinic_id) VALUES (?, ?, ?);",
-        [patient_id, patientFullName, clinic_id]
-      );
-      console.log(`✅ Patient created: ${patientFullName}`);
-    } catch (insertErr) {
-      console.error("❌ Failed to create new patient:", insertErr.message);
-      return res.status(500).json({ 
-        error: "Failed to create new patient", 
-        details: insertErr.message 
-      });
-    }
-  } else {
-    patientFullName = existingPatient.rows[0].full_name;
-  }
-} catch (err) {
-  console.error("❌ Failed to check patient existence:", err.message);
-  return res.status(500).json({ 
-    error: "Failed to ensure patient exists", 
-    details: err.message 
-  });
-}
+          // If found, use DB value
+          if (existingPatient.rows.length > 0) {
+            patientFullName = existingPatient.rows[0].full_name;
+          } else {
+            // Only create patient if full_name is provided
+            if (!patientFullName) {
+              return res.status(400).json({
+                error: "Cannot create new patient without full_name.",
+              });
+            }
 
+            await client.execute(
+              "INSERT INTO patients (patient_id, full_name, clinic_id) VALUES (?, ?, ?);",
+              [patient_id, patientFullName, clinic_id]
+            );
+            console.log(`✅ Patient created: ${patientFullName}`);
+          }
+        } catch (err) {
+          console.error("❌ Patient check/create failed:", err.message);
+          return res.status(500).json({
+            error: "Failed to ensure patient exists",
+            details: err.message,
+          });
+        }
 
         // 3️⃣ Create appointment
         try {
@@ -93,10 +87,14 @@ try {
           );
           console.log("✅ Appointment created");
         } catch (err) {
-          return res.status(500).json({ error: "Failed to create appointment", details: err.message });
+          console.error("❌ Failed to create appointment:", err.message);
+          return res.status(500).json({
+            error: "Failed to create appointment",
+            details: err.message,
+          });
         }
 
-        // 4️⃣ Create treatment if not exists
+        // 4️⃣ Ensure treatment exists
         if (treatment_id && treatment_name) {
           try {
             const existingTreatment = await client.execute(
@@ -112,11 +110,14 @@ try {
               console.log(`✅ Treatment created: ${treatment_name}`);
             }
           } catch (err) {
-            return res.status(500).json({ error: "Failed to create treatment", details: err.message });
+            return res.status(500).json({
+              error: "Failed to create treatment",
+              details: err.message,
+            });
           }
         }
 
-        // 5️⃣ Deduct stock if exists
+        // 5️⃣ Deduct stock if available
         if (treatment_name && quantity > 0) {
           try {
             const stockItem = await client.execute(
@@ -139,7 +140,10 @@ try {
               console.log(`✅ Stock deducted for ${treatment_name}`);
             }
           } catch (err) {
-            return res.status(500).json({ error: "Failed to deduct stock", details: err.message });
+            return res.status(500).json({
+              error: "Failed to deduct stock",
+              details: err.message,
+            });
           }
         }
 
@@ -159,7 +163,10 @@ try {
               console.log(`✅ Service recorded: ${service_name}`);
             }
           } catch (err) {
-            return res.status(500).json({ error: "Failed to record service", details: err.message });
+            return res.status(500).json({
+              error: "Failed to record service",
+              details: err.message,
+            });
           }
         }
 
@@ -174,7 +181,7 @@ try {
               invoice_id,
               clinic_id,
               patient_id,
-              patientFullName,
+              patientFullName || "Unknown",
               service_id || null,
               service_name || null,
               treatment_id || null,
@@ -187,18 +194,30 @@ try {
             ]
           );
           console.log(`✅ Invoice created: ${invoice_id}`);
-          return res.status(201).json({ message: "Invoice created successfully", invoice_id });
+          return res.status(201).json({
+            message: "Invoice created successfully",
+            invoice_id,
+          });
         } catch (err) {
-          return res.status(500).json({ error: "Failed to create invoice", details: err.message });
+          console.error("❌ Failed to create invoice:", err.message);
+          return res.status(500).json({
+            error: "Failed to create invoice",
+            details: err.message,
+          });
         }
       }
 
       default:
         res.setHeader("Allow", ["GET", "POST"]);
-        return res.status(405).json({ error: `Method ${req.method} not allowed` });
+        return res
+          .status(405)
+          .json({ error: `Method ${req.method} not allowed` });
     }
   } catch (err) {
     console.error("❌ Invoices API failed:", err.message);
-    return res.status(500).json({ error: "Unexpected error", details: err.message });
+    return res.status(500).json({
+      error: "Unexpected error",
+      details: err.message,
+    });
   }
 }
