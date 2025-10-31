@@ -317,23 +317,28 @@ async function approveLeave(staffId) {
     if (!res.ok) throw new Error("Request failed");
 
     const data = await res.json();
-    console.log("✅ Leave approved:", data);
 
-    // ✅ Update the leave locally without reloading everything
-    const emp = staff.find(s => s.staff_id === staffId);
-    if (emp) {
-      emp.leave = (emp.leave || 0) + 1;
+    if (data.updated && data.updated > 0) {
+      // ✅ Show toast or alert
+      const toast = document.createElement("div");
+      toast.className = "fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded shadow-lg z-50 animate-slide-in";
+      toast.innerText = `Leave approved for staff ID ${staffId}`;
+      document.body.appendChild(toast);
+
+      setTimeout(() => toast.remove(), 3000);
+
+      // Reload staff data and charts
+      await loadStaff();
+      renderLeaveChart();
+      renderLeaveTracker();
+    } else {
+      alert("⚠️ Leave not updated. Staff ID may not exist.");
     }
 
-    // Re-render leave tracker and chart
-    renderLeaveTracker();
-    renderLeaveChart();
-
-    // ✅ Show toaster notification
-    showToast(`✅ Leave approved for ${emp?.name || staffId}`);
+    console.log("✅ Leave approved:", data);
   } catch (err) {
     console.error("❌ Error approving leave:", err);
-    showToast("❌ Failed to approve leave", true);
+    alert("Failed to approve leave. See console for details.");
   }
 }
 
