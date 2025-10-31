@@ -397,63 +397,82 @@ function closeInvoice() { document.getElementById('invoiceDetail').style.display
 // 5️⃣ Add new invoice
 // =====================================================
 async function addInvoice() {
-  const patientId = document.getElementById('newInvPatient').value;
-  const serviceId = document.getElementById('newInvService').value;
-  const treatmentId = document.getElementById('newInvTreatment').value;
-  const doctorId = document.getElementById('newInvDoctor').value;
-  const amount = parseFloat(document.getElementById('newInvAmount').value);
-  const status = document.getElementById('newInvStatus').value;
-
-  if (!serviceId || !treatmentId || !doctorId || isNaN(amount)) {
-    alert("Please fill all required fields.");
-    return;
-  }
-
-  // If user selected "new patient"
-  let finalPatientId = patientId;
-  if (patientId === "new") {
-    const name = prompt("Enter full name for new patient:");
-    if (!name) return alert("Patient name required.");
-    // POST new patient
-    const pRes = await fetch('/api/patients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ full_name: name })
-    });
-    const pData = await pRes.json();
-    finalPatientId = pData.data.patient_id;
-  }
-
-  const invoiceData = {
-    clinic_id: 'C001', // adapt to your active clinic
-    patient_id: finalPatientId,
-    service_id: serviceId,
-    treatment_id: treatmentId,
-    doctor_id: doctorId,
-    total: amount,
-    status,
-    stock_used: selectedStock // includes stock_id, quantity, unit
-  };
-
   try {
+    const patientId = document.getElementById('newInvPatient').value;
+    const serviceSel = document.getElementById('newInvService');
+    const treatmentSel = document.getElementById('newInvTreatment');
+    const doctorId = document.getElementById('newInvDoctor').value;
+    const amount = parseFloat(document.getElementById('newInvAmount').value);
+    const status = document.getElementById('newInvStatus').value;
+
+    if (!serviceSel.value || !treatmentSel.value || !doctorId || isNaN(amount)) {
+      alert("Please fill all required fields.");
+      return;
+    }
+
+    // Handle "new patient"
+    let finalPatientId = patientId;
+    if (patientId === "new") {
+      const name = prompt("Enter full name for new patient:");
+      if (!name) return alert("Patient name required.");
+
+      const pRes = await fetch('/api/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: name })
+      });
+
+      if (!pRes.ok) {
+        const err = await pRes.json();
+        throw new Error(err.error || "Failed to create new patient.");
+      }
+
+      const pData = await pRes.json();
+      finalPatientId = pData.patient_id || pData.data?.patient_id;
+    }
+
+    // Prepare invoice payload
+    const invoiceData = {
+      clinic_id: 'C001', // adapt to your active clinic
+      patient_id: finalPatientId,
+      service_id: serviceSel.value,
+      service_name: serviceSel.selectedOptions[0].text,
+      treatment_id: treatmentSel.value,
+      treatment_name: treatmentSel.selectedOptions[0].text,
+      doctor_id: doctorId,
+      cost: amount,
+      quantity: 1,
+      date: new Date().toISOString(), // auto-generate current date
+      status,
+      stock_used: selectedStock || [] // optional: array of {stock_id, quantity, unit}
+    };
+
+    // Send POST request
     const res = await fetch('/api/invoices', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(invoiceData)
     });
 
-    if (!res.ok) throw new Error('Failed to save invoice');
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to save invoice.");
+    }
+
     const data = await res.json();
 
-    invoices.unshift(data.data);
+    // Update local invoices array & UI
+    invoices.unshift(data.data || data); // support different API response structures
     render();
     closeModal('invoiceModal');
     alert("✅ Invoice successfully created!");
+
   } catch (err) {
-    console.error(err);
-    alert("❌ Failed to save invoice.");
+    console.error("❌ addInvoice error:", err);
+    alert(`❌ Failed to save invoice: ${err.message}`);
   }
 }
+
 
 // =====================================================
 // 6️⃣ Stock mini modal logic
