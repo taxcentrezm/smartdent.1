@@ -1,157 +1,117 @@
-// api/invoices.js
-import { createClient } from "@libsql/client";
-import { randomUUID } from "crypto";
-
-const client = createClient({
-  url:
-    process.env.TURSO_DATABASE_URL ||
-    process.env.chomadentistry_TURSO_DATABASE_URL,
-  authToken:
-    process.env.TURSO_AUTH_TOKEN ||
-    process.env.chomadentistry_TURSO_AUTH_TOKEN,
-});
+import { client } from "../db.js";
 
 export default async function handler(req, res) {
+  console.log("📥 Incoming request to /api/invoices");
+  console.log("🔍 Request method:", req.method);
+
   try {
-    // ===============================================
-    // 1️⃣  CREATE OR UPDATE INVOICE
-    // ===============================================
-    if (req.method === "POST") {
-      const { patient_id, clinic_id, type, ref_id, description, price, quantity = 1 } = req.body;
+    switch (req.method) {
+      case "GET": {
+        // Fetch all invoices
+        const result = await client.execute("SELECT * FROM invoices ORDER BY date DESC;");
+        res.status(200).json({ message: "Invoices fetched successfully", data: result.rows });
+        break;
+      }
 
-      if (!patient_id)
-        return res.status(400).json({ error: "Missing patient_id" });
+      case "POST": {
+        const {
+          clinic_id,
+          patient_id,
+          patient_name,
+          service_id,
+          treatment_name,
+          quantity = 1,
+          cost,
+          date,
+          stock_items = [], // array of { item_id, quantity }
+          notes = "",
+        } = req.body;
 
-      // 1️⃣.1 Find or create a pending invoice for this patient
-      let invoice_id;
-      const existing = await client.execute(
-        `SELECT invoice_id FROM invoices 
-         WHERE patient_id = ? AND status = 'pending' 
-         ORDER BY created_at DESC LIMIT 1`,
-        [patient_id]
-      );
+        if (!clinic_id || !patient_id || !patient_name || !service_id || !treatment_name || !cost || !date) {
+          return res.status(400).json({ error: "Missing required fields" });
+        }
 
-      if (existing.rows.length > 0) {
-        invoice_id = existing.rows[0].invoice_id;
-      } else {
-        invoice_id = randomUUID();
-        await client.execute(
-          `INSERT INTO invoices (invoice_id, patient_id, clinic_id, total, status)
-           VALUES (?, ?, ?, 0, 'pending')`,
-          [invoice_id, patient_id, clinic_id || null]
+        // 1️⃣ Ensure patient exists
+        const existingPatient = await client.execute(
+          "SELECT * FROM patients WHERE patient_id = ?;",
+          [patient_id]
         );
+
+        if (existingPatient.rows.length === 0) {
+          await client.execute(
+            "INSERT INTO patients (patient_id, full_name, clinic_id) VALUES (?, ?, ?);",
+            [patient_id, patient_name, clinic_id]
+          );
+          console.log(`✅ Patient ${patient_name} created`);
+        }
+
+        // 2️⃣ Create appointment
+        const appointment_id = `a_${Date.now()}`;
+        await client.execute(
+          "INSERT INTO appointments (appointment_id, clinic_id, patient_id, service_id, date, notes) VALUES (?, ?, ?, ?, ?, ?);",
+          [appointment_id, clinic_id, patient_id, service_id, date, notes]
+        );
+        console.log(`✅ Appointment created`);
+
+        // 3️⃣ Create treatment
+        const treatment_id = `t_${Date.now()}`;
+        await client.execute(
+          "INSERT INTO treatments (treatment_id, name, service_id, price) VALUES (?, ?, ?, ?);",
+          [treatment_id, treatment_name, service_id, cost]
+        );
+        console.log(`✅ Treatment created`);
+
+        // 4️⃣ Deduct stock
+        for (const item of stock_items) {
+          const stock = await client.execute("SELECT * FROM stock WHERE item = ?;", [item.item_id]);
+          if (stock.rows.length === 0) continue;
+
+          const currentQty = stock.rows[0].quantity;
+          const newQty = currentQty - item.quantity;
+          if (newQty < 0) {
+            return res.status(400).json({ error: `Insufficient stock for ${item.item_id}` });
+          }
+
+          await client.execute("UPDATE stock SET quantity = ? WHERE item = ?;", [newQty, item.item_id]);
+        }
+        console.log("✅ Stock updated");
+
+        // 5️⃣ Record service (optional: could be just linking service to invoice/treatment)
+
+        // 6️⃣ Create invoice
+        const invoice_id = `i_${Date.now()}`;
+        await client.execute(
+          `INSERT INTO invoices 
+            (invoice_id, clinic_id, patient_id, full_name, service_id, service_name, treatment_id, treatment_name, quantity, total, status, date, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+          [
+            invoice_id,
+            clinic_id,
+            patient_id,
+            patient_name,
+            service_id,
+            treatment_name, // using treatment_name as service_name for simplicity
+            treatment_id,
+            treatment_name,
+            quantity,
+            cost * quantity,
+            "Invoice",
+            date,
+            new Date().toISOString()
+          ]
+        );
+        console.log("✅ Invoice created");
+
+        res.status(201).json({ message: "Invoice, treatment, appointment created successfully", invoice_id });
+        break;
       }
 
-      // 1️⃣.2 Insert invoice item (service / treatment / stock)
-      const item_id = randomUUID();
-      const safePrice = Number(price) || 0;
-      await client.execute(
-        `INSERT INTO invoice_items (item_id, invoice_id, type, ref_id, description, price, quantity)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [item_id, invoice_id, type, ref_id, description, safePrice, quantity]
-      );
-
-      // 1️⃣.3 Update invoice total
-      await client.execute(
-        `UPDATE invoices
-         SET total = (
-           SELECT COALESCE(SUM(quantity * price), 0)
-           FROM invoice_items WHERE invoice_id = ?
-         )
-         WHERE invoice_id = ?`,
-        [invoice_id, invoice_id]
-      );
-
-      return res.status(200).json({
-        message: "Invoice item added",
-        invoice_id,
-        item_id,
-      });
+      default:
+        res.setHeader("Allow", ["GET", "POST"]);
+        res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
-
-    // ===============================================
-    // 2️⃣  GET INVOICES (with items)
-    // ===============================================
-    if (req.method === "GET") {
-      const { patient_id } = req.query;
-      let invoicesQuery = `
-        SELECT invoice_id, patient_id, clinic_id, total, status, created_at
-        FROM invoices
-      `;
-      const params = [];
-
-      if (patient_id) {
-        invoicesQuery += " WHERE patient_id = ? ORDER BY created_at DESC";
-        params.push(patient_id);
-      } else {
-        invoicesQuery += " ORDER BY created_at DESC";
-      }
-
-      const invoicesRes = await client.execute(invoicesQuery, params);
-      const invoices = invoicesRes.rows ?? [];
-
-      // Get all items
-      const itemsRes = await client.execute(`
-        SELECT item_id, invoice_id, type, ref_id, description, quantity, price, (quantity * price) AS total
-        FROM invoice_items
-        ORDER BY created_at DESC
-      `);
-
-      const items = itemsRes.rows ?? [];
-
-      // Attach items to invoices
-      const fullInvoices = invoices.map((inv) => ({
-        ...inv,
-        items: items.filter((it) => it.invoice_id === inv.invoice_id),
-      }));
-
-      return res.status(200).json({ invoices: fullInvoices });
-    }
-
-    // ===============================================
-    // 3️⃣  MARK INVOICE AS PAID
-    // ===============================================
-    if (req.method === "PUT") {
-      const { invoice_id, status } = req.body;
-      if (!invoice_id) return res.status(400).json({ error: "Missing invoice_id" });
-
-      await client.execute(
-        `UPDATE invoices SET status = ? WHERE invoice_id = ?`,
-        [status || "paid", invoice_id]
-      );
-
-      return res.status(200).json({ message: "Invoice updated", invoice_id, status });
-    }
-
-    // ===============================================
-    // 4️⃣  DELETE INVOICE (optional admin)
-    // ===============================================
-    if (req.method === "DELETE") {
-      const { invoice_id } = req.query;
-      if (!invoice_id)
-        return res.status(400).json({ error: "Missing invoice_id" });
-
-      await client.execute(`DELETE FROM invoice_items WHERE invoice_id = ?`, [
-        invoice_id,
-      ]);
-      await client.execute(`DELETE FROM invoices WHERE invoice_id = ?`, [
-        invoice_id,
-      ]);
-
-      return res.status(200).json({ message: "Invoice deleted", invoice_id });
-    }
-
-    // ===============================================
-    // 5️⃣  METHOD NOT ALLOWED
-    // ===============================================
-    return res.status(405).json({ error: "Method not allowed" });
-
-  } catch (error) {
-    console.error("❌ Invoices API failed:", error);
-    return res.status(500).json({
-      error: "Invoices API failed",
-      details: error.message,
-      stack: error.stack,
-    });
+  } catch (err) {
+    console.error("❌ Invoices API failed:", err.message);
+    res.status(500).json({ error: err.message });
   }
 }
