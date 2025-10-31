@@ -298,17 +298,11 @@ function renderLeaveChart() {
   // ============================
   // PAYROLL ACTIONS
   // ============================
- async function approveLeave(staffId) {
-  if (!staffId) return alert("❌ Invalid staff ID");
-
+async function approveLeave(staffId) {
   try {
     const res = await fetch(`/api/hr/approve-leave?staff_id=${staffId}`, { method: "POST" });
     if (!res.ok) throw new Error("Request failed");
-    const data = await res.json();
-    console.log("✅ Leave approved:", data);
-
-    // Reload staff data after approval
-    await loadStaff();
+    await loadStaff(); // refresh data
   } catch (err) {
     console.error("❌ Error approving leave:", err);
     alert("Failed to approve leave");
