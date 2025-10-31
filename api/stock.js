@@ -8,36 +8,20 @@ export default async function handler(req, res) {
       // =====================================================
       // 1️⃣ GET: Fetch All Stock + Offers (for dropdowns)
       // =====================================================
-      case "GET": {
+case "GET": {
   try {
+    // Fetch only stock items for dropdowns
     const stockRes = await client.execute("SELECT * FROM stock;");
     const stock = stockRes.rows || [];
 
-    const servicesRes = await client.execute(
-      "SELECT service_offer_id, name, base_cost FROM service_offers;"
-    );
-    const service_offers = servicesRes.rows || [];
-
-    const treatmentsRes = await client.execute(
-      "SELECT treatment_offer_id, name, base_price, duration_minutes FROM treatment_offers;"
-    );
-    const treatment_offers = treatmentsRes.rows || [];
-
     console.log(`✅ Stock fetched: ${stock.length} items`);
-    console.log(`✅ Service offers fetched: ${service_offers.length}`);
-    console.log(`✅ Treatment offers fetched: ${treatment_offers.length}`);
 
     return res.status(200).json({
-      stock,
-      service_offers,
-      treatment_offers,
+      data: stock,   // <-- frontend should read `data`
     });
-  } catch (dbErr) {
-    console.error("❌ GET /stock error:", dbErr);
-    return res.status(500).json({
-      error: "Failed to fetch stock or offers",
-      details: dbErr.message,
-    });
+  } catch (err) {
+    console.error("❌ GET /stock error:", err);
+    return res.status(500).json({ error: err.message });
   }
 }
 
