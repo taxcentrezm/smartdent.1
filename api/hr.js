@@ -13,34 +13,36 @@ const client = createClient({
 export default async function handler(req, res) {
   try {
 
-    
-   // POST: Approve leave
-if (req.method === "POST") {
-  const staffId = req.body?.staff_id || req.query?.staff_id;
-  if (!staffId) return res.status(400).json({ error: "Missing staff_id" });
+    // =====================
+    // POST: Approve leave
+    // =====================
+    if (req.method === "POST") {
+      const staffId = req.body?.staff_id || req.query?.staff_id;
+      if (!staffId) return res.status(400).json({ error: "Missing staff_id" });
 
-  const result = await client.execute(
-    `UPDATE staff
-     SET leave_days = COALESCE(leave_days,0)+1
-     WHERE staff_id = ?`,
-    [staffId]
-  );
+      // Increment leave_days in database
+      const result = await client.execute(
+        `UPDATE staff
+         SET leave_days = COALESCE(leave_days,0) + 1
+         WHERE staff_id = ?`,
+        [staffId]
+      );
 
-  const updatedStaffRes = await client.execute(
-    `SELECT staff_id, leave_days FROM staff WHERE staff_id = ?`,
-    [staffId]
-  );
+      // Fetch the updated leave_days
+      const updatedStaffRes = await client.execute(
+        `SELECT staff_id, leave_days FROM staff WHERE staff_id = ?`,
+        [staffId]
+      );
 
-  const updatedStaff = updatedStaffRes.rows?.[0] ?? {};
+      const updatedStaff = updatedStaffRes.rows?.[0] ?? {};
 
-  return res.status(200).json({
-    message: "Leave approved",
-    staff_id: staffId,
-    leave_days: updatedStaff.leave_days ?? 0,
-    updated: result.rowsAffected || 0
-  });
-}
-
+      return res.status(200).json({
+        message: "Leave approved",
+        staff_id: staffId,
+        leave_days: updatedStaff.leave_days ?? 0,
+        updated: result.rowsAffected || 0,
+      });
+    }
 
     // =====================
     // GET: Fetch staff + payroll
@@ -107,6 +109,7 @@ if (req.method === "POST") {
     // Method not allowed
     // =====================
     return res.status(405).json({ error: "Method not allowed" });
+
   } catch (error) {
     console.error("❌ HR API failed:", error);
     return res.status(500).json({
