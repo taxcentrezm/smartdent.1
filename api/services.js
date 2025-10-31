@@ -14,8 +14,8 @@ if (req.method === "GET") {
   try {
     const result = await client.execute(`
       SELECT 
-        service_offer_id AS service_id,
-        name AS service_name,
+        service_offer_id,
+        name,
         description
       FROM service_offers
       ORDER BY name;
@@ -25,13 +25,16 @@ if (req.method === "GET") {
 
     return res.status(200).json({
       message: "Service offers fetched successfully",
-      data: result.rows,
+      data: result.rows.map(row => ({
+        service_id: row.service_offer_id,
+        name: row.name,
+        description: row.description
+      }))
     });
   } catch (err) {
     console.error("❌ Error fetching service offers:", err);
     return res.status(500).json({ error: "Failed to fetch service offers" });
   }
-}
 
 
     // ===================================================
