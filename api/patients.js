@@ -12,7 +12,10 @@ export default async function handler(req, res) {
           SELECT 
             patient_id,
             full_name,
-            age,
+            dob,
+            (strftime('%Y', 'now') - strftime('%Y', dob)) 
+              - (strftime('%m-%d', 'now') < strftime('%m-%d', dob)) 
+              AS age,
             phone,
             email,
             notes,
@@ -28,11 +31,12 @@ export default async function handler(req, res) {
           data: result.rows.map(p => ({
             patient_id: p.patient_id,
             full_name: p.full_name,
+            dob: p.dob,
+            age: p.age,
             phone: p.phone,
             email: p.email,
-            age: p.age,
-            notes: p.notes
-          }))
+            notes: p.notes,
+          })),
         });
       }
 
@@ -40,7 +44,7 @@ export default async function handler(req, res) {
       // 2️⃣ POST: Add new patient
       // =====================================================
       case "POST": {
-        const { full_name, age, phone, email, notes } = req.body;
+        const { full_name, dob, phone, email, notes } = req.body;
 
         if (!full_name || !phone) {
           return res
@@ -48,20 +52,32 @@ export default async function handler(req, res) {
             .json({ error: "Full name and phone are required." });
         }
 
+        // 🧮 Calculate age from DOB if provided
+        let age = null;
+        if (dob) {
+          const birthDate = new Date(dob);
+          const today = new Date();
+          age =
+            today.getFullYear() -
+            birthDate.getFullYear() -
+            (today < new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate()) ? 1 : 0);
+        }
+
         const patient_id = randomUUID();
 
         await client.execute(
           `INSERT INTO patients 
-            (patient_id, full_name, age, phone, email, notes)
-           VALUES (?, ?, ?, ?, ?, ?);`,
-          [patient_id, full_name, age || null, phone, email || null, notes || null]
+            (patient_id, full_name, dob, age, phone, email, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?);`,
+          [patient_id, full_name, dob || null, age || null, phone, email || null, notes || null]
         );
 
         console.log("✅ New patient created:", full_name);
 
         return res.status(201).json({
           message: "Patient created successfully",
-          patient_id
+          patient_id,
+          age,
         });
       }
 
