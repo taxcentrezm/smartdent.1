@@ -46,13 +46,14 @@ export default async function handler(req, res) {
       case "POST": {
         const { full_name, dob, phone, email, notes } = req.body;
 
+        // Validate required fields
         if (!full_name || !phone) {
           return res
             .status(400)
             .json({ error: "Full name and phone are required." });
         }
 
-        // 🧮 Calculate age from DOB if provided
+        // Calculate age from DOB if provided
         let age = null;
         if (dob) {
           const birthDate = new Date(dob);
@@ -65,12 +66,17 @@ export default async function handler(req, res) {
 
         const patient_id = randomUUID();
 
-        await client.execute(
-          `INSERT INTO patients 
-            (patient_id, full_name, dob, age, phone, email, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?);`,
-          [patient_id, full_name, dob || null, age || null, phone, email || null, notes || null]
-        );
+        try {
+          await client.execute(
+            `INSERT INTO patients 
+              (patient_id, full_name, dob, age, phone, email, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?);`,
+            [patient_id, full_name, dob || null, age, phone, email || null, notes || null]
+          );
+        } catch (err) {
+          console.error("❌ Failed to create patient:", err.message);
+          return res.status(500).json({ error: "Failed to create patient", details: err.message });
+        }
 
         console.log("✅ New patient created:", full_name);
 
