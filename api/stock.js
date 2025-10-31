@@ -5,11 +5,30 @@ export default async function handler(req, res) {
   try {
     switch (req.method) {
       // =====================================================
-      // 1️⃣ GET: Fetch All Stock
+      // 1️⃣ GET: Fetch All Stock + Offers (for dropdowns)
       // =====================================================
       case "GET": {
-        const result = await client.execute("SELECT * FROM stock;");
-        return res.status(200).json(result.rows);
+        // Fetch stock items
+        const stockRes = await client.execute("SELECT * FROM stock;");
+        const stock = stockRes.rows;
+
+        // Fetch service offers
+        const servicesRes = await client.execute(
+          "SELECT service_offer_id, name, base_cost FROM service_offers;"
+        );
+        const service_offers = servicesRes.rows;
+
+        // Fetch treatment offers
+        const treatmentsRes = await client.execute(
+          "SELECT treatment_offer_id, name, base_price, duration_minutes FROM treatment_offers;"
+        );
+        const treatment_offers = treatmentsRes.rows;
+
+        return res.status(200).json({
+          stock,
+          service_offers,
+          treatment_offers,
+        });
       }
 
       // =====================================================
