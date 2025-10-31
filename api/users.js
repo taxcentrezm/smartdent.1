@@ -15,7 +15,7 @@ export default async function handler(req, res) {
         let query;
         let params = [];
 
-        if (role === "doctor") {
+        if (role === "dentist") {
           // Return only dentists and junior dentists
           query = `
             SELECT user_id, full_name, role
