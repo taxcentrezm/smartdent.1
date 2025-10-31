@@ -15,12 +15,12 @@ export default async function handler(req, res) {
         let query;
         let params = [];
 
-        if (role === "dentist") {
+        if (role === "Dentist") {
           // Return only dentists and junior dentists
           query = `
             SELECT user_id, full_name, role
             FROM users
-            WHERE role IN ('dentist', 'junior_dentist');
+            WHERE role IN ('Dentist', 'junior_dentist');
           `;
         } else {
           // Return all users
