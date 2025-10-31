@@ -415,26 +415,35 @@ async function addInvoice() {
     let finalPatientId = patientId;
     let patientFullName = null;
 
-    if (patientId === "new") {
-      const name = prompt("Enter full name for new patient:");
-      if (!name) return alert("Patient name required.");
+if (patientId === "new") {
+  let name = "";
+  while (!name) {
+    name = prompt("Enter full name for new patient:")?.trim();
+    if (name === null) return alert("Patient creation cancelled."); // user pressed cancel
+    if (!name) alert("Patient name is required!");
+  }
 
-      // Create patient via API
-      const pRes = await fetch('/api/patients', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: name })
-      });
+  const phone = prompt("Enter patient phone number:")?.trim() || "Unknown";
 
-      if (!pRes.ok) {
-        const err = await pRes.json();
-        throw new Error(err.error || "Failed to create new patient.");
-      }
+  const pRes = await fetch('/api/patients', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ full_name: name, phone })
+  });
 
-      const pData = await pRes.json();
-      finalPatientId = pData.patient_id || pData.data?.patient_id;
-      patientFullName = name;
-    } else {
+  if (!pRes.ok) {
+    const err = await pRes.json();
+    throw new Error(err.error || "Failed to create new patient.");
+  }
+
+  const pData = await pRes.json();
+  finalPatientId = pData.patient_id || pData.data?.patient_id;
+
+  if (!finalPatientId) throw new Error("Patient creation returned no ID");
+
+  patientFullName = name;
+}
+else {
       // Existing patient: fetch name from local list or DOM
       const selectedOption = document.getElementById('newInvPatient').selectedOptions[0];
       patientFullName = selectedOption?.text || "Unknown";
