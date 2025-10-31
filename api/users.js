@@ -1,53 +1,73 @@
-// api/users.js
 import { client } from "../db.js";
 
 export default async function handler(req, res) {
+  console.log("📥 Incoming request to /api/users");
+  console.log("🔍 Method:", req.method, " Query:", req.query);
+
   try {
-    const role = req.query?.role?.toLowerCase();
-    const type = req.query?.type?.toLowerCase();
+    switch (req.method) {
+      // ===================================================
+      // 1️⃣ GET - Fetch all users or filter by role
+      // ===================================================
+      case "GET": {
+        const { role } = req.query;
 
-    if (req.method === "GET") {
-      let query = "";
-      let params = [];
+        let query;
+        let params = [];
 
-      if (role === "doctor" || type === "doctors") {
-        // Return only Dentists and Junior Dentists from staff
-        query = `
-          SELECT staff_id AS id, name AS full_name, role, department, photo
-          FROM staff
-          WHERE LOWER(role) IN ('dentist', 'junior dentist')
-          ORDER BY name;
-        `;
-      } else {
-        // Return all users (generic fallback)
-        query = `
-          SELECT user_id AS id, full_name, role, email, created_at
-          FROM users
-          ORDER BY full_name;
-        `;
+        if (role === "doctor") {
+          // Return only dentists and junior dentists
+          query = `
+            SELECT user_id, full_name, role
+            FROM users
+            WHERE role IN ('dentist', 'junior_dentist');
+          `;
+        } else {
+          // Return all users
+          query = `SELECT user_id, full_name, role FROM users;`;
+        }
+
+        const result = await client.execute(query, params);
+        console.log(`✅ ${result.rows.length} users fetched`);
+
+        res.status(200).json({
+          message: "Users fetched successfully",
+          data: result.rows,
+        });
+        break;
       }
 
-      const result = await client.execute(query, params);
-      return res.status(200).json(result.rows ?? []);
+      // ===================================================
+      // 2️⃣ POST - Create a new user
+      // ===================================================
+      case "POST": {
+        const { full_name, email, password, role, clinic_id } = req.body;
+
+        if (!full_name || !email || !password || !role || !clinic_id) {
+          return res
+            .status(400)
+            .json({ error: "full_name, email, password, role, clinic_id required." });
+        }
+
+        await client.execute(
+          `INSERT INTO users (full_name, email, password, role, clinic_id)
+           VALUES (?, ?, ?, ?, ?);`,
+          [full_name, email, password, role, clinic_id]
+        );
+
+        res.status(201).json({ message: "User created successfully" });
+        break;
+      }
+
+      // ===================================================
+      // ❌ Unsupported Methods
+      // ===================================================
+      default:
+        res.setHeader("Allow", ["GET", "POST"]);
+        res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
-
-    if (req.method === "POST") {
-      const { full_name, email, role } = req.body;
-      if (!full_name || !email || !role)
-        return res.status(400).json({ error: "Missing required fields" });
-
-      await client.execute(
-        `INSERT INTO users (full_name, email, role) VALUES (?, ?, ?);`,
-        [full_name, email, role]
-      );
-
-      return res.status(201).json({ message: "User created successfully" });
-    }
-
-    res.setHeader("Allow", ["GET", "POST"]);
-    return res.status(405).json({ error: `Method ${req.method} not allowed` });
   } catch (err) {
-    console.error("❌ Users API failed:", err.message);
-    return res.status(500).json({ error: err.message });
+    console.error("❌ API Error (/api/users):", err.message);
+    res.status(500).json({ error: err.message });
   }
 }
