@@ -13,12 +13,11 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
       const { clinic_id = 1 } = req.query;
 
-      const result = await client.execute(
-        `SELECT service_id, name, description, price, clinic_id
-         FROM services
-         WHERE clinic_id = ?`,
-        [clinic_id]
-      );
+    const result = await client.execute(`
+  SELECT s.*, c.name AS clinic_name
+  FROM services s
+  LEFT JOIN clinics c ON s.clinic_id = c.clinic_id;
+`);
 
       console.log("✅ Services fetched:", result.rows.length);
 
