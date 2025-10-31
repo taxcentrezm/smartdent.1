@@ -14,16 +14,19 @@ export default async function handler(req, res) {
     if (req.method === "POST" && req.query.staff_id) {
       const staffId = req.query.staff_id;
 
-      const result = await client.execute(`
-        UPDATE staff
-        SET leave_days = COALESCE(leave_days, 0) + 1
-        WHERE staff_id = ?
-      `, [staffId]);
+      const result = await client.execute(
+        `UPDATE staff
+         SET leave_days = COALESCE(leave_days, 0) + 1
+         WHERE staff_id = ?`,
+        [staffId]
+      );
+
+      const updated = result?.numUpdatedRows || 0;
 
       return res.status(200).json({
         message: "Leave approved",
         staff_id: staffId,
-        updated: result?.rowsAffected || 0
+        updated
       });
     }
 
@@ -32,10 +35,6 @@ export default async function handler(req, res) {
     // =====================
     if (req.method === "GET") {
       console.log("📊 HR API: Fetching staff and payroll data...");
-
-      // Safe extractor
-      const safeExtract = (result, key, fallback = null) =>
-        result?.rows?.map(r => r[key] ?? fallback) ?? [];
 
       // --- Fetch staff ---
       let staff = [];
@@ -92,7 +91,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // Method not allowed
     return res.status(405).json({ error: "Method not allowed" });
 
   } catch (error) {
