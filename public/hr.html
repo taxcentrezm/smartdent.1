@@ -299,15 +299,22 @@ function renderLeaveChart() {
   // PAYROLL ACTIONS
   // ============================
 async function approveLeave(staffId) {
+  if (!staffId) return alert("❌ Invalid staff ID");
+
   try {
-    const res = await fetch(`/api/hr/approve-leave?staff_id=${staffId}`, { method: "POST" });
+    const res = await fetch(`/api/hr?staff_id=${staffId}`, { method: "POST" });
     if (!res.ok) throw new Error("Request failed");
-    await loadStaff(); // refresh data
+    const data = await res.json();
+    console.log("✅ Leave approved:", data);
+
+    // Reload staff data after approval
+    await loadStaff();
   } catch (err) {
     console.error("❌ Error approving leave:", err);
     alert("Failed to approve leave");
   }
 }
+
 
 
   function runPayroll() {
