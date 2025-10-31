@@ -10,45 +10,37 @@ export default async function handler(req, res) {
 // ===================================================
 // 1️⃣ GET - Fetch all service offers for dropdowns
 // ===================================================
-case "GET": {
-  // Fetch all treatment offers from treatment_offers table
-  const query = `
-    SELECT 
-      t.treatment_offer_id,
-      t.service_offer_id,
-      t.name AS treatment_name,
-      t.description,
-      t.base_price,
-      t.duration_minutes,
-      s.name AS service_name
-    FROM treatment_offers t
-    LEFT JOIN service_offers s ON t.service_offer_id = s.service_offer_id
-    ORDER BY s.name, t.name;
-  `;
+  // ===================================================
+    // 1️⃣ GET - Fetch all service offers (for dropdowns)
+    // ===================================================
+    if (req.method === "GET") {
+      const query = `
+        SELECT 
+          s.service_offer_id,
+          s.name AS service_name,
+          s.description,
+          s.base_cost,
+          s.duration_minutes,
+          s.created_at
+        FROM service_offers s
+        ORDER BY s.name;
+      `;
 
-  try {
-    const result = await client.execute(query);
+      const result = await client.execute(query);
+      console.log("✅ Service offers fetched:", result.rows.length);
 
-    console.log("✅ Treatment offers fetched:", result.rows.length);
-
-    return res.status(200).json({
-      message: "Treatment offers fetched successfully",
-      data: result.rows.map(row => ({
-        treatment_id: row.treatment_offer_id,
-        service_id: row.service_offer_id,
-        name: row.treatment_name,
-        description: row.description,
-        price: row.base_price,
-        duration: row.duration_minutes,
-        service_name: row.service_name || "Unassigned"
-      }))
-    });
-  } catch (err) {
-    console.error("❌ Error fetching treatment offers:", err);
-    return res.status(500).json({ error: "Failed to fetch treatment offers" });
-  }
-}
-
+      return res.status(200).json({
+        message: "Service offers fetched successfully",
+        data: result.rows.map(row => ({
+          service_id: row.service_offer_id,
+          name: row.service_name,
+          description: row.description,
+          cost: row.base_cost,
+          duration: row.duration_minutes,
+          created_at: row.created_at
+        }))
+      });
+    }
 
 
     // ===================================================
