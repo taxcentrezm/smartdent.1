@@ -7,25 +7,32 @@ export default async function handler(req, res) {
   console.log("🔍 Method:", req.method);
 
   try {
-    // ===================================================
-    // 1️⃣ GET - Fetch all services for dropdowns
-    // ===================================================
-    if (req.method === "GET") {
-      const { clinic_id = 1 } = req.query;
-
+// ===================================================
+// 1️⃣ GET - Fetch all service offers for dropdowns
+// ===================================================
+if (req.method === "GET") {
+  try {
     const result = await client.execute(`
-  SELECT s.*, c.name AS clinic_name
-  FROM services s
-  LEFT JOIN clinics c ON s.clinic_id = c.clinic_id;
-`);
+      SELECT 
+        service_offer_id AS service_id,
+        name AS service_name,
+        description
+      FROM service_offers
+      ORDER BY name;
+    `);
 
-      console.log("✅ Services fetched:", result.rows.length);
+    console.log("✅ Service offers fetched:", result.rows.length);
 
-      return res.status(200).json({
-        message: "Services fetched successfully",
-        data: result.rows,
-      });
-    }
+    return res.status(200).json({
+      message: "Service offers fetched successfully",
+      data: result.rows,
+    });
+  } catch (err) {
+    console.error("❌ Error fetching service offers:", err);
+    return res.status(500).json({ error: "Failed to fetch service offers" });
+  }
+}
+
 
     // ===================================================
     // 2️⃣ POST - Add new service + optional auto-invoice
