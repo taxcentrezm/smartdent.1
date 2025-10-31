@@ -110,33 +110,6 @@
   </div>
 </div>
 
-<!-- New Invoice Modal -->
-<div id="invoiceModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
-  <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
-    <h3 class="text-lg font-semibold mb-4">Create Invoice</h3>
-    <div class="space-y-3">
-      <input id="newInvName" type="text" placeholder="Patient Name" class="w-full px-3 py-2 border rounded-md" />
-      <select id="newInvDentist" class="w-full px-3 py-2 border rounded-md">
-        <option value="">Select Dentist</option>
-        <option value="Dr. Phiri">Dr. Phiri</option>
-        <option value="Dr. Banda">Dr. Banda</option>
-        <option value="Dr. Mwansa">Dr. Mwansa</option>
-      </select>
-      <input id="newInvService" type="text" placeholder="Service" class="w-full px-3 py-2 border rounded-md" />
-      <input id="newInvAmount" type="number" placeholder="Amount" class="w-full px-3 py-2 border rounded-md" />
-      <select id="newInvStatus" class="w-full px-3 py-2 border rounded-md">
-        <option value="Invoice">Invoice</option>
-        <option value="Paid">Paid</option>
-        <option value="Overdue">Overdue</option>
-      </select>
-    </div>
-    <div class="mt-4 flex justify-end gap-2">
-      <button onclick="closeModal()" class="px-4 py-2 border rounded-md">Cancel</button>
-      <button onclick="addInvoice()" class="px-4 py-2 bg-rose-600 text-white rounded-md">Add</button>
-    </div>
-  </div>
-</div>
-
 <!-- External Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -355,6 +328,7 @@ function render(list = invoices) {
   updateSummary();
 }
 
+  
 // =====================================================
 // 3️⃣ Summary
 // =====================================================
@@ -372,6 +346,34 @@ function updateSummary() {
     <li class="flex justify-between text-rose-600"><span>Overdue</span><span>$${overdue.toLocaleString()}</span></li>
   `;
 }
+
+  // Make function accessible globally
+window.showInvoice = function (index) {
+  selectedInvoiceIndex = index;
+  const inv = invoices[index];
+  
+  document.getElementById('invId').textContent = inv.id || `INV-${index+1}`;
+  document.getElementById('invDate').textContent = `Date: ${inv.date || ''}`;
+  document.getElementById('invName').textContent = inv.full_name || inv.patient_name || 'Unknown';
+  document.getElementById('invService').textContent = inv.service_name || 'N/A';
+  document.getElementById('invAmount').textContent = inv.total || 0;
+
+  const statusEl = document.getElementById('invStatus');
+  statusEl.textContent = inv.status || 'Invoice';
+  statusEl.className = `mt-2 inline-block px-3 py-1 rounded-full text-xs font-medium ${
+    inv.status === 'Paid' ? 'bg-green-100 text-green-600' :
+    inv.status === 'Overdue' ? 'bg-rose-100 text-rose-600' :
+    'bg-amber-100 text-amber-600'
+  }`;
+
+  document.getElementById('invoiceDetail').style.display = 'flex';
+
+  new QRious({
+    element: document.getElementById('qrCode'),
+    value: `https://smartdent.com/invoice/${inv.invoice_id || inv.id}`,
+    size: 120
+  });
+};
 
 // =====================================================
 // 4️⃣ Modal controls
