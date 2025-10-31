@@ -171,12 +171,13 @@
 
       li.innerHTML = `
         <div class="flex items-center gap-3">
-          <img src="${emp.photo}" class="w-10 h-10 rounded-full object-cover border" />
+          <img src="${emp.photo || 'assets/images/default-avatar.png'}"
+     class="w-10 h-10 rounded-full object-cover border" />
           <div>
             <div class="font-medium">${emp.name}</div>
             <div class="text-xs text-gray-500">${emp.role} • ${emp.department}</div>
             <div class="text-xs text-gray-500">Leave: ${emp.leave || 0} days</div>
-            <button onclick="approveLeave(${index})" class="text-xs text-green-600 underline mt-1">Approve 1 Day Leave</button>
+            <button onclick="approveLeave('${emp.staff_id}')" class="text-xs text-green-600 underline mt-1">Approve 1 Day Leave</button>
           </div>
         </div>
         <div class="text-right">
@@ -265,12 +266,23 @@
   // ============================
   // PAYROLL ACTIONS
   // ============================
-  function approveLeave(index) {
-    staff[index].leave += 1;
-    renderStaff();
-    renderLeaveTracker();
-    renderLeaveChart();
+ async function approveLeave(staffId) {
+  if (!staffId) return alert("❌ Invalid staff ID");
+
+  try {
+    const res = await fetch(`/api/hr/approve-leave?staff_id=${staffId}`, { method: "POST" });
+    if (!res.ok) throw new Error("Request failed");
+    const data = await res.json();
+    console.log("✅ Leave approved:", data);
+
+    // Reload staff data after approval
+    await loadStaff();
+  } catch (err) {
+    console.error("❌ Error approving leave:", err);
+    alert("Failed to approve leave");
   }
+}
+
 
   function runPayroll() {
     const today = new Date();
