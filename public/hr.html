@@ -254,31 +254,46 @@ function renderLeaveTracker() {
 }
 
 
+let leaveChartInstance = null;
 
-  let leaveChartInstance = null;
-  function renderLeaveChart() {
-    const ctx = document.getElementById('leaveChart').getContext('2d');
-    const colors = getEmployeeColors();
-    if (leaveChartInstance) leaveChartInstance.destroy();
+function renderLeaveChart() {
+  const ctx = document.getElementById('leaveChart').getContext('2d');
+  const colors = getEmployeeColors();
+  if (leaveChartInstance) leaveChartInstance.destroy();
 
-    const labels = staff.map(emp => emp.name);
-    const data = staff.map(emp => emp.leave || 0);
+  const labels = staff.map(emp => emp.name);
+  const data = staff.map(emp => emp.leave_days ?? 0); // ✅ use correct key
 
-    leaveChartInstance = new Chart(ctx, {
-      type:'bar',
-      data:{ labels, datasets:[{ label:'Leave Days', data, backgroundColor:colors, borderColor:colors, borderWidth:1 }] },
-      options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
-    });
+  leaveChartInstance = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'Leave Days',
+        data,
+        backgroundColor: colors,
+        borderColor: colors,
+        borderWidth:1
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ display:false } },
+      scales:{ y:{ beginAtZero:true } }
+    }
+  });
 
-    const container = document.getElementById('leaveKey');
-    container.innerHTML = '';
-    staff.forEach((emp,i)=>{
-      const item = document.createElement('div');
-      item.className='flex items-center gap-2 text-sm mb-1';
-      item.innerHTML=`<div class="w-4 h-4 rounded" style="background-color:${colors[i]}"></div><span>${emp.name}</span>`;
-      container.appendChild(item);
-    });
-  }
+  // Legend / Key
+  const container = document.getElementById('leaveKey');
+  container.innerHTML = '';
+  staff.forEach((emp,i)=>{
+    const item = document.createElement('div');
+    item.className='flex items-center gap-2 text-sm mb-1';
+    item.innerHTML=`<div class="w-4 h-4 rounded" style="background-color:${colors[i]}"></div><span>${emp.name}</span>`;
+    container.appendChild(item);
+  });
+}
+
 
   // ============================
   // PAYROLL ACTIONS
