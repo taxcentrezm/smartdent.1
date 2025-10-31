@@ -298,7 +298,7 @@ function populateDropdowns() {
 
   // 🧑‍⚕️ Doctors
   doctorSel.innerHTML = doctors
-    .filter(d => d.role === 'doctor' || d.role === 'dentist' || d.role === 'junior_dentist')
+    .filter(d => d.role === 'Dentist' || d.role === 'Dentist' || d.role === 'junior_dentist')
     .map(d => `<option value="${d.user_id || d.id}">${d.full_name}</option>`)
     .join('');
 }
