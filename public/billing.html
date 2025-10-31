@@ -141,81 +141,199 @@
 <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- =========================
+   ADD INVOICE MODAL
+========================= -->
+<div id="invoiceModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+  <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 relative">
+    <h2 class="text-xl font-semibold mb-4">Add New Invoice</h2>
+    
+    <div class="space-y-4">
+      <!-- Patient Dropdown -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Patient</label>
+        <select id="newInvPatient" class="w-full border rounded px-3 py-2">
+          <!-- options populated dynamically via JS -->
+        </select>
+      </div>
+
+      <!-- Service Dropdown -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Service</label>
+        <select id="newInvService" class="w-full border rounded px-3 py-2">
+          <!-- options populated dynamically via JS -->
+        </select>
+      </div>
+
+      <!-- Treatment Dropdown -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Treatment</label>
+        <select id="newInvTreatment" class="w-full border rounded px-3 py-2">
+          <!-- options populated dynamically via JS -->
+        </select>
+      </div>
+
+      <!-- Doctor Dropdown -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Doctor</label>
+        <select id="newInvDoctor" class="w-full border rounded px-3 py-2">
+          <!-- options populated dynamically via JS -->
+        </select>
+      </div>
+
+      <!-- Amount -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Amount</label>
+        <input id="newInvAmount" type="number" step="0.01" class="w-full border rounded px-3 py-2" placeholder="Enter amount">
+      </div>
+
+      <!-- Status -->
+      <div>
+        <label class="block text-sm font-medium mb-1">Status</label>
+        <select id="newInvStatus" class="w-full border rounded px-3 py-2">
+          <option value="Invoice">Invoice</option>
+          <option value="Paid">Paid</option>
+          <option value="Overdue">Overdue</option>
+        </select>
+      </div>
+
+      <!-- Stock Usage Button -->
+      <div>
+        <button type="button" class="px-4 py-2 bg-indigo-600 text-white rounded" onclick="openModal('stockModal')">
+          Select Stock Used
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal Buttons -->
+    <div class="mt-6 flex justify-end gap-3">
+      <button class="px-4 py-2 bg-gray-300 rounded" onclick="closeModal('invoiceModal')">Cancel</button>
+      <button id="saveInvoiceBtn" class="px-4 py-2 bg-green-600 text-white rounded">Save Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- =========================
+   STOCK MINI MODAL
+========================= -->
+<div id="stockModal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+  <div class="bg-white rounded-xl shadow-lg w-full max-w-xl p-6 relative">
+    <h2 class="text-lg font-semibold mb-4">Select Stock Material Used</h2>
+
+    <div id="stockItemsContainer" class="space-y-3 max-h-64 overflow-y-auto">
+      <!-- Stock items will be dynamically added here via JS -->
+      <!-- Example single item row:
+      <div class="flex gap-2 items-center">
+        <select class="border rounded px-2 py-1 w-1/2">
+          <option value="s1">Material 1</option>
+        </select>
+        <input type="number" class="border rounded px-2 py-1 w-1/4" placeholder="Qty">
+        <select class="border rounded px-2 py-1 w-1/4">
+          <option value="ml">ml</option>
+          <option value="l">l</option>
+          <option value="kg">kg</option>
+          <option value="mg">mg</option>
+        </select>
+      </div>
+      -->
+    </div>
+
+    <!-- Add another stock line -->
+    <div class="mt-3">
+      <button type="button" class="px-3 py-1 bg-indigo-500 text-white rounded" onclick="addStockRow()">+ Add Material</button>
+    </div>
+
+    <!-- Modal Buttons -->
+    <div class="mt-6 flex justify-end gap-3">
+      <button class="px-4 py-2 bg-gray-300 rounded" onclick="closeModal('stockModal')">Close</button>
+      <button type="button" class="px-4 py-2 bg-green-600 text-white rounded" onclick="saveStockUsage()">Save Stock</button>
+    </div>
+  </div>
+</div>
 
 <script>
 feather.replace();
 
 let invoices = [];
+let selectedInvoiceIndex = null;
+let selectedStock = []; // Stock materials used
 let services = [];
 let treatments = [];
 let patients = [];
 let doctors = [];
 let stockItems = [];
-let selectedInvoiceIndex = null;
 
 // =====================================================
-// 1️⃣ Load invoices, services, treatments, patients
+// 1️⃣ Load invoices + supporting data
 // =====================================================
-async function loadData() {
+async function loadInvoices() {
   try {
-    // Load invoices
-    const invRes = await fetch('/api/invoices');
-    const invData = await invRes.json();
-    invoices = invData.data || [];
-
-    // Load services
-    const svcRes = await fetch('/api/services');
-    services = (await svcRes.json()).data || [];
-
-    // Load treatments
-    const trtRes = await fetch('/api/treatments');
-    treatments = (await trtRes.json()).data || [];
-
-    // Load patients
-    const patRes = await fetch('/api/patients');
-    patients = (await patRes.json()).data || [];
-
-    // Load doctors
-    const docRes = await fetch('/api/doctors');
-    doctors = (await docRes.json()).data || [];
-
-    // Load stock items
-    const stockRes = await fetch('/api/stock');
-    stockItems = (await stockRes.json()).data || [];
-
-    populateAddInvoiceModal();
-    renderInvoices();
+    const res = await fetch('/api/invoices');
+    const data = await res.json();
+    invoices = data.data || [];
+    render(invoices);
   } catch (err) {
-    console.error("❌ Failed to load data:", err);
+    console.error("❌ Failed to load invoices:", err);
   }
 }
 
-// =====================================================
-// 2️⃣ Populate Add Invoice Modal dropdowns
-// =====================================================
-function populateAddInvoiceModal() {
-  const svcSelect = document.getElementById('newInvService');
-  svcSelect.innerHTML = services.map(s => `<option value="${s.service_id}">${s.name}</option>`).join('');
+async function loadDropdowns() {
+  try {
+    const [svc, trt, pat, doc, stk] = await Promise.all([
+      fetch('/api/services').then(r => r.json()),
+      fetch('/api/treatments').then(r => r.json()),
+      fetch('/api/patients').then(r => r.json()),
+      fetch('/api/users?role=doctor').then(r => r.json()),
+      fetch('/api/stock').then(r => r.json()),
+    ]);
+    services = svc.data || [];
+    treatments = trt.data || [];
+    patients = pat.data || [];
+    doctors = doc.data || [];
+    stockItems = stk.data || [];
 
-  const trtSelect = document.getElementById('newInvTreatment');
-  trtSelect.innerHTML = treatments.map(t => `<option value="${t.treatment_id}">${t.name}</option>`).join('');
+    populateDropdowns();
+  } catch (err) {
+    console.error("❌ Failed to load dropdown data:", err);
+  }
+}
 
-  const patSelect = document.getElementById('newInvPatient');
-  patSelect.innerHTML = patients.map(p => `<option value="${p.patient_id}">${p.full_name}</option>`).join('');
-  patSelect.innerHTML += `<option value="new_patient">+ New Patient</option>`;
+function populateDropdowns() {
+  const patientSel = document.getElementById('newInvPatient');
+  const serviceSel = document.getElementById('newInvService');
+  const treatmentSel = document.getElementById('newInvTreatment');
+  const doctorSel = document.getElementById('newInvDoctor');
 
-  const docSelect = document.getElementById('newInvDoctor');
-  docSelect.innerHTML = doctors.map(d => `<option value="${d.doctor_id}">${d.full_name}</option>`).join('');
+  // Patient
+  patientSel.innerHTML = patients
+    .map(p => `<option value="${p.patient_id}">${p.full_name}</option>`)
+    .join('') + `<option value="new">+ Add New Patient</option>`;
+
+  // Services
+  serviceSel.innerHTML = services
+    .map(s => `<option value="${s.service_id}">${s.name} — $${s.cost}</option>`)
+    .join('');
+
+  // Treatments
+  treatmentSel.innerHTML = treatments
+    .map(t => `<option value="${t.treatment_id}">${t.name} — $${t.price}</option>`)
+    .join('');
+
+  // Doctors
+  doctorSel.innerHTML = doctors
+    .map(d => `<option value="${d.user_id}">${d.full_name}</option>`)
+    .join('');
 }
 
 // =====================================================
-// 3️⃣ Render invoice list
+// 2️⃣ Render invoices
 // =====================================================
-function renderInvoices(list = invoices) {
+function render(list = invoices) {
   const ul = document.getElementById('invoiceList');
+  if (!ul) return;
   ul.innerHTML = '';
   list.forEach((inv, index) => {
-    const initials = inv.full_name ? inv.full_name.split(' ').map(s => s[0]).slice(0, 2).join('') : '';
+    const initials = inv.full_name ? inv.full_name.split(' ').map(s => s[0]).slice(0, 2).join('') : 'U';
     const li = document.createElement('li');
     li.className = 'flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-2 rounded-md';
     li.innerHTML = `
@@ -234,13 +352,13 @@ function renderInvoices(list = invoices) {
     li.addEventListener('click', () => showInvoice(index));
     ul.appendChild(li);
   });
-  updateBillingSummary();
+  updateSummary();
 }
 
 // =====================================================
-// 4️⃣ Billing Summary
+// 3️⃣ Summary
 // =====================================================
-function updateBillingSummary() {
+function updateSummary() {
   let total = 0, paid = 0, overdue = 0;
   invoices.forEach(i => {
     total += i.total || 0;
@@ -256,98 +374,113 @@ function updateBillingSummary() {
 }
 
 // =====================================================
-// 5️⃣ Open / Close Modals
+// 4️⃣ Modal controls
 // =====================================================
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function closeInvoice() { document.getElementById('invoiceDetail').style.display = 'none'; }
 
 // =====================================================
-// 6️⃣ Add Invoice
+// 5️⃣ Add new invoice
 // =====================================================
 async function addInvoice() {
-  const patientSelect = document.getElementById('newInvPatient');
-  let patientId = patientSelect.value;
-  let fullName = '';
-  if (patientId === 'new_patient') {
-    fullName = prompt("Enter new patient full name:");
-    if (!fullName) return alert("Patient name required.");
-    const res = await fetch('/api/patients', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ full_name: fullName })
-    });
-    const newPatient = await res.json();
-    patientId = newPatient.patient_id;
-    patients.push({ patient_id: patientId, full_name: fullName });
-    populateAddInvoiceModal();
-  } else {
-    fullName = patients.find(p => p.patient_id === patientId)?.full_name || "Unknown";
-  }
-
+  const patientId = document.getElementById('newInvPatient').value;
   const serviceId = document.getElementById('newInvService').value;
-  const serviceName = services.find(s => s.service_id === serviceId)?.name || '';
   const treatmentId = document.getElementById('newInvTreatment').value;
-  const treatmentName = treatments.find(t => t.treatment_id === treatmentId)?.name || '';
   const doctorId = document.getElementById('newInvDoctor').value;
   const amount = parseFloat(document.getElementById('newInvAmount').value);
   const status = document.getElementById('newInvStatus').value;
-  const date = new Date().toISOString().split('T')[0];
 
-  // Optional: handle stock modal selection
-  const stockUsed = []; // populate from stock mini modal before submitting
+  if (!serviceId || !treatmentId || !doctorId || isNaN(amount)) {
+    alert("Please fill all required fields.");
+    return;
+  }
 
-  // Call API to create invoice
-  const res = await fetch('/api/invoices', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      clinic_id: 'default_clinic',
-      patient_id: patientId,
-      full_name: fullName,
-      service_id: serviceId,
-      service_name: serviceName,
-      treatment_id: treatmentId,
-      treatment_name: treatmentName,
-      quantity: 1,
-      cost: amount,
-      date,
-      stock_used: stockUsed,
-      doctor_id: doctorId,
-      status
-    })
-  });
-  const result = await res.json();
-  if (res.ok) {
-    await loadData();
+  // If user selected "new patient"
+  let finalPatientId = patientId;
+  if (patientId === "new") {
+    const name = prompt("Enter full name for new patient:");
+    if (!name) return alert("Patient name required.");
+    // POST new patient
+    const pRes = await fetch('/api/patients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ full_name: name })
+    });
+    const pData = await pRes.json();
+    finalPatientId = pData.data.patient_id;
+  }
+
+  const invoiceData = {
+    clinic_id: 'C001', // adapt to your active clinic
+    patient_id: finalPatientId,
+    service_id: serviceId,
+    treatment_id: treatmentId,
+    doctor_id: doctorId,
+    total: amount,
+    status,
+    stock_used: selectedStock // includes stock_id, quantity, unit
+  };
+
+  try {
+    const res = await fetch('/api/invoices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(invoiceData)
+    });
+
+    if (!res.ok) throw new Error('Failed to save invoice');
+    const data = await res.json();
+
+    invoices.unshift(data.data);
+    render();
     closeModal('invoiceModal');
-  } else {
-    alert("Failed to add invoice: " + result.error);
+    alert("✅ Invoice successfully created!");
+  } catch (err) {
+    console.error(err);
+    alert("❌ Failed to save invoice.");
   }
 }
 
 // =====================================================
-// 7️⃣ Show Invoice Details
+// 6️⃣ Stock mini modal logic
 // =====================================================
-function showInvoice(index) {
-  selectedInvoiceIndex = index;
-  const inv = invoices[index];
-  document.getElementById('invId').textContent = inv.id || inv.invoice_id;
-  document.getElementById('invDate').textContent = `Date: ${inv.date}`;
-  document.getElementById('invName').textContent = inv.full_name;
-  document.getElementById('invService').textContent = inv.service_name;
-  document.getElementById('invAmount').textContent = inv.total;
+const stockContainer = document.getElementById('stockItemsContainer');
 
-  const statusEl = document.getElementById('invStatus');
-  statusEl.textContent = inv.status;
-  statusEl.className = `mt-2 inline-block px-3 py-1 rounded-full text-xs font-medium ${
-    inv.status === 'Paid' ? 'bg-green-100 text-green-600' :
-    inv.status === 'Overdue' ? 'bg-rose-100 text-rose-600' :
-    'bg-amber-100 text-amber-600'
-  }`;
-
-  document.getElementById('invoiceDetail').style.display = 'flex';
+function addStockRow() {
+  const row = document.createElement('div');
+  row.className = 'flex gap-2 items-center';
+  row.innerHTML = `
+    <select class="border rounded px-2 py-1 w-1/2">
+      ${stockItems.map(s => `<option value="${s.stock_id}">${s.name}</option>`).join('')}
+    </select>
+    <input type="number" class="border rounded px-2 py-1 w-1/4" placeholder="Qty">
+    <select class="border rounded px-2 py-1 w-1/4">
+      <option value="ml">ml</option>
+      <option value="l">l</option>
+      <option value="kg">kg</option>
+      <option value="mg">mg</option>
+    </select>
+  `;
+  stockContainer.appendChild(row);
 }
 
+function saveStockUsage() {
+  const rows = stockContainer.querySelectorAll('div.flex');
+  const used = [];
+  rows.forEach(r => {
+    const [material, qty, unit] = r.children;
+    if (material.value && qty.value) {
+      used.push({
+        stock_id: material.value,
+        quantity: parseFloat(qty.value),
+        unit: unit.value
+      });
+    }
+  });
+  selectedStock = used;
+  closeModal('stockModal');
+}
 // =====================================================
 // 8️⃣ Search
 // =====================================================
@@ -358,15 +491,18 @@ document.getElementById('searchBtn')?.addEventListener('click', () => {
     (i.service_name || '').toLowerCase().includes(q)
   ));
 });
-
-// Connect modal buttons
+// =====================================================
+// Init
+// =====================================================
 document.getElementById('newInvoiceBtn')?.addEventListener('click', () => openModal('invoiceModal'));
 document.getElementById('saveInvoiceBtn')?.addEventListener('click', addInvoice);
 
-// Initialize
-loadData();
-</script>
+loadInvoices();
+loadDropdowns();
 
+
+
+</script>
 
 </body>
 </html>
