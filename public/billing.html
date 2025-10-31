@@ -266,7 +266,7 @@ async function loadDropdowns() {
     treatments = trt.data || [];      
     patients = pat.data || [];        
     doctors = doc.data || [];         
-    stockItems = Array.isArray(stk) ? stk : (stk.data || []);   
+   stockItems = stk.data || [];    
 
     populateDropdowns();
   } catch (err) {
