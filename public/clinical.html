@@ -117,7 +117,7 @@ const newRecordModal = document.getElementById('newRecordModal');
 const viewRecordsModal = document.getElementById('viewRecordsModal');
 const modalOverlay = document.getElementById('modalOverlay');
 
-  function calculateAge(dob) {
+function calculateAge(dob) {
   if (!dob) return null;
   const birthDate = new Date(dob);
   const today = new Date();
@@ -160,18 +160,24 @@ async function loadPatientsDropdown() {
   if (!select) return;
   select.innerHTML = '';
   try {
-    const res = await fetch('/api/patients');
+    const res = await fetch('/api/integrations?type=clinical');
     const data = await res.json();
-    if (!data.data) return;
+    const seen = new Set();
 
-    data.data.forEach(p => {
+    (data.data || []).forEach(p => {
+      if (seen.has(p.patient_id)) return;
+      seen.add(p.patient_id);
+
       const opt = document.createElement('option');
       opt.value = p.patient_id;
       opt.textContent = `${p.full_name} (${p.phone})`;
       opt.dataset.name = p.full_name;
-      opt.dataset.age = p.age;
-      opt.dataset.phone = p.phone;
-      opt.dataset.clinic = p.clinic_name || 'Clinic';
+      opt.dataset.age = p.age || calculateAge(p.dob) || 'Unknown';
+      opt.dataset.phone = p.phone || '';
+      opt.dataset.email = p.email || '';
+      opt.dataset.gender = p.gender || '';
+      opt.dataset.dob = p.dob || '';
+      opt.dataset.clinic = p.clinic_id || 'Clinic';
       select.appendChild(opt);
     });
 
@@ -181,6 +187,9 @@ async function loadPatientsDropdown() {
       document.getElementById('patientAge').value = opt.dataset.age;
       document.getElementById('patientId').value = opt.value;
       document.getElementById('patientPhone').value = opt.dataset.phone;
+      document.getElementById('patientEmail').value = opt.dataset.email;
+      document.getElementById('patientGender').value = opt.dataset.gender;
+      document.getElementById('patientDob').value = opt.dataset.dob;
       document.getElementById('clinicName').value = opt.dataset.clinic;
     });
 
@@ -191,27 +200,38 @@ async function loadPatientsDropdown() {
 }
 
 // ====================
-// Save New Clinical Record
+// Save New Enriched Clinical Record
 // ====================
 document.getElementById('newRecordForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const patient_id = document.getElementById('patientId').value.trim();
-  const clinic_id = document.getElementById('clinicName').value.trim();
-  const diagnosis = document.getElementById('diagnosis').value.trim();
-  const charting = document.getElementById('charting').value.trim();
-  const notes = document.getElementById('notes').value.trim();
+  const payload = {
+    patient_id: document.getElementById('patientId').value.trim(),
+    full_name: document.getElementById('patientName').value.trim(),
+    dob: document.getElementById('patientDob').value.trim(),
+    age: document.getElementById('patientAge').value.trim(),
+    gender: document.getElementById('patientGender').value.trim(),
+    phone: document.getElementById('patientPhone').value.trim(),
+    email: document.getElementById('patientEmail').value.trim(),
+    clinic_id: document.getElementById('clinicName').value.trim(),
+    diagnosis: document.getElementById('diagnosis').value.trim(),
+    charting: document.getElementById('charting').value.trim(),
+    prescriptions: [], // You can add a field to collect these
+    notes: document.getElementById('notes').value.trim()
+  };
 
-  if (!patient_id || !clinic_id || !diagnosis) return alert('Patient, clinic, and diagnosis are required.');
+  if (!payload.patient_id || !payload.full_name || !payload.dob || !payload.clinic_id || !payload.diagnosis) {
+    return alert('Patient ID, name, DOB, clinic, and diagnosis are required.');
+  }
 
   try {
     const res = await fetch('/api/integrations?type=clinical', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ patient_id, clinic_id, diagnosis, charting, notes, imaging: [], prescriptions: [] })
+      body: JSON.stringify(payload)
     });
 
     if (!res.ok) throw new Error('Failed to save record.');
-    alert('✅ Clinical record saved successfully!');
+    alert('✅ Enriched clinical record saved successfully!');
     closeModal('newRecordModal');
   } catch (err) {
     console.error(err);
@@ -233,7 +253,11 @@ async function loadRecordsPatientsDropdown() {
 
     (data.data || []).forEach(r => {
       if (!patientsMap.has(r.patient_id)) {
-        patientsMap.set(r.patient_id, { patient_id: r.patient_id, full_name: r.full_name || r.patient_id, age: r.age || 'N/A' });
+        patientsMap.set(r.patient_id, {
+          patient_id: r.patient_id,
+          full_name: r.full_name || r.patient_id,
+          age: r.age || calculateAge(r.dob) || 'Unknown'
+        });
       }
     });
 
@@ -260,45 +284,45 @@ async function loadRecordsPatientsDropdown() {
 let currentPatientRecords = [];
 
 async function loadPatientRecords(patientId) {
- const container = document.getElementById('patientRecordsContainer');
-container.innerHTML = '';
-if (!patientId) return;
+  const container = document.getElementById('patientRecordsContainer');
+  container.innerHTML = '';
+  if (!patientId) return;
 
-try {
-  const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
-  const data = await res.json();
-  currentPatientRecords = data.data || [];
+  try {
+    const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
+    const data = await res.json();
+    currentPatientRecords = data.data || [];
 
-  if (!currentPatientRecords.length) {
-    container.innerHTML = '<p class="text-gray-500">No records found.</p>';
-    return;
+    if (!currentPatientRecords.length) {
+      container.innerHTML = '<p class="text-gray-500">No records found.</p>';
+      return;
+    }
+
+    const first = currentPatientRecords[0];
+    const name = first.full_name || first.patient_id;
+    const age = first.age != null ? first.age : calculateAge(first.dob) || 'Unknown';
+
+    const header = document.createElement('div');
+    header.className = 'mb-4 text-lg font-semibold text-indigo-600';
+    header.textContent = `Patient: ${name} (Age: ${age})`;
+    container.appendChild(header);
+
+    currentPatientRecords.forEach((rec, idx) => {
+      const div = document.createElement('div');
+      div.className = 'border-b py-2';
+      div.innerHTML = `
+        <strong>Visit ${idx+1} — ${rec.created_at}</strong>
+        <p><strong>Diagnosis:</strong> ${rec.diagnosis || 'N/A'}</p>
+        <p><strong>Charting:</strong> ${rec.charting || 'N/A'}</p>
+        <p><strong>Prescriptions:</strong> ${Array.isArray(rec.prescriptions) ? rec.prescriptions.join(', ') : rec.prescriptions || 'N/A'}</p>
+        <p><strong>Notes:</strong> ${rec.notes || 'N/A'}</p>
+      `;
+      container.appendChild(div);
+    });
+  } catch (err) {
+    console.error('Failed to load patient records:', err);
+    container.innerHTML = '<p class="text-red-500">Error loading records.</p>';
   }
-
-  const first = currentPatientRecords[0];
-  const name = first.full_name || first.patient_id;
-  const age = first.age != null ? first.age : calculateAge(first.dob) || 'Unknown';
-
-  const header = document.createElement('div');
-  header.className = 'mb-4 text-lg font-semibold text-indigo-600';
-  header.textContent = `Patient: ${name} (Age: ${age})`;
-  container.appendChild(header);
-
-  currentPatientRecords.forEach((rec, idx) => {
-    const div = document.createElement('div');
-    div.className = 'border-b py-2';
-    div.innerHTML = `
-      <strong>Visit ${idx+1} — ${rec.created_at}</strong>
-      <p><strong>Diagnosis:</strong> ${rec.diagnosis || 'N/A'}</p>
-      <p><strong>Charting:</strong> ${rec.charting || 'N/A'}</p>
-      <p><strong>Prescriptions:</strong> ${rec.prescriptions || 'N/A'}</p>
-      <p><strong>Notes:</strong> ${rec.notes || 'N/A'}</p>
-    `;
-    container.appendChild(div);
-  });
-} catch (err) {
-  console.error('Failed to load patient records:', err);
-  container.innerHTML = '<p class="text-red-500">Error loading records.</p>';
-}
 }
 
 // ====================
@@ -306,26 +330,50 @@ try {
 // ====================
 function exportPatientRecordsPDF() {
   if (!currentPatientRecords.length) return alert('No records to export.');
- const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-let y = 10;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 10;
 
-const first = currentPatientRecords[0];
-const name = first.full_name || first.patient_id;
-const age = first.age != null ? first.age : calculateAge(first.dob) || 'Unknown';
+  const first = currentPatientRecords[0];
+  const name = first.full_name || first.patient_id;
+  const age = first.age != null ? first.age : calculateAge(first.dob) || 'Unknown';
+  const gender = first.gender || 'N/A';
+  const phone = first.phone || 'N/A';
+  const email = first.email || 'N/A';
+  const clinic = first.clinic_id || 'N/A';
 
-doc.text(`Patient: ${name} (Age: ${age})`, 10, y); y += 10;
+  doc.setFontSize(12);
+  doc.text(`Patient: ${name}`, 10, y); y += 6;
+  doc.text(`Age: ${age}    Gender: ${gender}`, 10, y); y += 6;
+  doc.text(`Phone: ${phone}    Email: ${email}`, 10, y); y += 6;
+  doc.text(`Clinic: ${clinic}`, 10, y); y += 10;
 
-currentPatientRecords.forEach((r, idx) => {
-  doc.text(`Visit ${idx+1} - ${r.created_at}`, 10, y); y+=6;
-  doc.text(`Diagnosis: ${r.diagnosis || 'N/A'}`, 10, y); y+=6;
-  doc.text(`Charting: ${r.charting || 'N/A'}`, 10, y); y+=6;
-  doc.text(`Prescriptions: ${r.prescriptions || 'N/A'}`, 10, y); y+=6;
-  doc.text(`Notes: ${r.notes || 'N/A'}`, 10, y); y+=10;
-  if (y > 270) { doc.addPage(); y = 10; }
-});
+  currentPatientRecords.forEach((r, idx) => {
+    doc.setFontSize(11);
+    doc.text(`Visit ${idx + 1} — ${r.created_at}`, 10, y); y += 6;
+    doc.text(`Diagnosis: ${r.diagnosis || 'N/A'}`, 10, y); y += 6;
+    doc.text(`Charting: ${r.charting || 'N/A'}`, 10, y); y += 6;
 
-doc.save('patient_records.pdf');
+    const prescriptions = Array.isArray(r.prescriptions)
+      ? r.prescriptions.join(', ')
+      : r.prescriptions || 'N/A';
+    doc.text(`Prescriptions: ${prescriptions}`, 10, y); y += 6;
+
+    const notes = r.notes || 'N/A';
+    const wrappedNotes = doc.splitTextToSize(`Notes: ${notes}`, 180);
+    wrappedNotes.forEach(line => {
+      doc.text(line, 10, y);
+      y += 6;
+    });
+
+    y += 6;
+    if (y > 270) {
+      doc.addPage();
+      y = 10;
+    }
+  });
+
+  doc.save(`${name.replace(/\s+/g, '_')}_records.pdf`);
 }
 </script>
 
