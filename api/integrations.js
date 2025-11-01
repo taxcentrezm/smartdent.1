@@ -10,8 +10,10 @@ export default async function handler(req, res) {
     // ================================
     if (isClinical) {
       switch (req.method) {
+        // ---------- FETCH CLINICAL RECORDS ----------
         case "GET": {
           const { patient_id, clinic_id } = req.query;
+
           if (!patient_id) {
             console.log("⚠️ Missing patient_id in query");
             return res.status(400).json({ error: "patient_id is required." });
@@ -30,7 +32,7 @@ export default async function handler(req, res) {
           console.log("🔍 Executing query:", query, "with params:", params);
 
           const result = await client.execute(query, params);
-          console.log(`✅ Found ${result.rows.length} records for patient_id: ${cleanId}`);
+          console.log(`💡 Fetched ${result.rows.length} clinical records for patient_id: ${cleanId}`);
 
           return res.status(200).json({
             message: `${result.rows.length} records fetched`,
@@ -38,6 +40,7 @@ export default async function handler(req, res) {
           });
         }
 
+        // ---------- CREATE NEW CLINICAL RECORD ----------
         case "POST": {
           const { patient_id, clinic_id, diagnosis, charting, imaging, prescriptions, notes } = req.body;
 
@@ -73,7 +76,7 @@ export default async function handler(req, res) {
     }
 
     // ================================
-    // DEFAULT: INTEGRATIONS LOGIC
+    // DEFAULT INTEGRATIONS LOGIC
     // ================================
     switch (req.method) {
       case "GET": {
