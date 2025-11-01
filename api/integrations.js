@@ -1,12 +1,24 @@
 import { client } from "../db.js";
 
+function calculateAge(dob) {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 export default async function handler(req, res) {
   try {
     const url = req.url || "";
     const isClinical = url.includes("clinical");
 
     // =======================================
-    // CLINICAL RECORDS LOGIC
+    // CLINICAL RECORDS ENRICHED LOGIC
     // =======================================
     if (isClinical) {
       switch (req.method) {
@@ -14,56 +26,20 @@ export default async function handler(req, res) {
         // GET → fetch records
         // -----------------------
         case "GET": {
-          const { patient_id, clinic_id, distinct } = req.query;
-
-          // 1️⃣ Distinct patient list mode
-          if (distinct === "patients") {
-            const result = await client.execute(`
-              SELECT DISTINCT cr.patient_id, p.full_name, p.dob
-              FROM clinical_records cr
-              LEFT JOIN patients p ON TRIM(LOWER(cr.patient_id)) = TRIM(LOWER(p.patient_id))
-              ORDER BY cr.patient_id;
-            `);
-
-            const enriched = result.rows.map(row => {
-              let age = null;
-              if (row.dob) {
-                const birthDate = new Date(row.dob);
-                const today = new Date();
-                age = today.getFullYear() - birthDate.getFullYear();
-                const m = today.getMonth() - birthDate.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                  age--;
-                }
-              }
-
-              return {
-                patient_id: row.patient_id,
-                full_name: row.full_name || row.patient_id,
-                age,
-              };
-            });
-
-            console.log(`📋 Distinct patient list returned: ${enriched.length}`);
-            return res.status(200).json({ data: enriched });
-          }
-
-          // 2️⃣ Full record fetch mode
+          const { patient_id, clinic_id } = req.query;
           let query = `
-            SELECT cr.*, p.full_name, p.dob
-            FROM clinical_records cr
-            LEFT JOIN patients p ON TRIM(LOWER(cr.patient_id)) = TRIM(LOWER(p.patient_id))
+            SELECT * FROM clinical_records_enriched
           `;
           const params = [];
           const conditions = [];
 
           if (patient_id) {
-            conditions.push("TRIM(LOWER(cr.patient_id)) = TRIM(LOWER(?))");
-            params.push(patient_id.trim().toLowerCase());
+            conditions.push("TRIM(LOWER(patient_id)) = TRIM(LOWER(?))");
+            params.push(patient_id);
           }
 
           if (clinic_id) {
-            conditions.push("cr.clinic_id = ?");
+            conditions.push("clinic_id = ?");
             params.push(clinic_id.trim());
           }
 
@@ -71,79 +47,79 @@ export default async function handler(req, res) {
             query += " WHERE " + conditions.join(" AND ");
           }
 
-          query += " ORDER BY datetime(cr.created_at) DESC;";
+          query += " ORDER BY datetime(created_at) DESC;";
           console.log("🔍 Executing query:", query.trim(), "with params:", params);
 
           const result = await client.execute(query.trim(), params);
+          console.log(`✅ ${result.rows.length} enriched records fetched.`);
 
-          const enriched = result.rows.map(row => {
-            let age = null;
-            if (row.dob) {
-              const birthDate = new Date(row.dob);
-              const today = new Date();
-              age = today.getFullYear() - birthDate.getFullYear();
-              const m = today.getMonth() - birthDate.getMonth();
-              if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-                age--;
-              }
-            }
-
-            return {
-              ...row,
-              full_name: row.full_name || row.patient_id,
-              age,
-            };
-          });
-
-          console.log(`✅ ${enriched.length} clinical records fetched.`);
           return res.status(200).json({
-            message: `${enriched.length} record(s) fetched`,
-            data: enriched,
+            message: `${result.rows.length} record(s) fetched`,
+            data: result.rows,
           });
         }
 
         // -----------------------
-        // POST → create record
+        // POST → create enriched record
         // -----------------------
         case "POST": {
           const {
             patient_id,
+            full_name,
+            dob,
+            gender,
+            phone,
+            email,
             clinic_id,
             diagnosis,
             charting,
-            imaging,
             prescriptions,
             notes,
+            created_at,
           } = req.body;
 
-          if (!patient_id || !clinic_id || !diagnosis) {
-            console.warn("⚠️ Missing required fields:", { patient_id, clinic_id, diagnosis });
+          if (!patient_id || !full_name || !dob || !clinic_id || !diagnosis) {
+            console.warn("⚠️ Missing required fields:", {
+              patient_id, full_name, dob, clinic_id, diagnosis
+            });
             return res.status(400).json({
-              error: "patient_id, clinic_id, and diagnosis are required.",
+              error: "patient_id, full_name, dob, clinic_id, and diagnosis are required.",
             });
           }
 
+          const age = calculateAge(dob);
+          const record_id = `r-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
           const payload = [
+            record_id,
             patient_id.trim(),
+            full_name.trim(),
+            dob,
+            age,
+            gender || "",
+            phone || "",
+            email || "",
             clinic_id.trim(),
             diagnosis.trim(),
             charting || "",
-            JSON.stringify(imaging || []),
             JSON.stringify(prescriptions || []),
             notes || "",
+            created_at || new Date().toISOString(),
           ];
 
           const query = `
-            INSERT INTO clinical_records 
-              (patient_id, clinic_id, diagnosis, charting, imaging, prescriptions, notes, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);
+            INSERT INTO clinical_records_enriched (
+              record_id, patient_id, full_name, dob, age, gender, phone, email, clinic_id,
+              diagnosis, charting, prescriptions, notes, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
           `;
 
           await client.execute(query, payload);
-          console.log(`✅ Clinical record inserted for patient_id: ${patient_id}`);
+          console.log(`✅ Enriched record created for patient_id: ${patient_id}`);
 
           return res.status(201).json({
-            message: "Clinical record saved successfully.",
+            message: "Enriched clinical record saved successfully.",
+            record_id,
           });
         }
 
@@ -188,7 +164,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: `Method ${req.method} not allowed for integrations` });
     }
   } catch (err) {
-    console.error("❌ API Error (integrations):", err.message);
+    console.error("❌ API Error:", err.message);
     return res.status(500).json({ error: err.message });
   }
 }
