@@ -1,5 +1,5 @@
 import { client } from "../db.js";
-import { jsPDF } from "jspdf"; // Ensure jspdf is installed and available in your server environment
+
 
 export default async function handler(req, res) {
   try {
