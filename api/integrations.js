@@ -14,23 +14,44 @@ export default async function handler(req, res) {
         // GET → fetch records
         // -----------------------
         case "GET": {
-          const { patient_id, clinic_id } = req.query;
+          const { patient_id, clinic_id, distinct } = req.query;
 
-          let query = "SELECT * FROM clinical_records";
+          // 1️⃣ Distinct patient list mode
+          if (distinct === "patients") {
+            const result = await client.execute(`
+              SELECT DISTINCT cr.patient_id, p.full_name, p.age
+              FROM clinical_records cr
+              LEFT JOIN patients p ON cr.patient_id = p.patient_id
+              ORDER BY cr.patient_id;
+            `);
+            console.log(`📋 Distinct patient list returned: ${result.rows.length}`);
+            return res.status(200).json({ data: result.rows });
+          }
+
+          // 2️⃣ Full record fetch mode
+          let query = `
+            SELECT cr.*, p.full_name, p.age
+            FROM clinical_records cr
+            LEFT JOIN patients p ON cr.patient_id = p.patient_id
+          `;
           const params = [];
+          const conditions = [];
 
           if (patient_id) {
-            query += " WHERE LOWER(patient_id) = ?";
+            conditions.push("LOWER(cr.patient_id) = ?");
             params.push(patient_id.trim().toLowerCase());
           }
 
           if (clinic_id) {
-            query += patient_id ? " AND" : " WHERE";
-            query += " clinic_id = ?";
+            conditions.push("cr.clinic_id = ?");
             params.push(clinic_id.trim());
           }
 
-          query += " ORDER BY datetime(created_at) DESC;";
+          if (conditions.length) {
+            query += " WHERE " + conditions.join(" AND ");
+          }
+
+          query += " ORDER BY datetime(cr.created_at) DESC;";
           console.log("🔍 Executing query:", query, "with params:", params);
 
           const result = await client.execute(query, params);
@@ -57,6 +78,7 @@ export default async function handler(req, res) {
           } = req.body;
 
           if (!patient_id || !clinic_id || !diagnosis) {
+            console.warn("⚠️ Missing required fields:", { patient_id, clinic_id, diagnosis });
             return res.status(400).json({
               error: "patient_id, clinic_id, and diagnosis are required.",
             });
@@ -98,21 +120,16 @@ export default async function handler(req, res) {
     // INTEGRATIONS LOGIC (Default)
     // =======================================
     switch (req.method) {
-      // -----------------------
-      // GET → fetch integrations
-      // -----------------------
       case "GET": {
         const result = await client.execute("SELECT * FROM integrations;");
         return res.status(200).json({ data: result.rows });
       }
 
-      // -----------------------
-      // POST → create integration
-      // -----------------------
       case "POST": {
         const { name, type, api_key } = req.body;
 
         if (!name || !type) {
+          console.warn("⚠️ Missing integration fields:", { name, type });
           return res.status(400).json({
             error: "name and type are required.",
           });
