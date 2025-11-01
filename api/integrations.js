@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     const isClinical = url.includes("clinical");
 
     // ================================
-    // CLINICAL LOGIC
+    // CLINICAL RECORDS LOGIC
     // ================================
     if (isClinical) {
       switch (req.method) {
@@ -17,51 +17,54 @@ export default async function handler(req, res) {
           }
 
           const result = await client.execute(
-            "SELECT * FROM clinical WHERE patient_id = ? ORDER BY created_at DESC;",
+            "SELECT * FROM clinical_records WHERE patient_id = ? ORDER BY created_at DESC;",
             [patient_id]
           );
-          return res.status(200).json(result.rows);
+
+          return res.status(200).json({
+            message: `${result.rows.length} records fetched`,
+            data: result.rows
+          });
         }
 
         case "POST": {
-          const { patient_id, charting_notes, imaging, prescriptions } = req.body;
+          const { patient_id, charting, imaging, prescriptions, notes } = req.body;
 
           if (!patient_id) {
             return res.status(400).json({ error: "patient_id is required." });
           }
 
           await client.execute(
-            `INSERT INTO clinical (patient_id, charting_notes, imaging, prescriptions, created_at)
-             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP);`,
+            `INSERT INTO clinical_records 
+              (patient_id, charting, imaging, prescriptions, notes, created_at)
+             VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP);`,
             [
               patient_id,
-              charting_notes || "",
+              charting || "",
               JSON.stringify(imaging || []),
               JSON.stringify(prescriptions || []),
+              notes || ""
             ]
           );
 
-          return res
-            .status(201)
-            .json({ message: "Clinical record saved successfully." });
+          return res.status(201).json({ message: "Clinical record saved successfully." });
         }
 
         default:
           res.setHeader("Allow", ["GET", "POST"]);
           return res
             .status(405)
-            .json({ error: `Method ${req.method} not allowed for clinical` });
+            .json({ error: `Method ${req.method} not allowed for clinical records` });
       }
     }
 
     // ================================
-    // INTEGRATIONS LOGIC (DEFAULT)
+    // DEFAULT: INTEGRATIONS LOGIC
     // ================================
     switch (req.method) {
       case "GET": {
         const result = await client.execute("SELECT * FROM integrations;");
-        res.status(200).json(result.rows);
-        break;
+        return res.status(200).json(result.rows);
       }
 
       case "POST": {
@@ -75,18 +78,17 @@ export default async function handler(req, res) {
           [name, type, api_key || null]
         );
 
-        res.status(201).json({ message: "Integration created" });
-        break;
+        return res.status(201).json({ message: "Integration created" });
       }
 
       default:
         res.setHeader("Allow", ["GET", "POST"]);
-        res
+        return res
           .status(405)
           .json({ error: `Method ${req.method} not allowed for integrations` });
     }
   } catch (err) {
     console.error("❌ API Error (integrations):", err.message);
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message });
   }
 }
