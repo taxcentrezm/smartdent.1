@@ -86,171 +86,199 @@
   <footer class="mt-8 text-sm text-gray-500 text-center">
     SmartDent ERP • Clinical Records & Tools
   </footer>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
   feather.replace();
 
-  const prescriptions = [];
-  let selectedPatient = null;
+  const patientsDropdown = document.createElement('select');
+  patientsDropdown.id = 'patientSelect';
+  patientsDropdown.className = 'border rounded-md p-2 w-full mb-4';
+  
+  const clinicalContainer = document.getElementById('charting'); // main container for charting notes
+  let currentPatientId = null;
+  let clinicalData = null;
 
-  /* ==========================
-     Load patients
-  ========================== */
+  const prescriptions = [];
+
+  // ================================
+  // Load patients from DB
+  // ================================
   async function loadPatients() {
     try {
-      const res = await fetch("/api/patients");
+      const res = await fetch('/api/patients');
       const data = await res.json();
-      const select = document.getElementById("patientSelect") || document.createElement("select");
-      select.id = "patientSelect";
-      select.className = "border rounded-md px-3 py-2 w-full mb-4";
-      select.innerHTML = `<option value="">-- Select Patient --</option>`;
+      if (!data.data) return;
 
-      (data.data || []).forEach(p => {
-        select.innerHTML += `<option value="${p.patient_id}">${p.full_name}</option>`;
+      data.data.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.patient_id;
+        opt.textContent = `${p.full_name} (${p.phone})`;
+        patientsDropdown.appendChild(opt);
       });
 
-      select.onchange = e => {
-        selectedPatient = e.target.value;
-        if (selectedPatient) loadClinicalRecords(selectedPatient);
-        else resetClinical();
-      };
+      patientsDropdown.addEventListener('change', () => {
+        currentPatientId = patientsDropdown.value;
+        loadClinicalRecords(currentPatientId);
+      });
 
-      const card = document.querySelector(".card");
-      if (!document.getElementById("patientSelect")) {
-        card.insertBefore(select, card.firstChild);
-      }
+      document.querySelector('main').prepend(patientsDropdown);
+      currentPatientId = patientsDropdown.value;
+      loadClinicalRecords(currentPatientId);
+
     } catch (err) {
-      console.error("❌ Failed to load patients:", err);
+      console.error('❌ Failed to load patients:', err);
     }
   }
 
-  /* ==========================
-     Reset UI
-  ========================== */
-  function resetClinical() {
-    document.getElementById("chartingNotes").value = "";
+  // ================================
+  // Load clinical records for a patient
+  // ================================
+  async function loadClinicalRecords(patientId) {
+    if (!patientId) return;
+
+    try {
+      const res = await fetch(`/api/integrations/clinical?patient_id=${patientId}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      clinicalData = data.data?.[0] || null;
+
+      renderClinicalRecords();
+
+    } catch (err) {
+      console.error('❌ Failed to load clinical records:', err);
+      clinicalContainer.querySelector('textarea').value = '';
+      prescriptions.length = 0;
+      renderPrescriptions();
+    }
+  }
+
+  // ================================
+  // Render charting notes and prescriptions
+  // ================================
+  function renderClinicalRecords() {
+    const chartingTextarea = clinicalContainer.querySelector('textarea');
+    chartingTextarea.value = clinicalData?.charting || '';
+    
     prescriptions.length = 0;
+    if (clinicalData?.prescriptions) {
+      try {
+        JSON.parse(clinicalData.prescriptions).forEach(p => prescriptions.push(p));
+      } catch {}
+    }
     renderPrescriptions();
   }
 
-  /* ==========================
-     Fetch clinical records
-  ========================== */
-  async function loadClinicalRecords(patient_id) {
-    try {
-      const res = await fetch(`/api/integrations?type=clinical&patient_id=${patient_id}`);
-      if (!res.ok) {
-        console.warn("⚠️ No clinical data found for patient:", patient_id);
-        resetClinical();
-        return;
-      }
-
-      const records = await res.json();
-      const latest = records[0] || {};
-      document.getElementById("chartingNotes").value = latest.charting_notes || "";
-      const meds = JSON.parse(latest.prescriptions || "[]");
-      prescriptions.length = 0;
-      prescriptions.push(...meds);
-      renderPrescriptions();
-    } catch (err) {
-      console.error("❌ Failed to load clinical records:", err);
-      resetClinical();
-    }
-  }
-
-  /* ==========================
-     Save clinical
-  ========================== */
-  async function saveClinical() {
-    if (!selectedPatient) return alert("⚠️ Please select a patient first.");
-    const notes = document.getElementById("chartingNotes").value.trim();
-
-    const payload = {
-      type: "clinical",
-      patient_id: selectedPatient,
-      charting_notes: notes,
-      prescriptions: prescriptions
-    };
-
-    try {
-      const res = await fetch("/api/integrations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Unknown error");
-      alert("✅ Clinical record saved successfully!");
-    } catch (err) {
-      console.error("❌ Failed to save clinical:", err);
-      alert("❌ Error: " + err.message);
-    }
-  }
-
-  /* ==========================
-     Prescriptions
-  ========================== */
-  function renderPrescriptions() {
-    const ul = document.getElementById("prescriptionList");
-    ul.innerHTML = "";
+  function renderPrescriptions(){
+    const ul = document.getElementById('prescriptionList');
+    ul.innerHTML = '';
     prescriptions.forEach(p => {
-      const li = document.createElement("li");
-      li.className = "flex justify-between items-center";
-      li.innerHTML = `<div>${p.name} — <span class="text-gray-500">${p.dosage || "—"}</span></div>
-                      <button onclick="removePrescription('${p.name}')" class="text-rose-600"><i data-feather='x'></i></button>`;
+      const li = document.createElement('li');
+      li.className = 'flex justify-between items-center';
+      li.innerHTML = `<div>${p.name} — <span class="text-gray-500">${p.dosage}</span></div>
+                      <button onclick="removePrescription('${p.name}')" class="text-rose-600"><i data-feather="x"></i></button>`;
       ul.appendChild(li);
     });
     feather.replace();
   }
 
-  function addPrescription() {
-    const med = document.getElementById("medInput").value.trim();
-    if (!med) return;
-    prescriptions.push({ name: med, dosage: "—" });
-    document.getElementById("medInput").value = "";
+  function addPrescription(){
+    const med = document.getElementById('medInput').value.trim();
+    if(!med) return;
+    prescriptions.push({ name: med, dosage: '—' });
+    document.getElementById('medInput').value = '';
     renderPrescriptions();
   }
 
-  function removePrescription(name) {
+  function removePrescription(name){
     const idx = prescriptions.findIndex(p => p.name === name);
-    if (idx !== -1) prescriptions.splice(idx, 1);
+    if(idx !== -1) prescriptions.splice(idx, 1);
     renderPrescriptions();
   }
 
-  /* ==========================
-     Tabs
-  ========================== */
-  function showTab(id) {
-    ["charting", "imaging", "prescriptions"].forEach(tab => {
-      document.getElementById(tab).style.display = tab === id ? "block" : "none";
-    });
-    document.querySelectorAll(".tab-active").forEach(btn => btn.classList.remove("tab-active"));
-    event.target.classList.add("tab-active");
+  // ================================
+  // Save clinical record
+  // ================================
+  async function saveClinicalRecord() {
+    if (!currentPatientId) return alert('Select a patient first.');
+    
+    const charting = clinicalContainer.querySelector('textarea').value;
+
+    try {
+      const res = await fetch('/api/integrations/clinical', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: currentPatientId,
+          charting,
+          prescriptions,
+          imaging: [], // add imaging support later
+          notes: ''
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to save clinical record.');
+      }
+
+      alert('✅ Clinical record saved successfully!');
+      loadClinicalRecords(currentPatientId);
+
+    } catch (err) {
+      console.error(err);
+      alert('❌ Failed to save clinical record.');
+    }
   }
 
-  /* ==========================
-     Init
-  ========================== */
-  document.addEventListener("DOMContentLoaded", () => {
-    feather.replace();
+  // ================================
+  // Export patient record to PDF
+  // ================================
+  function exportPDF() {
+    if (!clinicalData) return alert('No clinical record to export.');
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
 
-    // Ensure single charting notes exists
-    if (!document.getElementById("chartingNotes")) {
-      const textarea = document.createElement("textarea");
-      textarea.id = "chartingNotes";
-      textarea.className = "w-full border rounded-md p-2";
-      textarea.rows = 4;
-      textarea.placeholder = "Charting notes…";
-      document.querySelector("#charting").appendChild(textarea);
-
-      const saveBtn = document.querySelector("#charting button");
-      saveBtn.onclick = saveClinical;
+    doc.setFontSize(14);
+    doc.text(`Patient Clinical Record`, 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Patient: ${patientsDropdown.selectedOptions[0].text}`, 20, 30);
+    doc.text(`Charting Notes:`, 20, 40);
+    doc.text(clinicalContainer.querySelector('textarea').value || 'N/A', 20, 50, { maxWidth: 170 });
+    
+    if (prescriptions.length) {
+      doc.text('Prescriptions:', 20, 100);
+      prescriptions.forEach((p, idx) => {
+        doc.text(`${idx+1}. ${p.name} — ${p.dosage}`, 25, 110 + idx * 10);
+      });
     }
 
+    doc.save(`Clinical_Record_${currentPatientId}.pdf`);
+  }
+
+  // ================================
+  // Init
+  // ================================
+  document.addEventListener('DOMContentLoaded', () => {
     loadPatients();
     renderPrescriptions();
+
+    // Add save/export buttons
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Save Clinical Record';
+    saveBtn.className = 'px-4 py-2 bg-indigo-600 text-white rounded-md';
+    saveBtn.onclick = saveClinicalRecord;
+
+    const exportBtn = document.createElement('button');
+    exportBtn.textContent = 'Export PDF';
+    exportBtn.className = 'px-4 py-2 bg-green-600 text-white rounded-md ml-2';
+    exportBtn.onclick = exportPDF;
+
+    clinicalContainer.appendChild(saveBtn);
+    clinicalContainer.appendChild(exportBtn);
   });
 </script>
+
 
 
 </body>
