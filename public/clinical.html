@@ -30,7 +30,7 @@
         </button>
         <div class="relative">
           <button class="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-full shadow-sm">
-            <img src="assets/images/avatar.jpg" class="w-8 h-8 rounded-full object-cover">
+            <img src="assets/images/avatar(1|).jpg" class="w-8 h-8 rounded-full object-cover">
             <span class="hidden md:inline-block text-sm">Dr._____</span>
             <i data-feather="chevron-down"></i>
           </button>
@@ -39,9 +39,17 @@
     </div>
   </header>
 
-  <!-- Main -->
+  
+
   <main class="container mx-auto px-4 py-6">
-    <div class="card">
+    <div class="card space-y-4">
+
+      <!-- Patient Selection -->
+      <div>
+        <label class="block text-sm font-medium mb-2">Select Patient</label>
+        <select id="patientSelect" class="w-full border rounded-md p-2"></select>
+      </div>
+
       <!-- Tabs -->
       <div class="flex gap-6 border-b mb-4 text-sm">
         <button class="tab-active" onclick="showTab('charting')">Charting</button>
@@ -52,32 +60,15 @@
       <!-- Charting -->
       <div id="charting" class="space-y-4">
         <h2 class="text-lg font-semibold">Dental Charting</h2>
-        <div class="bg-gray-100 rounded-lg p-4">
-          <svg viewBox="0 0 200 100" class="w-full h-40">
-            <circle cx="20" cy="50" r="8" fill="#60A5FA" />
-            <circle cx="50" cy="50" r="8" fill="#34D399" />
-            <circle cx="80" cy="50" r="8" fill="#FBBF24" />
-            <circle cx="110" cy="50" r="8" fill="#F87171" />
-            <circle cx="140" cy="50" r="8" fill="#A78BFA" />
-            <text x="20" y="75" font-size="10" text-anchor="middle">1</text>
-            <text x="50" y="75" font-size="10" text-anchor="middle">2</text>
-            <text x="80" y="75" font-size="10" text-anchor="middle">3</text>
-            <text x="110" y="75" font-size="10" text-anchor="middle">4</text>
-            <text x="140" y="75" font-size="10" text-anchor="middle">5</text>
-          </svg>
-        </div>
-        <textarea class="w-full border rounded-md p-2" rows="4" placeholder="Charting notes…"></textarea>
-        <button class="px-4 py-2 bg-indigo-600 text-white rounded-md">Save Chart</button>
+        <textarea id="chartNotes" class="w-full border rounded-md p-2" rows="4" placeholder="Charting notes…"></textarea>
+        <button onclick="saveClinicalRecord()" class="px-4 py-2 bg-indigo-600 text-white rounded-md">Save Chart</button>
       </div>
 
       <!-- Imaging -->
       <div id="imaging" class="space-y-4 hidden">
         <h2 class="text-lg font-semibold">Imaging</h2>
-        <input type="file" class="border rounded-md p-2" />
-        <div class="grid grid-cols-2 gap-4 mt-4">
-          <div class="bg-gray-100 rounded-lg h-32 flex items-center justify-center text-sm text-gray-500">X-ray 1</div>
-          <div class="bg-gray-100 rounded-lg h-32 flex items-center justify-center text-sm text-gray-500">X-ray 2</div>
-        </div>
+        <input id="imagingInput" type="file" multiple class="border rounded-md p-2" />
+        <div id="imagingPreview" class="grid grid-cols-2 gap-4 mt-4"></div>
       </div>
 
       <!-- Prescriptions -->
@@ -95,52 +86,162 @@
   <footer class="mt-8 text-sm text-gray-500 text-center">
     SmartDent ERP • Clinical Records & Tools
   </footer>
-  <script src="core.js"></script>
-  <!-- Scripts -->
-  <script>
+
+<script>
+  feather.replace();
+
+  const prescriptions = [];
+  let selectedPatient = null;
+
+  /* ==========================
+     Load patients for dropdown
+  ========================== */
+  async function loadPatients() {
+    try {
+      const res = await fetch("/api/patients");
+      const data = await res.json();
+      const select = document.createElement("select");
+      select.id = "patientSelect";
+      select.className = "border rounded-md px-3 py-2 w-full mb-4";
+
+      select.innerHTML = `<option value="">-- Select Patient --</option>`;
+      data.data.forEach(p => {
+        select.innerHTML += `<option value="${p.patient_id}">${p.full_name} (${p.phone})</option>`;
+      });
+
+      select.addEventListener("change", e => {
+        selectedPatient = e.target.value;
+        if (selectedPatient) {
+          loadClinicalRecords(selectedPatient);
+        } else {
+          document.getElementById("chartingNotes").value = "";
+          document.getElementById("prescriptionList").innerHTML = "";
+        }
+      });
+
+      const container = document.querySelector(".card");
+      container.insertBefore(select, container.firstChild);
+    } catch (err) {
+      console.error("❌ Failed to load patients:", err);
+    }
+  }
+
+  /* ==========================
+     Fetch clinical records
+  ========================== */
+  async function loadClinicalRecords(patient_id) {
+    try {
+      const res = await fetch(`/api/integrations/clinical?patient_id=${patient_id}`);
+      const records = await res.json();
+
+      if (records.length > 0) {
+        const latest = records[0];
+        document.getElementById("chartingNotes").value = latest.charting_notes || "";
+        const meds = JSON.parse(latest.prescriptions || "[]");
+        prescriptions.length = 0;
+        prescriptions.push(...meds);
+        renderPrescriptions();
+      } else {
+        document.getElementById("chartingNotes").value = "";
+        prescriptions.length = 0;
+        renderPrescriptions();
+      }
+    } catch (err) {
+      console.error("❌ Failed to load clinical records:", err);
+    }
+  }
+
+  /* ==========================
+     Save clinical data
+  ========================== */
+  async function saveClinical() {
+    if (!selectedPatient) {
+      alert("⚠️ Please select a patient first.");
+      return;
+    }
+
+    const notes = document.getElementById("chartingNotes").value.trim();
+
+    const payload = {
+      patient_id: selectedPatient,
+      charting_notes: notes,
+      imaging: [],
+      prescriptions: prescriptions
+    };
+
+    try {
+      const res = await fetch("/api/integrations/clinical", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Unknown error");
+
+      alert("✅ Clinical record saved successfully!");
+      loadClinicalRecords(selectedPatient);
+    } catch (err) {
+      console.error("❌ Failed to save clinical record:", err);
+      alert("❌ Error: " + err.message);
+    }
+  }
+
+  /* ==========================
+     Prescriptions Logic
+  ========================== */
+  function renderPrescriptions() {
+    const ul = document.getElementById("prescriptionList");
+    ul.innerHTML = "";
+    prescriptions.forEach(p => {
+      const li = document.createElement("li");
+      li.className = "flex justify-between items-center";
+      li.innerHTML = `<div>${p.name} — <span class="text-gray-500">${p.dosage || "—"}</span></div>
+                      <button onclick="removePrescription('${p.name}')" class="text-rose-600"><i data-feather='x'></i></button>`;
+      ul.appendChild(li);
+    });
     feather.replace();
+  }
 
-    function showTab(id){
-      ['charting','imaging','prescriptions'].forEach(tab => {
-        document.getElementById(tab).style.display = tab === id ? 'block' : 'none';
-      });
-      document.querySelectorAll('button').forEach(btn => btn.classList.remove('tab-active'));
-      event.target.classList.add('tab-active');
-    }
-
-    const prescriptions = [
-      { name: 'Amoxicillin 500mg', dosage: '3x daily for 5 days' },
-      { name: 'Ibuprofen 400mg', dosage: '2x daily after meals' }
-    ];
-
-    function renderPrescriptions(){
-      const ul = document.getElementById('prescriptionList');
-      ul.innerHTML = '';
-      prescriptions.forEach(p => {
-        const li = document.createElement('li');
-        li.className = 'flex justify-between items-center';
-        li.innerHTML = `<div>${p.name} — <span class="text-gray-500">${p.dosage}</span></div>
-                        <button onclick="removePrescription('${p.name}')" class="text-rose-600"><i data-feather="x"></i></button>`;
-        ul.appendChild(li);
-      });
-      feather.replace();
-    }
-
-    function addPrescription(){
-      const med = document.getElementById('medInput').value.trim();
-      if(!med) return;
-      prescriptions.push({ name: med, dosage: '—' });
-      document.getElementById('medInput').value = '';
-      renderPrescriptions();
-    }
-
-    function removePrescription(name){
-      const idx = prescriptions.findIndex(p => p.name === name);
-      if(idx !== -1) prescriptions.splice(idx, 1);
-      renderPrescriptions();
-    }
-
+  function addPrescription() {
+    const med = document.getElementById("medInput").value.trim();
+    if (!med) return;
+    prescriptions.push({ name: med, dosage: "—" });
+    document.getElementById("medInput").value = "";
     renderPrescriptions();
-  </script>
+  }
+
+  function removePrescription(name) {
+    const idx = prescriptions.findIndex(p => p.name === name);
+    if (idx !== -1) prescriptions.splice(idx, 1);
+    renderPrescriptions();
+  }
+
+  /* ==========================
+     Tabs
+  ========================== */
+  function showTab(id) {
+    ['charting', 'imaging', 'prescriptions'].forEach(tab => {
+      document.getElementById(tab).style.display = tab === id ? 'block' : 'none';
+    });
+    document.querySelectorAll('.tab-active').forEach(btn => btn.classList.remove('tab-active'));
+    event.target.classList.add('tab-active');
+  }
+
+  /* ==========================
+     Init
+  ========================== */
+  document.addEventListener("DOMContentLoaded", () => {
+    feather.replace();
+    loadPatients();
+    renderPrescriptions();
+    document.querySelector("#charting button").setAttribute("onclick", "saveClinical()");
+    document.getElementById("charting").insertAdjacentHTML(
+      "beforeend",
+      `<textarea id="chartingNotes" class="w-full border rounded-md p-2" rows="4" placeholder="Charting notes…"></textarea>`
+    );
+  });
+</script>
+
 </body>
 </html>
