@@ -93,7 +93,7 @@
   const clinicalContainer = document.getElementById('charting'); // main container for charting notes
   let currentPatientId = null;
   let clinicalData = null;
-
+let clinicalRecords = [];
   const prescriptions = [];
 
   // ================================
@@ -129,20 +129,29 @@
   // ================================
   // Load clinical records for a patient
   // ================================
-  async function loadClinicalRecords(patientId) {
+async function loadClinicalRecords(patientId) {
   if (!patientId) return;
 
+  currentPatientId = patientId;
+
   try {
-    const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
+    const res = await fetch(`/api/integrations/clinical?patient_id=${patientId}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    clinicalData = data.data?.[0] || null;
-    renderClinicalRecords();
+
+    // Save fetched records locally
+    clinicalRecords = data.data || [];
+
+    console.log(`💡 Fetched ${clinicalRecords.length} clinical records for patient ${patientId}`);
+
+    if (clinicalRecords.length === 0) {
+      clinicalContainer.innerHTML = '<p class="text-gray-500">No clinical records found.</p>';
+    } else {
+      renderClinicalRecords();
+    }
   } catch (err) {
     console.error('❌ Failed to load clinical records:', err);
-    clinicalContainer.querySelector('textarea').value = '';
-    prescriptions.length = 0;
-    renderPrescriptions();
+    clinicalContainer.innerHTML = '<p class="text-red-500">Failed to load clinical records.</p>';
   }
 }
 
@@ -232,6 +241,28 @@ async function saveClinicalRecord() {
   }
 }
 
+  function exportClinicalPDF() {
+  if (!clinicalRecords.length) {
+    alert('No clinical record to export.');
+    console.log('💡 No clinical records fetched for export.');
+    return;
+  }
+
+  const doc = new jsPDF();
+  doc.setFontSize(14);
+  doc.text(`Clinical Records for Patient ${currentPatientId}`, 10, 10);
+
+  clinicalRecords.forEach((rec, i) => {
+    const y = 20 + i * 20;
+    doc.setFontSize(12);
+    doc.text(`Record ${i + 1} (Created: ${rec.created_at})`, 10, y);
+    doc.text(`Charting: ${rec.charting}`, 10, y + 6);
+    doc.text(`Prescriptions: ${rec.prescriptions || '[]'}`, 10, y + 12);
+  });
+
+  doc.save(`clinical_records_${currentPatientId}.pdf`);
+  console.log(`💡 Exported ${clinicalRecords.length} records to PDF.`);
+}
 
   // ================================
   // Export patient record to PDF
