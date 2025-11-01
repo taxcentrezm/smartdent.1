@@ -26,16 +26,22 @@ export default async function handler(req, res) {
         // GET → fetch records
         // -----------------------
         case "GET": {
-          const { patient_id, clinic_id } = req.query;
-          let query = `
-            SELECT * FROM clinical_records_enriched
-          `;
+          const { patient_id, clinic_id, record_id, name_only } = req.query;
+          let query = `SELECT * FROM clinical_records_enriched`;
           const params = [];
           const conditions = [];
 
+          if (record_id && name_only === "true") {
+            query = `SELECT full_name FROM clinical_records_enriched WHERE TRIM(LOWER(record_id)) = TRIM(LOWER(?)) LIMIT 1;`;
+            params.push(record_id.trim().toLowerCase());
+            const result = await client.execute(query, params);
+            const name = result.rows[0]?.full_name || null;
+            return res.status(200).json({ full_name: name });
+          }
+
           if (patient_id) {
             conditions.push("TRIM(LOWER(patient_id)) = TRIM(LOWER(?))");
-            params.push(patient_id);
+            params.push(patient_id.trim().toLowerCase());
           }
 
           if (clinic_id) {
@@ -52,7 +58,6 @@ export default async function handler(req, res) {
 
           const result = await client.execute(query.trim(), params);
           console.log(`✅ ${result.rows.length} enriched records fetched.`);
-
           return res.status(200).json({
             message: `${result.rows.length} record(s) fetched`,
             data: result.rows,
