@@ -28,27 +28,7 @@ export default async function handler(req, res) {
           query += " ORDER BY datetime(created_at) DESC;";
           const result = await client.execute(query, params);
 
-          // PDF Export
-          if (exportType === "pdf") {
-            const doc = new jsPDF();
-            doc.setFontSize(14);
-            doc.text(`Clinical Records for Patient ${patient_id}`, 10, 10);
-
-            result.rows.forEach((rec, i) => {
-              const y = 20 + i * 30;
-              doc.setFontSize(12);
-              doc.text(`Record ${i + 1} (Created: ${rec.created_at})`, 10, y);
-              doc.text(`Diagnosis: ${rec.diagnosis || "N/A"}`, 10, y + 6);
-              doc.text(`Charting: ${rec.charting || "N/A"}`, 10, y + 12);
-              doc.text(`Prescriptions: ${rec.prescriptions || "N/A"}`, 10, y + 18);
-              doc.text(`Notes: ${rec.notes || "N/A"}`, 10, y + 24);
-            });
-
-            const pdfBuffer = doc.output("arraybuffer");
-            res.setHeader("Content-Type", "application/pdf");
-            res.setHeader("Content-Disposition", `attachment; filename=clinical_records_${patient_id}.pdf`);
-            return res.status(200).send(Buffer.from(pdfBuffer));
-          }
+      
 
           // JSON response
           return res.status(200).json({
