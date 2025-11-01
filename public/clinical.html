@@ -117,6 +117,18 @@ const newRecordModal = document.getElementById('newRecordModal');
 const viewRecordsModal = document.getElementById('viewRecordsModal');
 const modalOverlay = document.getElementById('modalOverlay');
 
+  function calculateAge(dob) {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 // ====================
 // Open/Close Modals
 // ====================
@@ -248,44 +260,44 @@ async function loadRecordsPatientsDropdown() {
 let currentPatientRecords = [];
 
 async function loadPatientRecords(patientId) {
-  const container = document.getElementById('patientRecordsContainer');
-  container.innerHTML = '';
-  if (!patientId) return;
+ const container = document.getElementById('patientRecordsContainer');
+container.innerHTML = '';
+if (!patientId) return;
 
-  try {
-    const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
-    const data = await res.json();
-    currentPatientRecords = data.data || [];
+try {
+  const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
+  const data = await res.json();
+  currentPatientRecords = data.data || [];
 
-    if (!currentPatientRecords.length) {
-      container.innerHTML = '<p class="text-gray-500">No records found.</p>';
-      return;
-    }
-
-    const name = currentPatientRecords[0]?.full_name || patientId;
-const age = currentPatientRecords[0]?.age != null ? currentPatientRecords[0].age : 'Unknown';
-
-const header = document.createElement('div');
-header.className = 'mb-4 text-lg font-semibold text-indigo-600';
-header.textContent = `Patient: ${name} (Age: ${age})`;
-container.appendChild(header);
-
-    currentPatientRecords.forEach((rec, idx) => {
-      const div = document.createElement('div');
-      div.className = 'border-b py-2';
-      div.innerHTML = `
-        <strong>Visit ${idx+1} — ${rec.created_at}</strong>
-        <p><strong>Diagnosis:</strong> ${rec.diagnosis || 'N/A'}</p>
-        <p><strong>Charting:</strong> ${rec.charting || 'N/A'}</p>
-        <p><strong>Prescriptions:</strong> ${rec.prescriptions || 'N/A'}</p>
-        <p><strong>Notes:</strong> ${rec.notes || 'N/A'}</p>
-      `;
-      container.appendChild(div);
-    });
-  } catch (err) {
-    console.error('Failed to load patient records:', err);
-    container.innerHTML = '<p class="text-red-500">Error loading records.</p>';
+  if (!currentPatientRecords.length) {
+    container.innerHTML = '<p class="text-gray-500">No records found.</p>';
+    return;
   }
+
+  const first = currentPatientRecords[0];
+  const name = first.full_name || first.patient_id;
+  const age = first.age != null ? first.age : calculateAge(first.dob) || 'Unknown';
+
+  const header = document.createElement('div');
+  header.className = 'mb-4 text-lg font-semibold text-indigo-600';
+  header.textContent = `Patient: ${name} (Age: ${age})`;
+  container.appendChild(header);
+
+  currentPatientRecords.forEach((rec, idx) => {
+    const div = document.createElement('div');
+    div.className = 'border-b py-2';
+    div.innerHTML = `
+      <strong>Visit ${idx+1} — ${rec.created_at}</strong>
+      <p><strong>Diagnosis:</strong> ${rec.diagnosis || 'N/A'}</p>
+      <p><strong>Charting:</strong> ${rec.charting || 'N/A'}</p>
+      <p><strong>Prescriptions:</strong> ${rec.prescriptions || 'N/A'}</p>
+      <p><strong>Notes:</strong> ${rec.notes || 'N/A'}</p>
+    `;
+    container.appendChild(div);
+  });
+} catch (err) {
+  console.error('Failed to load patient records:', err);
+  container.innerHTML = '<p class="text-red-500">Error loading records.</p>';
 }
 
 // ====================
@@ -293,25 +305,26 @@ container.appendChild(header);
 // ====================
 function exportPatientRecordsPDF() {
   if (!currentPatientRecords.length) return alert('No records to export.');
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  let y = 10;
+ const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+let y = 10;
 
-  const name = currentPatientRecords[0]?.full_name || 'Unknown';
-const age = currentPatientRecords[0]?.age != null ? currentPatientRecords[0].age : 'Unknown';
+const first = currentPatientRecords[0];
+const name = first.full_name || first.patient_id;
+const age = first.age != null ? first.age : calculateAge(first.dob) || 'Unknown';
 
 doc.text(`Patient: ${name} (Age: ${age})`, 10, y); y += 10;
 
-  currentPatientRecords.forEach((r, idx) => {
-    doc.text(`Visit ${idx+1} - ${r.created_at}`, 10, y); y+=6;
-    doc.text(`Diagnosis: ${r.diagnosis || 'N/A'}`, 10, y); y+=6;
-    doc.text(`Charting: ${r.charting || 'N/A'}`, 10, y); y+=6;
-    doc.text(`Prescriptions: ${r.prescriptions || 'N/A'}`, 10, y); y+=6;
-    doc.text(`Notes: ${r.notes || 'N/A'}`, 10, y); y+=10;
-    if (y > 270) { doc.addPage(); y = 10; }
-  });
+currentPatientRecords.forEach((r, idx) => {
+  doc.text(`Visit ${idx+1} - ${r.created_at}`, 10, y); y+=6;
+  doc.text(`Diagnosis: ${r.diagnosis || 'N/A'}`, 10, y); y+=6;
+  doc.text(`Charting: ${r.charting || 'N/A'}`, 10, y); y+=6;
+  doc.text(`Prescriptions: ${r.prescriptions || 'N/A'}`, 10, y); y+=6;
+  doc.text(`Notes: ${r.notes || 'N/A'}`, 10, y); y+=10;
+  if (y > 270) { doc.addPage(); y = 10; }
+});
 
-  doc.save('patient_records.pdf');
+doc.save('patient_records.pdf');
 }
 </script>
 
