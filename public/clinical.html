@@ -65,6 +65,9 @@
     <button onclick="closeModal('newRecordModal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">&times;</button>
     
     <form id="newRecordForm" class="space-y-3">
+      <select id="newPatientSelect" class="w-full border rounded p-2 mb-2">
+  <!-- Options populated dynamically from /api/patients -->
+</select>
       <input type="text" id="patientName" placeholder="Patient Name" class="w-full border rounded p-2" required />
       <input type="number" id="patientAge" placeholder="Age" class="w-full border rounded p-2" required />
       <input type="text" id="patientId" placeholder="Patient ID" class="w-full border rounded p-2" required />
@@ -83,7 +86,9 @@
   <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
     <h2 class="text-xl font-semibold mb-4">Patient Records</h2>
     <button onclick="closeModal('viewRecordsModal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">&times;</button>
-    
+    <select id="recordsPatientSelect" class="w-full border rounded p-2 mb-4">
+  <!-- Options populated dynamically from /api/integrations?type=clinical -->
+</select>
     <div id="patientRecordsContainer" class="space-y-4"></div>
     <button class="px-4 py-2 bg-green-600 text-white rounded-md mt-3" onclick="exportPatientRecordsPDF()">Export PDF</button>
   </div>
