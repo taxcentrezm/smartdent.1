@@ -19,20 +19,38 @@ export default async function handler(req, res) {
           // 1️⃣ Distinct patient list mode
           if (distinct === "patients") {
             const result = await client.execute(`
-              SELECT DISTINCT cr.patient_id, p.full_name,
-                CAST((julianday('now') - julianday(NULLIF(p.dob, ''))) / 365.25 AS INTEGER) AS age
+              SELECT DISTINCT cr.patient_id, p.full_name, p.dob
               FROM clinical_records cr
               LEFT JOIN patients p ON TRIM(LOWER(cr.patient_id)) = TRIM(LOWER(p.patient_id))
               ORDER BY cr.patient_id;
             `);
-            console.log(`📋 Distinct patient list returned: ${result.rows.length}`);
-            return res.status(200).json({ data: result.rows });
+
+            const enriched = result.rows.map(row => {
+              let age = null;
+              if (row.dob) {
+                const birthDate = new Date(row.dob);
+                const today = new Date();
+                age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                  age--;
+                }
+              }
+
+              return {
+                patient_id: row.patient_id,
+                full_name: row.full_name || row.patient_id,
+                age,
+              };
+            });
+
+            console.log(`📋 Distinct patient list returned: ${enriched.length}`);
+            return res.status(200).json({ data: enriched });
           }
 
           // 2️⃣ Full record fetch mode
           let query = `
-            SELECT cr.*, p.full_name,
-              CAST((julianday('now') - julianday(NULLIF(p.dob, ''))) / 365.25 AS INTEGER) AS age
+            SELECT cr.*, p.full_name, p.dob
             FROM clinical_records cr
             LEFT JOIN patients p ON TRIM(LOWER(cr.patient_id)) = TRIM(LOWER(p.patient_id))
           `;
@@ -57,11 +75,30 @@ export default async function handler(req, res) {
           console.log("🔍 Executing query:", query.trim(), "with params:", params);
 
           const result = await client.execute(query.trim(), params);
-          console.log(`✅ ${result.rows.length} clinical records fetched.`);
 
+          const enriched = result.rows.map(row => {
+            let age = null;
+            if (row.dob) {
+              const birthDate = new Date(row.dob);
+              const today = new Date();
+              age = today.getFullYear() - birthDate.getFullYear();
+              const m = today.getMonth() - birthDate.getMonth();
+              if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+              }
+            }
+
+            return {
+              ...row,
+              full_name: row.full_name || row.patient_id,
+              age,
+            };
+          });
+
+          console.log(`✅ ${enriched.length} clinical records fetched.`);
           return res.status(200).json({
-            message: `${result.rows.length} record(s) fetched`,
-            data: result.rows,
+            message: `${enriched.length} record(s) fetched`,
+            data: enriched,
           });
         }
 
