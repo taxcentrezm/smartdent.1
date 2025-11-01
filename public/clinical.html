@@ -133,7 +133,7 @@
     if (!patientId) return;
 
     try {
-      const res = await fetch(`/api/integrations/clinical?patient_id=${patientId}`);
+     const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       clinicalData = data.data?.[0] || null;
@@ -191,40 +191,48 @@
     renderPrescriptions();
   }
 
-  // ================================
-  // Save clinical record
-  // ================================
-  async function saveClinicalRecord() {
-    if (!currentPatientId) return alert('Select a patient first.');
-    
-    const charting = clinicalContainer.querySelector('textarea').value;
-
-    try {
-      const res = await fetch('/api/integrations/clinical', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patient_id: currentPatientId,
-          charting,
-          prescriptions,
-          imaging: [], // add imaging support later
-          notes: ''
-        })
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to save clinical record.');
-      }
-
-      alert('✅ Clinical record saved successfully!');
-      loadClinicalRecords(currentPatientId);
-
-    } catch (err) {
-      console.error(err);
-      alert('❌ Failed to save clinical record.');
-    }
+ // ================================
+// Save clinical record
+// ================================
+async function saveClinicalRecord() {
+  if (!currentPatientId) {
+    return alert('⚠️ Please select a patient first.');
   }
+
+  const charting = clinicalContainer.querySelector('textarea').value;
+
+  try {
+    const res = await fetch(`/api/integrations?type=clinical`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        patient_id: currentPatientId,
+        charting_notes: charting,
+        prescriptions: prescriptions || [],
+        imaging: [], // add imaging support later
+        notes: ''    // optional additional notes
+      })
+    });
+
+    if (!res.ok) {
+      let errMsg = 'Failed to save clinical record.';
+      try {
+        const errData = await res.json();
+        errMsg = errData.error || errMsg;
+      } catch (_) {}
+      throw new Error(errMsg);
+    }
+
+    alert('✅ Clinical record saved successfully!');
+    // Reload the records to update UI
+    loadClinicalRecords(currentPatientId);
+
+  } catch (err) {
+    console.error('❌ saveClinicalRecord error:', err);
+    alert(`❌ ${err.message}`);
+  }
+}
+
 
   // ================================
   // Export patient record to PDF
