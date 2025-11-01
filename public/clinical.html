@@ -125,6 +125,9 @@ const newRecordModal = document.getElementById('newRecordModal');
 const viewRecordsModal = document.getElementById('viewRecordsModal');
 let currentPatientRecords = [];
 
+// ====================
+// Utility: Age Calculator
+// ====================
 function calculateAge(dob) {
   if (!dob) return null;
   const birthDate = new Date(dob);
@@ -138,24 +141,21 @@ function calculateAge(dob) {
 // ====================
 // Modal Controls
 // ====================
-document.getElementById('newRecordBtn').addEventListener('click', () => {
+function openModal(modalId, loaderFn) {
   modalOverlay.classList.remove('hidden');
-  newRecordModal.classList.remove('hidden');
-  loadPatientsDropdown();
-});
-document.getElementById('viewRecordsBtn').addEventListener('click', () => {
-  modalOverlay.classList.remove('hidden');
-  viewRecordsModal.classList.remove('hidden');
-  loadRecordsPatientsDropdown();
-});
+  document.getElementById(modalId).classList.remove('hidden');
+  if (typeof loaderFn === 'function') loaderFn();
+}
+function closeModal(modalId) {
+  document.getElementById(modalId).classList.add('hidden');
+  modalOverlay.classList.add('hidden');
+}
 modalOverlay.addEventListener('click', () => {
   closeModal('newRecordModal');
   closeModal('viewRecordsModal');
 });
-function closeModal(id) {
-  document.getElementById(id).classList.add('hidden');
-  modalOverlay.classList.add('hidden');
-}
+document.getElementById('newRecordBtn').addEventListener('click', () => openModal('newRecordModal', loadPatientsDropdown));
+document.getElementById('viewRecordsBtn').addEventListener('click', () => openModal('viewRecordsModal', loadRecordsPatientsDropdown));
 
 // ====================
 // Load Patients for New Record
@@ -218,7 +218,7 @@ document.getElementById('newRecordForm').addEventListener('submit', async (e) =>
     clinic_id: document.getElementById('clinicName').value.trim(),
     diagnosis: document.getElementById('diagnosis').value.trim(),
     charting: document.getElementById('charting').value.trim(),
-    prescriptions: [], // Add support later
+    prescriptions: [], // Extend with input if needed
     notes: document.getElementById('notes').value.trim()
   };
 
@@ -240,7 +240,7 @@ document.getElementById('newRecordForm').addEventListener('submit', async (e) =>
     console.error(err);
     alert(`❌ ${err.message}`);
   }
-});
+}
 
 // ====================
 // Load Patients with Records
@@ -326,19 +326,58 @@ async function loadPatientRecords(patientId) {
   }
 }
 
-// ==================== // Export PDF // ==================== 
-    function exportPatientRecordsPDF() { if (!currentPatientRecords.length) return 
-      alert('No records to export.'); const { jsPDF } = window.jspdf; const doc = 
-        new jsPDF(); let y = 10; const first = currentPatientRecords[0]; const name 
-        = first.full_name || first.patient_id; const age = first.age != null ? first.age
-        : calculateAge(first.dob) || 'Unknown'; const gender = first.gender || 
-        'N/A'; const phone = first.phone || 'N/A'; const email = first.email || 
-        'N/A'; const clinic = first.clinic_id || 'N/A'; doc.setFontSize(12); 
-        doc.text(`Patient: ${name}`, 10, y); y += 6; doc.text(`Age: ${age} 
-        Gender: ${gender}`, 10, y); y += 6; doc.text(`Phone: ${phone} Email:
-        ${email}`, 10, y); y += 6; doc.text(`Clinic: ${clinic}`, 10, y);
-        y += 10; currentPatientRecords.forEach((r, idx) => { doc.setFontSize(11);
-        doc.text(`Visit ${idx + 1} — ${r.created_at}`, 10, y); y += 6; doc.text(`Diagnosis: ${r.diagnosis || 'N/A'}`, 10, y); y += 6; doc.text(`Charting: ${r.charting || 'N/A'}`, 10, y); y += 6; const prescriptions = Array.isArray(r.prescriptions) ? r.prescriptions.join(', ') : r.prescriptions || 'N/A'; doc.text(`Prescriptions: ${prescriptions}`, 10, y); y += 6; const notes = r.notes || 'N/A'; const wrappedNotes = doc.splitTextToSize(`Notes: ${notes}`, 180); wrappedNotes.forEach(line => { doc.text(line, 10, y); y += 6; }); y += 6; if (y > 270) { doc.addPage(); y = 10; } }); 
-  doc.save(`${name.replace(/\s+/g, '_')}_records.pdf`); }
+// ====================
+// Export PDF
+// ====================
+function exportPatientRecordsPDF() {
+  if (!currentPatientRecords.length) return alert('No records to export.');
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 10;
+
+  const first = currentPatientRecords[0];
+  const name = first.full_name || first.patient_id;
+  const age = first.age != null ? first.age : calculateAge(first.dob) || 'Unknown';
+  const gender = first.gender || 'N/A';
+  const phone = first.phone || 'N/A';
+  const email = first.email || 'N/A';
+  const clinic = first.clinic_id || 'N/A';
+
+  doc.setFontSize(12);
+  doc.text(`Patient: ${name}`, 10, y); y += 6;
+  doc.text(`Age: ${age}    Gender: ${gender}`, 10, y); y += 6;
+  doc.text(`Phone: ${phone}    Email: ${email}`, 10, y); y += 6;
+  doc.text(`Clinic: ${clinic}`, 10, y); y += 10;
+
+  currentPatientRecords.forEach((r, idx) => {
+    doc.setFontSize(11);
+    doc.text(`Visit ${idx + 1} — ${r.created_at}`, 10, y); y += 6;
+    doc.text(`Diagnosis: ${r.diagnosis || 'N/A'}`, 10, y); y += 6;
+    doc.text(`Charting: ${r.charting || 'N/A'}`, 10, y); y += 6;
+
+    const prescriptions = Array.isArray(r.prescriptions)
+      ? r.prescriptions.join(', ')
+      : r.prescriptions || 'N/A';
+    doc.text(`Prescriptions: ${prescriptions}`, 10, y); y += 6;
+
+    const notes = r.notes || 'N/A';
+    const wrappedNotes = doc.splitTextToSize(`Notes: ${notes}`, 180);
+    wrappedNotes.forEach(line => {
+      doc.text(line, 10, y);
+      y += 6;
+    });
+
+    y += 8;
+    if (y > 270) {
+      doc.addPage();
+      y = 10;
+    }
+  });
+
+  const filename = `${name.replace(/\s+/g, '_')}_records.pdf`;
+  doc.save(filename);
+}
+</script>
+  
 </body>
 </html>
