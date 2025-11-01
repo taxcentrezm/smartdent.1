@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 export default async function handler(req, res) {
   try {
     switch (req.method) {
+
       // =====================================================
       // GET: Fetch all invoices
       // =====================================================
@@ -29,10 +30,6 @@ export default async function handler(req, res) {
           clinic_id,
           patient_id,
           full_name,
-          phone,
-          email,
-          dob,
-          gender,
           service_id,
           service_name,
           treatment_id,
@@ -40,6 +37,10 @@ export default async function handler(req, res) {
           quantity = 1,
           cost,
           date,
+          phone,
+          email,
+          dob,
+          gender,
         } = req.body;
 
         // Validate required fields
@@ -49,19 +50,27 @@ export default async function handler(req, res) {
           });
         }
 
-        // 1️⃣ Ensure patient exists or create new one
-        let finalPatientId = patient_id;
-        let patientFullName = full_name?.trim();
+        // ==============================
+        // 1️⃣ Ensure patient exists
+        // ==============================
+        let finalPatientId = (patient_id || "").trim();
+        let patientFullName = (full_name || "").trim();
 
         try {
           if (!finalPatientId || finalPatientId === "new") {
-            if (!patientFullName) {
-              return res.status(400).json({
-                error: "Patient full_name is required for new patients",
-              });
-            }
-
             finalPatientId = randomUUID();
+            console.log(`🆕 Generated patient_id: ${finalPatientId}`);
+          }
+
+          const existingPatient = await client.execute(
+            "SELECT * FROM patients WHERE patient_id = ?;",
+            [finalPatientId]
+          );
+
+          if (!existingPatient.rows || existingPatient.rows.length === 0) {
+            // If full_name is missing, fallback
+            if (!patientFullName) patientFullName = "Unnamed Patient";
+
             await client.execute(
               `INSERT INTO patients (
                 patient_id, clinic_id, full_name, phone, email, dob, gender, created_at
@@ -76,21 +85,11 @@ export default async function handler(req, res) {
                 gender || null,
               ]
             );
+
             console.log(`✅ New patient created: ${patientFullName}`);
           } else {
-            // Existing patient
-            const existingPatient = await client.execute(
-              "SELECT * FROM patients WHERE patient_id = ?;",
-              [finalPatientId]
-            );
-
-            if (existingPatient.rows.length === 0) {
-              return res.status(404).json({
-                error: `Patient with ID ${finalPatientId} not found`,
-              });
-            }
-
-            patientFullName = existingPatient.rows[0].full_name;
+            // Use existing patient name if full_name not provided
+            patientFullName = existingPatient.rows[0].full_name || patientFullName;
             console.log(`👤 Existing patient found: ${patientFullName}`);
           }
         } catch (err) {
@@ -101,7 +100,9 @@ export default async function handler(req, res) {
           });
         }
 
+        // ==============================
         // 2️⃣ Create appointment
+        // ==============================
         try {
           await client.execute(
             "INSERT INTO appointments (clinic_id, patient_id, date, status) VALUES (?, ?, ?, ?);",
@@ -116,7 +117,9 @@ export default async function handler(req, res) {
           });
         }
 
+        // ==============================
         // 3️⃣ Ensure treatment exists
+        // ==============================
         if (treatment_id && treatment_name) {
           try {
             const existingTreatment = await client.execute(
@@ -124,7 +127,7 @@ export default async function handler(req, res) {
               [treatment_id]
             );
 
-            if (existingTreatment.rows.length === 0) {
+            if (!existingTreatment.rows || existingTreatment.rows.length === 0) {
               await client.execute(
                 "INSERT INTO treatments (treatment_id, name, service_id, price) VALUES (?, ?, ?, ?);",
                 [treatment_id, treatment_name, service_id || null, cost]
@@ -132,11 +135,35 @@ export default async function handler(req, res) {
               console.log(`✅ Treatment recorded: ${treatment_name}`);
             }
           } catch (err) {
-            console.error("❌ Treatment error:", err.message);
+            console.error("❌ Treatment creation failed:", err.message);
           }
         }
 
-        // 4️⃣ Deduct stock if available
+        // ==============================
+        // 4️⃣ Ensure service exists
+        // ==============================
+        if (service_id && service_name) {
+          try {
+            const existingService = await client.execute(
+              "SELECT * FROM services WHERE service_id = ?;",
+              [service_id]
+            );
+
+            if (!existingService.rows || existingService.rows.length === 0) {
+              await client.execute(
+                "INSERT INTO services (service_id, clinic_id, name, price) VALUES (?, ?, ?, ?);",
+                [service_id, clinic_id, service_name, cost]
+              );
+              console.log(`✅ Service added: ${service_name}`);
+            }
+          } catch (err) {
+            console.error("❌ Service creation failed:", err.message);
+          }
+        }
+
+        // ==============================
+        // 5️⃣ Deduct stock if available
+        // ==============================
         if (treatment_name && quantity > 0) {
           try {
             const stockItem = await client.execute(
@@ -144,8 +171,8 @@ export default async function handler(req, res) {
               [treatment_name, clinic_id]
             );
 
-            if (stockItem.rows.length > 0) {
-              const currentQty = stockItem.rows[0].quantity;
+            if (stockItem.rows && stockItem.rows.length > 0) {
+              const currentQty = stockItem.rows[0].quantity || 0;
               if (currentQty >= quantity) {
                 await client.execute(
                   "UPDATE stock SET quantity = ? WHERE item = ? AND clinic_id = ?;",
@@ -161,27 +188,9 @@ export default async function handler(req, res) {
           }
         }
 
-        // 5️⃣ Record service if missing
-        if (service_id && service_name) {
-          try {
-            const existingService = await client.execute(
-              "SELECT * FROM services WHERE service_id = ?;",
-              [service_id]
-            );
-
-            if (existingService.rows.length === 0) {
-              await client.execute(
-                "INSERT INTO services (service_id, clinic_id, name, price) VALUES (?, ?, ?, ?);",
-                [service_id, clinic_id, service_name, cost]
-              );
-              console.log(`✅ Service added: ${service_name}`);
-            }
-          } catch (err) {
-            console.error("❌ Service creation failed:", err.message);
-          }
-        }
-
+        // ==============================
         // 6️⃣ Create invoice
+        // ==============================
         try {
           const invoice_id = randomUUID();
           const total = cost * quantity;
@@ -224,6 +233,9 @@ export default async function handler(req, res) {
         }
       }
 
+      // =====================================================
+      // Unsupported method
+      // =====================================================
       default:
         res.setHeader("Allow", ["GET", "POST"]);
         return res.status(405).json({
