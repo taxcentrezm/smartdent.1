@@ -32,9 +32,11 @@ export default async function handler(req, res) {
   // 2️⃣ Full record fetch mode
   let query = `
     SELECT cr.*, p.full_name,
-      CAST((julianday('now') - julianday(p.dob)) / 365.25 AS INTEGER) AS age
-    FROM clinical_records cr
-    LEFT JOIN patients p ON cr.patient_id = p.patient_id
+  CAST((julianday('now') - julianday(NULLIF(p.dob, ''))) / 365.25 AS INTEGER) AS age
+FROM clinical_records cr
+LEFT JOIN patients p ON TRIM(LOWER(cr.patient_id)) = TRIM(LOWER(p.patient_id))
+WHERE TRIM(LOWER(cr.patient_id)) = ?
+ORDER BY datetime(cr.created_at) DESC;
   `;
   const params = [];
   const conditions = [];
