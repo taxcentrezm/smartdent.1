@@ -262,6 +262,14 @@ async function loadPatientRecords(patientId) {
       return;
     }
 
+    const name = currentPatientRecords[0]?.full_name || patientId;
+const age = currentPatientRecords[0]?.age != null ? currentPatientRecords[0].age : 'Unknown';
+
+const header = document.createElement('div');
+header.className = 'mb-4 text-lg font-semibold text-indigo-600';
+header.textContent = `Patient: ${name} (Age: ${age})`;
+container.appendChild(header);
+
     currentPatientRecords.forEach((rec, idx) => {
       const div = document.createElement('div');
       div.className = 'border-b py-2';
@@ -288,6 +296,11 @@ function exportPatientRecordsPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   let y = 10;
+
+  const name = currentPatientRecords[0]?.full_name || 'Unknown';
+const age = currentPatientRecords[0]?.age != null ? currentPatientRecords[0].age : 'Unknown';
+
+doc.text(`Patient: ${name} (Age: ${age})`, 10, y); y += 10;
 
   currentPatientRecords.forEach((r, idx) => {
     doc.text(`Visit ${idx+1} - ${r.created_at}`, 10, y); y+=6;
