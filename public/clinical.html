@@ -44,38 +44,75 @@
   <main class="container mx-auto px-4 py-6">
     <div class="card space-y-4">
 
-      <!-- Patient Selection -->
+    <!-- Buttons -->
+<div class="my-4">
+  <button id="newRecordBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md">Add New Clinical Record</button>
+  <button id="viewRecordsBtn" class="px-4 py-2 bg-green-600 text-white rounded-md ml-2">View Patient Records</button>
+</div>
 
-      <!-- Tabs -->
-      <div class="flex gap-6 border-b mb-4 text-sm">
-        <button class="tab-active" onclick="showTab('charting')">Charting</button>
-        <button onclick="showTab('imaging')">Imaging</button>
-        <button onclick="showTab('prescriptions')">Prescriptions</button>
-      </div>
+<!-- New Clinical Record Modal -->
+<div id="newRecordModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg relative">
+    <h2 class="text-lg font-semibold mb-4">New Clinical Record</h2>
+    <button class="absolute top-3 right-3 text-gray-500" onclick="closeModal('newRecordModal')">✖</button>
 
-      <!-- Charting -->
-      <div id="charting" class="space-y-4">
-        <h2 class="text-lg font-semibold">Dental Charting</h2>
-        <textarea id="chartNotes" class="w-full border rounded-md p-2" rows="4" placeholder="Charting notes…"></textarea>
-        <button onclick="saveClinicalRecord()" class="px-4 py-2 bg-indigo-600 text-white rounded-md">Save Chart</button>
-      </div>
+    <div class="mb-3">
+      <label>Patient:</label>
+      <select id="newPatientSelect" class="border rounded-md p-2 w-full"></select>
+    </div>
+    <div class="mb-3">
+      <label>Patient Name:</label>
+      <input type="text" id="newPatientName" class="border rounded-md p-2 w-full" readonly>
+    </div>
+    <div class="mb-3">
+      <label>Age:</label>
+      <input type="text" id="newPatientAge" class="border rounded-md p-2 w-full" readonly>
+    </div>
+    <div class="mb-3">
+      <label>Patient ID:</label>
+      <input type="text" id="newPatientId" class="border rounded-md p-2 w-full" readonly>
+    </div>
+    <div class="mb-3">
+      <label>Phone Number:</label>
+      <input type="text" id="newPatientPhone" class="border rounded-md p-2 w-full" readonly>
+    </div>
+    <div class="mb-3">
+      <label>Clinic Name:</label>
+      <input type="text" id="newClinicName" class="border rounded-md p-2 w-full" readonly>
+    </div>
+    <div class="mb-3">
+      <label>Charting Notes:</label>
+      <textarea id="newCharting" class="border rounded-md p-2 w-full h-24"></textarea>
+    </div>
+    <div class="mb-3">
+      <label>Prescriptions (comma separated):</label>
+      <input type="text" id="newPrescriptions" class="border rounded-md p-2 w-full">
+    </div>
+    <div class="mb-3">
+      <label>Additional Notes:</label>
+      <textarea id="newNotes" class="border rounded-md p-2 w-full h-16"></textarea>
+    </div>
 
-      <!-- Imaging -->
-      <div id="imaging" class="space-y-4 hidden">
-        <h2 class="text-lg font-semibold">Imaging</h2>
-        <input id="imagingInput" type="file" multiple class="border rounded-md p-2" />
-        <div id="imagingPreview" class="grid grid-cols-2 gap-4 mt-4"></div>
-      </div>
+    <button class="px-4 py-2 bg-indigo-600 text-white rounded-md" onclick="saveNewClinicalRecord()">Save Record</button>
+  </div>
+</div>
 
-      <!-- Prescriptions -->
-      <div id="prescriptions" class="space-y-4 hidden">
-        <h2 class="text-lg font-semibold">Prescriptions</h2>
-        <ul class="space-y-3 text-sm" id="prescriptionList"></ul>
-        <div class="flex gap-2">
-          <input id="medInput" type="text" placeholder="Medication" class="flex-1 px-3 py-2 border rounded-md" />
-          <button onclick="addPrescription()" class="px-4 py-2 bg-green-600 text-white rounded-md">Add</button>
-        </div>
-      </div>
+<!-- View Patient Records Modal -->
+<div id="viewRecordsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl relative">
+    <h2 class="text-lg font-semibold mb-4">Patient Clinical Records</h2>
+    <button class="absolute top-3 right-3 text-gray-500" onclick="closeModal('viewRecordsModal')">✖</button>
+
+    <div class="mb-3">
+      <label>Select Patient:</label>
+      <select id="recordsPatientSelect" class="border rounded-md p-2 w-full"></select>
+    </div>
+
+    <div id="patientRecordsContainer" class="mt-4 max-h-96 overflow-y-auto border p-3 rounded-md"></div>
+
+    <button class="px-4 py-2 bg-green-600 text-white rounded-md mt-3" onclick="exportPatientRecordsPDF()">Export PDF</button>
+  </div>
+</div>
     </div>
   </main>
 
@@ -84,21 +121,28 @@
   </footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-feather.replace();
+const newRecordModal = document.getElementById('newRecordModal');
+const viewRecordsModal = document.getElementById('viewRecordsModal');
 
-const patientsDropdown = document.createElement('select');
-patientsDropdown.id = 'patientSelect';
-patientsDropdown.className = 'border rounded-md p-2 w-full mb-4';
+document.getElementById('newRecordBtn').addEventListener('click', () => {
+  newRecordModal.classList.remove('hidden');
+  loadPatientsDropdown();
+});
+document.getElementById('viewRecordsBtn').addEventListener('click', () => {
+  viewRecordsModal.classList.remove('hidden');
+  loadRecordsPatientsDropdown();
+});
 
-const clinicalContainer = document.getElementById('charting'); // main container for charting notes
-let currentPatientId = null;
-let clinicalRecords = [];
-const prescriptions = [];
+function closeModal(modalId) {
+  document.getElementById(modalId).classList.add('hidden');
+}
 
-// ================================
-// Load patients from DB
-// ================================
-async function loadPatients() {
+// =============================
+// Load patients for New Record
+// =============================
+async function loadPatientsDropdown() {
+  const select = document.getElementById('newPatientSelect');
+  select.innerHTML = '';
   try {
     const res = await fetch('/api/patients');
     const data = await res.json();
@@ -108,219 +152,147 @@ async function loadPatients() {
       const opt = document.createElement('option');
       opt.value = p.patient_id;
       opt.textContent = `${p.full_name} (${p.phone})`;
-      patientsDropdown.appendChild(opt);
+      opt.dataset.name = p.full_name;
+      opt.dataset.age = p.age;
+      opt.dataset.phone = p.phone;
+      opt.dataset.clinic = p.clinic_name || 'Clinic';
+      select.appendChild(opt);
     });
 
-    patientsDropdown.addEventListener('change', () => {
-      currentPatientId = patientsDropdown.value;
-      loadClinicalRecords(currentPatientId);
+    select.addEventListener('change', () => {
+      const opt = select.selectedOptions[0];
+      document.getElementById('newPatientName').value = opt.dataset.name;
+      document.getElementById('newPatientAge').value = opt.dataset.age;
+      document.getElementById('newPatientId').value = opt.value;
+      document.getElementById('newPatientPhone').value = opt.dataset.phone;
+      document.getElementById('newClinicName').value = opt.dataset.clinic;
     });
 
-    document.querySelector('main').prepend(patientsDropdown);
-    currentPatientId = patientsDropdown.value;
-    loadClinicalRecords(currentPatientId);
-
+    // trigger first selection
+    select.dispatchEvent(new Event('change'));
   } catch (err) {
-    console.error('❌ Failed to load patients:', err);
+    console.error('Failed to load patients:', err);
   }
 }
 
-// ================================
-// Load clinical records for a patient
-// ================================
-async function loadClinicalRecords(patientId) {
-  if (!patientId) return;
+// =============================
+// Save new clinical record
+// =============================
+async function saveNewClinicalRecord() {
+  const patient_id = document.getElementById('newPatientId').value;
+  const charting = document.getElementById('newCharting').value;
+  const prescriptions = document.getElementById('newPrescriptions').value.split(',').map(p => p.trim()).filter(p => p);
+  const notes = document.getElementById('newNotes').value;
 
-  currentPatientId = patientId;
+  if (!patient_id) return alert('Select a patient first.');
 
   try {
-    const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    clinicalRecords = data.data || data.rows || [];
-
-
-    console.log(`💡 Fetched ${clinicalRecords.length} clinical records for patient ${patientId}`);
-
-    if (!clinicalContainer.querySelector('textarea')) {
-      clinicalContainer.innerHTML = `<textarea class="border rounded w-full p-2" rows="6"></textarea>`;
-    }
-
-    if (clinicalRecords.length === 0) {
-      clinicalContainer.querySelector('textarea').value = '';
-      clinicalContainer.innerHTML += '<p class="text-gray-500">No clinical records found.</p>';
-    } else {
-      // Prefill with the latest visit (first in the sorted array)
-      clinicalData = clinicalRecords[0];
-      clinicalContainer.querySelector('textarea').value = clinicalData.charting || '';
-      renderPrescriptions();
-    }
-
-  } catch (err) {
-    console.log("🧾 Raw clinical response:", data);
-    console.error('❌ Failed to load clinical records:', err);
-    clinicalContainer.innerHTML = '<p class="text-red-500">Failed to load clinical records.</p>';
-  }
-}
-
-
-// ================================
-// Render charting notes and prescriptions
-// ================================
-function renderClinicalRecords(record) {
-  // Ensure a textarea exists
-  let chartingTextarea = clinicalContainer.querySelector('textarea');
-  if (!chartingTextarea) {
-    chartingTextarea = document.createElement('textarea');
-    chartingTextarea.className = 'border w-full rounded p-2 mb-4';
-    chartingTextarea.rows = 6;
-    clinicalContainer.appendChild(chartingTextarea);
-  }
-  chartingTextarea.value = record.charting || '';
-
-  // Render prescriptions
-  prescriptions.length = 0;
-  if (record.prescriptions) {
-    try {
-      // Handle CSV-style or JSON-style strings
-      const parsed = record.prescriptions.startsWith('[') ? JSON.parse(record.prescriptions) :
-                     record.prescriptions.split(',').map(p => ({ name: p.trim(), dosage: '—' }));
-      parsed.forEach(p => prescriptions.push(p));
-    } catch {}
-  }
-  renderPrescriptions();
-}
-
-function renderPrescriptions(){
-  let ul = document.getElementById('prescriptionList');
-  if (!ul) {
-    ul = document.createElement('ul');
-    ul.id = 'prescriptionList';
-    ul.className = 'mb-4';
-    clinicalContainer.appendChild(ul);
-  }
-  ul.innerHTML = '';
-  prescriptions.forEach(p => {
-    const li = document.createElement('li');
-    li.className = 'flex justify-between items-center';
-    li.innerHTML = `<div>${p.name} — <span class="text-gray-500">${p.dosage}</span></div>
-                    <button onclick="removePrescription('${p.name}')" class="text-rose-600"><i data-feather="x"></i></button>`;
-    ul.appendChild(li);
-  });
-  feather.replace();
-}
-
-function addPrescription(){
-  const med = document.getElementById('medInput').value.trim();
-  if(!med) return;
-  prescriptions.push({ name: med, dosage: '—' });
-  document.getElementById('medInput').value = '';
-  renderPrescriptions();
-}
-
-function removePrescription(name){
-  const idx = prescriptions.findIndex(p => p.name === name);
-  if(idx !== -1) prescriptions.splice(idx, 1);
-  renderPrescriptions();
-}
-
-// ================================
-// Save clinical record
-// ================================
-async function saveClinicalRecord() {
-  if (!currentPatientId) return alert('⚠️ Please select a patient first.');
-  const charting = clinicalContainer.querySelector('textarea').value;
-
-  try {
-    const res = await fetch(`/api/integrations?type=clinical`, {
+    const res = await fetch('/api/integrations?type=clinical', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        patient_id: currentPatientId,
-        charting: charting,
-        prescriptions: prescriptions,
-        imaging: [],
-        notes: ''
-      })
+      body: JSON.stringify({ patient_id, charting, prescriptions, imaging: [], notes })
     });
 
-    if (!res.ok) {
-      const errData = await res.json().catch(()=>({}));
-      throw new Error(errData.error || 'Failed to save clinical record.');
-    }
-
+    if (!res.ok) throw new Error('Failed to save record.');
     alert('✅ Clinical record saved successfully!');
-    loadClinicalRecords(currentPatientId);
-
+    closeModal('newRecordModal');
   } catch (err) {
-    console.error('❌ saveClinicalRecord error:', err);
+    console.error(err);
     alert(`❌ ${err.message}`);
   }
 }
 
-// ================================
-// Export patient records to PDF
-// ================================
-function exportPDF() {
-  if (!clinicalRecords.length) {
-    alert('No clinical records to export.');
-    console.log('💡 No clinical records fetched for export.');
-    return;
-  }
+// =============================
+// Load patients who have records
+// =============================
+async function loadRecordsPatientsDropdown() {
+  const select = document.getElementById('recordsPatientSelect');
+  select.innerHTML = '';
+  try {
+    const res = await fetch('/api/integrations?type=clinical'); // fetch all records
+    const records = await res.json();
+    const patientsMap = new Map();
 
+    (records.data || []).forEach(r => {
+      if (!patientsMap.has(r.patient_id)) {
+        patientsMap.set(r.patient_id, { patient_id: r.patient_id, full_name: r.full_name, age: r.age });
+      }
+    });
+
+    patientsMap.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.patient_id;
+      opt.textContent = `${p.full_name || p.patient_id} (Age: ${p.age || 'N/A'})`;
+      select.appendChild(opt);
+    });
+
+    select.addEventListener('change', () => {
+      loadPatientRecords(select.value);
+    });
+
+    // trigger first selection
+    if (select.options.length) select.dispatchEvent(new Event('change'));
+  } catch (err) {
+    console.error('Failed to load records patients:', err);
+  }
+}
+
+// =============================
+// Load all records for a patient
+// =============================
+let currentPatientRecords = [];
+
+async function loadPatientRecords(patientId) {
+  const container = document.getElementById('patientRecordsContainer');
+  container.innerHTML = '';
+  try {
+    const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
+    const data = await res.json();
+    currentPatientRecords = data.data || [];
+
+    if (!currentPatientRecords.length) {
+      container.innerHTML = '<p class="text-gray-500">No records found.</p>';
+      return;
+    }
+
+    currentPatientRecords.forEach((rec, idx) => {
+      const div = document.createElement('div');
+      div.className = 'border-b py-2';
+      div.innerHTML = `
+        <strong>Visit ${idx+1} — ${rec.created_at}</strong>
+        <p><strong>Diagnosis:</strong> ${rec.diagnosis || 'N/A'}</p>
+        <p><strong>Charting:</strong> ${rec.charting || 'N/A'}</p>
+        <p><strong>Prescriptions:</strong> ${rec.prescriptions || 'N/A'}</p>
+        <p><strong>Notes:</strong> ${rec.notes || 'N/A'}</p>
+      `;
+      container.appendChild(div);
+    });
+  } catch (err) {
+    console.error('Failed to load patient records:', err);
+    container.innerHTML = '<p class="text-red-500">Error loading records.</p>';
+  }
+}
+
+// =============================
+// Export patient records to PDF
+// =============================
+function exportPatientRecordsPDF() {
+  if (!currentPatientRecords.length) return alert('No records to export.');
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-  doc.setFontSize(14);
-  doc.text(`Clinical Records for Patient ${currentPatientId}`, 10, 10);
+  let y = 10;
 
-  clinicalRecords.forEach((rec, i) => {
-    const y = 20 + i * 30;
-    doc.setFontSize(12);
-    doc.text(`Record ${i+1} (Created: ${rec.created_at})`, 10, y);
-    doc.text(`Diagnosis: ${rec.diagnosis || 'N/A'}`, 10, y + 6);
-    doc.text(`Charting: ${rec.charting || 'N/A'}`, 10, y + 12);
-    doc.text(`Prescriptions: ${rec.prescriptions || 'N/A'}`, 10, y + 18);
-    doc.text(`Notes: ${rec.notes || 'N/A'}`, 10, y + 24);
+  currentPatientRecords.forEach((r, idx) => {
+    doc.text(`Visit ${idx+1} - ${r.created_at}`, 10, y); y+=6;
+    doc.text(`Diagnosis: ${r.diagnosis || 'N/A'}`, 10, y); y+=6;
+    doc.text(`Charting: ${r.charting || 'N/A'}`, 10, y); y+=6;
+    doc.text(`Prescriptions: ${r.prescriptions || 'N/A'}`, 10, y); y+=6;
+    doc.text(`Notes: ${r.notes || 'N/A'}`, 10, y); y+=10;
+    if (y > 270) { doc.addPage(); y = 10; }
   });
 
-  doc.save(`clinical_records_${currentPatientId}.pdf`);
-  console.log(`💡 Exported ${clinicalRecords.length} records to PDF.`);
+  doc.save('patient_records.pdf');
 }
-
-// ================================
-// Tab switching
-// ================================
-window.showTab = function(id, event){
-  ['charting','imaging','prescriptions'].forEach(tab => {
-    const el = document.getElementById(tab);
-    if(el) el.style.display = tab === id ? 'block' : 'none';
-  });
-  document.querySelectorAll('button').forEach(btn => btn.classList.remove('tab-active'));
-  event.target.classList.add('tab-active');
-}
-
-// ================================
-// Init
-// ================================
-document.addEventListener('DOMContentLoaded', () => {
-  loadPatients();
-  renderPrescriptions();
-
-  // Add save/export buttons
-  const saveBtn = document.createElement('button');
-  saveBtn.textContent = 'Save Clinical Record';
-  saveBtn.className = 'px-4 py-2 bg-indigo-600 text-white rounded-md';
-  saveBtn.onclick = saveClinicalRecord;
-
-  const exportBtn = document.createElement('button');
-  exportBtn.textContent = 'Export PDF';
-  exportBtn.className = 'px-4 py-2 bg-green-600 text-white rounded-md ml-2';
-  exportBtn.onclick = exportPDF;
-
-  clinicalContainer.appendChild(saveBtn);
-  clinicalContainer.appendChild(exportBtn);
-});
 </script>
 </body>
 </html>
