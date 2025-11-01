@@ -245,6 +245,8 @@ let currentPatientRecords = [];
 async function loadPatientRecords(patientId) {
   const container = document.getElementById('patientRecordsContainer');
   container.innerHTML = '';
+  if (!patientId) return;
+
   try {
     const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
     const data = await res.json();
@@ -255,6 +257,7 @@ async function loadPatientRecords(patientId) {
       return;
     }
 
+    // Display all records
     currentPatientRecords.forEach((rec, idx) => {
       const div = document.createElement('div');
       div.className = 'border-b py-2';
