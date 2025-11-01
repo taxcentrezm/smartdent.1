@@ -1,4 +1,5 @@
 import { client } from "../db.js";
+import { jsPDF } from "jspdf"; // Ensure jspdf is installed and available in your server environment
 
 export default async function handler(req, res) {
   try {
@@ -11,40 +12,70 @@ export default async function handler(req, res) {
     if (isClinical) {
       switch (req.method) {
         case "GET": {
-          const { patient_id } = req.query;
+          const { patient_id, clinic_id, export: exportType } = req.query;
           if (!patient_id) {
             return res.status(400).json({ error: "patient_id is required." });
           }
 
-          // Fetch all records for the patient, sorted by created_at DESC
-         const result = await client.execute(
-  "SELECT * FROM clinical_records WHERE patient_id = ? ORDER BY datetime(created_at) DESC;",
-  [patient_id]
-);
+          let query = "SELECT * FROM clinical_records WHERE patient_id = ?";
+          const params = [patient_id];
 
+          if (clinic_id) {
+            query += " AND clinic_id = ?";
+            params.push(clinic_id);
+          }
 
+          query += " ORDER BY datetime(created_at) DESC;";
+          const result = await client.execute(query, params);
+
+          // PDF Export
+          if (exportType === "pdf") {
+            const doc = new jsPDF();
+            doc.setFontSize(14);
+            doc.text(`Clinical Records for Patient ${patient_id}`, 10, 10);
+
+            result.rows.forEach((rec, i) => {
+              const y = 20 + i * 30;
+              doc.setFontSize(12);
+              doc.text(`Record ${i + 1} (Created: ${rec.created_at})`, 10, y);
+              doc.text(`Diagnosis: ${rec.diagnosis || "N/A"}`, 10, y + 6);
+              doc.text(`Charting: ${rec.charting || "N/A"}`, 10, y + 12);
+              doc.text(`Prescriptions: ${rec.prescriptions || "N/A"}`, 10, y + 18);
+              doc.text(`Notes: ${rec.notes || "N/A"}`, 10, y + 24);
+            });
+
+            const pdfBuffer = doc.output("arraybuffer");
+            res.setHeader("Content-Type", "application/pdf");
+            res.setHeader("Content-Disposition", `attachment; filename=clinical_records_${patient_id}.pdf`);
+            return res.status(200).send(Buffer.from(pdfBuffer));
+          }
+
+          // JSON response
           return res.status(200).json({
             message: `${result.rows.length} records fetched`,
-            data: result.rows
+            data: result.rows,
           });
         }
 
         case "POST": {
-          const { patient_id, charting, imaging, prescriptions, notes } = req.body;
-          if (!patient_id) {
-            return res.status(400).json({ error: "patient_id is required." });
+          const { patient_id, clinic_id, diagnosis, charting, imaging, prescriptions, notes } = req.body;
+
+          if (!patient_id || !clinic_id || !diagnosis) {
+            return res.status(400).json({ error: "patient_id, clinic_id, and diagnosis are required." });
           }
 
           await client.execute(
             `INSERT INTO clinical_records 
-              (patient_id, charting, imaging, prescriptions, notes, created_at)
-             VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP);`,
+              (patient_id, clinic_id, diagnosis, charting, imaging, prescriptions, notes, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);`,
             [
               patient_id,
+              clinic_id,
+              diagnosis,
               charting || "",
               JSON.stringify(imaging || []),
               JSON.stringify(prescriptions || []),
-              notes || ""
+              notes || "",
             ]
           );
 
