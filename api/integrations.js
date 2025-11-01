@@ -2,21 +2,25 @@ import { client } from "../db.js";
 
 export default async function handler(req, res) {
   try {
-    const { type } = req.query;
-const isClinical = type === "clinical";
+    const url = req.url || "";
+    const isClinical = url.includes("clinical");
+
     // ================================
     // CLINICAL RECORDS LOGIC
     // ================================
     if (isClinical) {
       switch (req.method) {
         case "GET": {
-          const patient_id = req.query?.patient_id;
+          const { patient_id } = req.query;
           if (!patient_id) {
             return res.status(400).json({ error: "patient_id is required." });
           }
 
+          // Fetch all records for the patient, sorted by created_at DESC
           const result = await client.execute(
-            "SELECT * FROM clinical_records WHERE patient_id = ? ORDER BY created_at DESC;",
+            `SELECT * FROM clinical_records
+             WHERE patient_id = ?
+             ORDER BY created_at DESC;`,
             [patient_id]
           );
 
@@ -28,7 +32,6 @@ const isClinical = type === "clinical";
 
         case "POST": {
           const { patient_id, charting, imaging, prescriptions, notes } = req.body;
-
           if (!patient_id) {
             return res.status(400).json({ error: "patient_id is required." });
           }
