@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     if (isClinical) {
       switch (req.method) {
         case "GET": {
-          const { patient_id } = req.query;
+          const patient_id = req.query?.patient_id;
           if (!patient_id) {
             return res.status(400).json({ error: "patient_id is required." });
           }
@@ -52,9 +52,7 @@ export default async function handler(req, res) {
 
         default:
           res.setHeader("Allow", ["GET", "POST"]);
-          return res
-            .status(405)
-            .json({ error: `Method ${req.method} not allowed for clinical records` });
+          return res.status(405).json({ error: `Method ${req.method} not allowed for clinical records` });
       }
     }
 
@@ -83,9 +81,7 @@ export default async function handler(req, res) {
 
       default:
         res.setHeader("Allow", ["GET", "POST"]);
-        return res
-          .status(405)
-          .json({ error: `Method ${req.method} not allowed for integrations` });
+        return res.status(405).json({ error: `Method ${req.method} not allowed for integrations` });
     }
   } catch (err) {
     console.error("❌ API Error (integrations):", err.message);
