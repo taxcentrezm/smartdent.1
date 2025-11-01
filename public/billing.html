@@ -405,28 +405,30 @@ async function addInvoice() {
     const amount = parseFloat(document.getElementById("newInvAmount").value);
     const status = document.getElementById("newInvStatus").value;
 
-    if (!serviceSel.value || !treatmentSel.value || !doctorId || isNaN(amount)) {
-      alert("⚠️ Please fill all required fields.");
+    // 🔒 Validate dropdowns and amount
+    if (!serviceSel.value || !treatmentSel.value || !doctorId || isNaN(amount) || amount <= 0) {
+      alert("⚠️ Please fill all required fields and enter a valid amount.");
       return;
     }
 
     let finalPatientId = patientId;
+    let patientFullName = "";
 
     // 🧾 Handle "new patient" creation
     if (patientId === "new") {
       const name = prompt("Enter full name for the new patient:");
       if (!name || !name.trim()) {
-        alert("❌ Patient name is required.");
+        alert("❌ Patient name is required and cannot be blank.");
         return;
       }
 
-      // Optional: ask for phone (since your DB requires it)
-      const phone = prompt("Enter phone number (optional):") || "N/A";
+      patientFullName = name.trim();
+      const phone = prompt("Enter phone number (optional):") || null;
 
       const pRes = await fetch("/api/patients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name: name.trim(), phone })
+        body: JSON.stringify({ full_name: patientFullName, phone })
       });
 
       const pData = await pRes.json();
@@ -435,14 +437,17 @@ async function addInvoice() {
       }
 
       finalPatientId = pData.patient_id || pData.data?.patient_id;
-      console.log("✅ New patient created:", finalPatientId);
+    } else {
+      // Get full name from selected patient
+      const selectedOption = document.querySelector(`#newInvPatient option[value="${patientId}"]`);
+      patientFullName = selectedOption?.textContent?.trim() || "Unknown";
     }
 
     // 🧾 Prepare invoice payload
     const invoiceData = {
-      clinic_id: "C001", // adapt to your clinic
+      clinic_id: "C001",
       patient_id: finalPatientId,
-      full_name: serviceSel.selectedOptions[0].text || "Unknown", // fallback
+      full_name: patientFullName,
       service_id: serviceSel.value,
       service_name: serviceSel.selectedOptions[0].text,
       treatment_id: treatmentSel.value,
@@ -450,12 +455,11 @@ async function addInvoice() {
       doctor_id: doctorId,
       cost: amount,
       quantity: 1,
-      date: new Date().toISOString(), // auto-generate current date
+      date: new Date().toISOString(),
       status,
-      stock_used: selectedStock || [] // optional: {stock_id, quantity, unit}
+      stock_used: selectedStock || []
     };
 
-    // 🚀 Send to API
     const res = await fetch("/api/invoices", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -465,7 +469,6 @@ async function addInvoice() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to save invoice.");
 
-    // ✅ Success UI update
     invoices.unshift(data.data || data);
     render();
     closeModal("invoiceModal");
@@ -475,8 +478,6 @@ async function addInvoice() {
     alert(`❌ Failed to save invoice: ${err.message}`);
   }
 }
-
-
 
 // =====================================================
 // 6️⃣ Stock mini modal logic
