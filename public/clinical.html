@@ -84,129 +84,133 @@
   </footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-  feather.replace();
+feather.replace();
 
-  const patientsDropdown = document.createElement('select');
-  patientsDropdown.id = 'patientSelect';
-  patientsDropdown.className = 'border rounded-md p-2 w-full mb-4';
-  
-  const clinicalContainer = document.getElementById('charting'); // main container for charting notes
-  let currentPatientId = null;
-  let clinicalData = null;
+const patientsDropdown = document.createElement('select');
+patientsDropdown.id = 'patientSelect';
+patientsDropdown.className = 'border rounded-md p-2 w-full mb-4';
+
+const clinicalContainer = document.getElementById('charting'); // main container for charting notes
+let currentPatientId = null;
 let clinicalRecords = [];
-  const prescriptions = [];
+const prescriptions = [];
 
-  // ================================
-  // Load patients from DB
-  // ================================
-  async function loadPatients() {
-    try {
-      const res = await fetch('/api/patients');
-      const data = await res.json();
-      if (!data.data) return;
+// ================================
+// Load patients from DB
+// ================================
+async function loadPatients() {
+  try {
+    const res = await fetch('/api/patients');
+    const data = await res.json();
+    if (!data.data) return;
 
-      data.data.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.patient_id;
-        opt.textContent = `${p.full_name} (${p.phone})`;
-        patientsDropdown.appendChild(opt);
-      });
+    // Clear previous options
+    patientsDropdown.innerHTML = '';
 
-      patientsDropdown.addEventListener('change', () => {
-        currentPatientId = patientsDropdown.value;
-        loadClinicalRecords(currentPatientId);
-      });
+    data.data.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.patient_id;
+      opt.textContent = `${p.full_name} (${p.phone})`;
+      patientsDropdown.appendChild(opt);
+    });
 
-      document.querySelector('main').prepend(patientsDropdown);
+    patientsDropdown.addEventListener('change', () => {
       currentPatientId = patientsDropdown.value;
       loadClinicalRecords(currentPatientId);
+    });
 
-    } catch (err) {
-      console.error('❌ Failed to load patients:', err);
-    }
+    document.querySelector('main').prepend(patientsDropdown);
+
+    // Load first patient by default
+    currentPatientId = patientsDropdown.value;
+    loadClinicalRecords(currentPatientId);
+
+  } catch (err) {
+    console.error('❌ Failed to load patients:', err);
   }
+}
 
-  // ================================
-  // Load clinical records for a patient
-  // ================================
+// ================================
+// Load clinical records for a patient
+// ================================
 async function loadClinicalRecords(patientId) {
   if (!patientId) return;
-
   currentPatientId = patientId;
 
   try {
-    fetch(`/api/integrations?type=clinical&patient_id=${patientId}`)
+    const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
+    const result = await res.json();
 
-    // Save fetched records locally
-    clinicalRecords = data.data || [];
-
+    clinicalRecords = result.data || [];
     console.log(`💡 Fetched ${clinicalRecords.length} clinical records for patient ${patientId}`);
 
     if (clinicalRecords.length === 0) {
+      clinicalContainer.querySelector('textarea').value = '';
       clinicalContainer.innerHTML = '<p class="text-gray-500">No clinical records found.</p>';
+      prescriptions.length = 0;
+      renderPrescriptions();
     } else {
       renderClinicalRecords();
     }
+
   } catch (err) {
     console.error('❌ Failed to load clinical records:', err);
     clinicalContainer.innerHTML = '<p class="text-red-500">Failed to load clinical records.</p>';
   }
 }
 
+// ================================
+// Render charting notes and prescriptions
+// ================================
+function renderClinicalRecords() {
+  const latestRecord = clinicalRecords[0]; // show most recent
+  const chartingTextarea = clinicalContainer.querySelector('textarea');
+  chartingTextarea.value = latestRecord?.charting || '';
 
-  // ================================
-  // Render charting notes and prescriptions
-  // ================================
-  function renderClinicalRecords() {
-    const chartingTextarea = clinicalContainer.querySelector('textarea');
-    chartingTextarea.value = clinicalData?.charting || '';
-    
-    prescriptions.length = 0;
-    if (clinicalData?.prescriptions) {
-      try {
-        JSON.parse(clinicalData.prescriptions).forEach(p => prescriptions.push(p));
-      } catch {}
-    }
-    renderPrescriptions();
+  // Reset prescriptions
+  prescriptions.length = 0;
+  if (latestRecord?.prescriptions) {
+    try {
+      JSON.parse(latestRecord.prescriptions).forEach(p => prescriptions.push(p));
+    } catch (_) {}
   }
 
-  function renderPrescriptions(){
-    const ul = document.getElementById('prescriptionList');
-    ul.innerHTML = '';
-    prescriptions.forEach(p => {
-      const li = document.createElement('li');
-      li.className = 'flex justify-between items-center';
-      li.innerHTML = `<div>${p.name} — <span class="text-gray-500">${p.dosage}</span></div>
-                      <button onclick="removePrescription('${p.name}')" class="text-rose-600"><i data-feather="x"></i></button>`;
-      ul.appendChild(li);
-    });
-    feather.replace();
-  }
+  renderPrescriptions();
+}
 
-  function addPrescription(){
-    const med = document.getElementById('medInput').value.trim();
-    if(!med) return;
-    prescriptions.push({ name: med, dosage: '—' });
-    document.getElementById('medInput').value = '';
-    renderPrescriptions();
-  }
+function renderPrescriptions() {
+  const ul = document.getElementById('prescriptionList');
+  ul.innerHTML = '';
+  prescriptions.forEach(p => {
+    const li = document.createElement('li');
+    li.className = 'flex justify-between items-center';
+    li.innerHTML = `<div>${p.name} — <span class="text-gray-500">${p.dosage}</span></div>
+                    <button onclick="removePrescription('${p.name}')" class="text-rose-600"><i data-feather="x"></i></button>`;
+    ul.appendChild(li);
+  });
+  feather.replace();
+}
 
-  function removePrescription(name){
-    const idx = prescriptions.findIndex(p => p.name === name);
-    if(idx !== -1) prescriptions.splice(idx, 1);
-    renderPrescriptions();
-  }
+function addPrescription() {
+  const med = document.getElementById('medInput').value.trim();
+  if (!med) return;
+  prescriptions.push({ name: med, dosage: '—' });
+  document.getElementById('medInput').value = '';
+  renderPrescriptions();
+}
 
- // ================================
+function removePrescription(name) {
+  const idx = prescriptions.findIndex(p => p.name === name);
+  if (idx !== -1) prescriptions.splice(idx, 1);
+  renderPrescriptions();
+}
+
+// ================================
 // Save clinical record
 // ================================
 async function saveClinicalRecord() {
-  if (!currentPatientId) {
-    return alert('⚠️ Please select a patient first.');
-  }
-
+  if (!currentPatientId) return alert('⚠️ Please select a patient first.');
   const charting = clinicalContainer.querySelector('textarea').value;
 
   try {
@@ -215,10 +219,10 @@ async function saveClinicalRecord() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         patient_id: currentPatientId,
-        charting_notes: charting,
-        prescriptions: prescriptions || [],
-        imaging: [], // add imaging support later
-        notes: ''    // optional additional notes
+        charting: charting,
+        prescriptions,
+        imaging: [], // optional
+        notes: ''
       })
     });
 
@@ -232,7 +236,6 @@ async function saveClinicalRecord() {
     }
 
     alert('✅ Clinical record saved successfully!');
-    // Reload the records to update UI
     loadClinicalRecords(currentPatientId);
 
   } catch (err) {
@@ -241,22 +244,26 @@ async function saveClinicalRecord() {
   }
 }
 
-  function exportClinicalPDF() {
+// ================================
+// Export clinical records to PDF
+// ================================
+function exportClinicalPDF() {
   if (!clinicalRecords.length) {
     alert('No clinical record to export.');
     console.log('💡 No clinical records fetched for export.');
     return;
   }
 
+  const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   doc.setFontSize(14);
   doc.text(`Clinical Records for Patient ${currentPatientId}`, 10, 10);
 
   clinicalRecords.forEach((rec, i) => {
-    const y = 20 + i * 20;
+    const y = 20 + i * 25;
     doc.setFontSize(12);
     doc.text(`Record ${i + 1} (Created: ${rec.created_at})`, 10, y);
-    doc.text(`Charting: ${rec.charting}`, 10, y + 6);
+    doc.text(`Charting: ${rec.charting || 'N/A'}`, 10, y + 6);
     doc.text(`Prescriptions: ${rec.prescriptions || '[]'}`, 10, y + 12);
   });
 
@@ -264,33 +271,10 @@ async function saveClinicalRecord() {
   console.log(`💡 Exported ${clinicalRecords.length} records to PDF.`);
 }
 
-  // ================================
-  // Export patient record to PDF
-  // ================================
-  function exportPDF() {
-    if (!clinicalData) return alert('No clinical record to export.');
-    
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-
-    doc.setFontSize(14);
-    doc.text(`Patient Clinical Record`, 20, 20);
-    doc.setFontSize(12);
-    doc.text(`Patient: ${patientsDropdown.selectedOptions[0].text}`, 20, 30);
-    doc.text(`Charting Notes:`, 20, 40);
-    doc.text(clinicalContainer.querySelector('textarea').value || 'N/A', 20, 50, { maxWidth: 170 });
-    
-    if (prescriptions.length) {
-      doc.text('Prescriptions:', 20, 100);
-      prescriptions.forEach((p, idx) => {
-        doc.text(`${idx+1}. ${p.name} — ${p.dosage}`, 25, 110 + idx * 10);
-      });
-    }
-
-    doc.save(`Clinical_Record_${currentPatientId}.pdf`);
-  }
-
-  window.showTab = function(id){
+// ================================
+// Tab switching
+// ================================
+window.showTab = function(id) {
   ['charting','imaging','prescriptions'].forEach(tab => {
     document.getElementById(tab).style.display = tab === id ? 'block' : 'none';
   });
@@ -298,27 +282,27 @@ async function saveClinicalRecord() {
   event.target.classList.add('tab-active');
 }
 
-  // ================================
-  // Init
-  // ================================
-  document.addEventListener('DOMContentLoaded', () => {
-    loadPatients();
-    renderPrescriptions();
+// ================================
+// Init
+// ================================
+document.addEventListener('DOMContentLoaded', () => {
+  loadPatients();
+  renderPrescriptions();
 
-    // Add save/export buttons
-    const saveBtn = document.createElement('button');
-    saveBtn.textContent = 'Save Clinical Record';
-    saveBtn.className = 'px-4 py-2 bg-indigo-600 text-white rounded-md';
-    saveBtn.onclick = saveClinicalRecord;
+  // Add save/export buttons
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save Clinical Record';
+  saveBtn.className = 'px-4 py-2 bg-indigo-600 text-white rounded-md';
+  saveBtn.onclick = saveClinicalRecord;
 
-    const exportBtn = document.createElement('button');
-    exportBtn.textContent = 'Export PDF';
-    exportBtn.className = 'px-4 py-2 bg-green-600 text-white rounded-md ml-2';
-    exportBtn.onclick = exportPDF;
+  const exportBtn = document.createElement('button');
+  exportBtn.textContent = 'Export PDF';
+  exportBtn.className = 'px-4 py-2 bg-green-600 text-white rounded-md ml-2';
+  exportBtn.onclick = exportClinicalPDF;
 
-    clinicalContainer.appendChild(saveBtn);
-    clinicalContainer.appendChild(exportBtn);
-  });
+  clinicalContainer.appendChild(saveBtn);
+  clinicalContainer.appendChild(exportBtn);
+});
 </script>
 
 
