@@ -7,6 +7,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/feather-icons"></script>
   <style>
+  /* Optional: smooth fade for modal overlay */
+  #modalOverlay {
+    transition: opacity 0.2s;
+  }
+</style>
+  <style>
     .card { @apply bg-white rounded-2xl shadow p-4; }
     .tab-active { @apply border-b-2 border-indigo-600 text-indigo-600 font-semibold; }
   </style>
@@ -50,67 +56,41 @@
   <button id="viewRecordsBtn" class="px-4 py-2 bg-green-600 text-white rounded-md ml-2">View Patient Records</button>
 </div>
 
-<!-- New Clinical Record Modal -->
-<div id="newRecordModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+<div id="modalOverlay" class="fixed inset-0 bg-black/50 hidden z-40"></div>
+
+<!-- 1️⃣ New Clinical Record Modal -->
+<div id="newRecordModal" class="fixed inset-0 flex items-center justify-center hidden z-50">
   <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg relative">
-    <h2 class="text-lg font-semibold mb-4">New Clinical Record</h2>
-    <button class="absolute top-3 right-3 text-gray-500" onclick="closeModal('newRecordModal')">✖</button>
-
-    <div class="mb-3">
-      <label>Patient:</label>
-      <select id="newPatientSelect" class="border rounded-md p-2 w-full"></select>
-    </div>
-    <div class="mb-3">
-      <label>Patient Name:</label>
-      <input type="text" id="newPatientName" class="border rounded-md p-2 w-full" readonly>
-    </div>
-    <div class="mb-3">
-      <label>Age:</label>
-      <input type="text" id="newPatientAge" class="border rounded-md p-2 w-full" readonly>
-    </div>
-    <div class="mb-3">
-      <label>Patient ID:</label>
-      <input type="text" id="newPatientId" class="border rounded-md p-2 w-full" readonly>
-    </div>
-    <div class="mb-3">
-      <label>Phone Number:</label>
-      <input type="text" id="newPatientPhone" class="border rounded-md p-2 w-full" readonly>
-    </div>
-    <div class="mb-3">
-      <label>Clinic Name:</label>
-      <input type="text" id="newClinicName" class="border rounded-md p-2 w-full" readonly>
-    </div>
-    <div class="mb-3">
-      <label>Charting Notes:</label>
-      <textarea id="newCharting" class="border rounded-md p-2 w-full h-24"></textarea>
-    </div>
-    <div class="mb-3">
-      <label>Prescriptions (comma separated):</label>
-      <input type="text" id="newPrescriptions" class="border rounded-md p-2 w-full">
-    </div>
-    <div class="mb-3">
-      <label>Additional Notes:</label>
-      <textarea id="newNotes" class="border rounded-md p-2 w-full h-16"></textarea>
-    </div>
-
-    <button class="px-4 py-2 bg-indigo-600 text-white rounded-md" onclick="saveNewClinicalRecord()">Save Record</button>
+    <h2 class="text-xl font-semibold mb-4">New Clinical Record</h2>
+    <button onclick="closeModal('newRecordModal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">&times;</button>
+    
+    <form id="newRecordForm" class="space-y-3">
+      <input type="text" id="patientName" placeholder="Patient Name" class="w-full border rounded p-2" required />
+      <input type="number" id="patientAge" placeholder="Age" class="w-full border rounded p-2" required />
+      <input type="text" id="patientId" placeholder="Patient ID" class="w-full border rounded p-2" required />
+      <input type="text" id="patientPhone" placeholder="Phone Number" class="w-full border rounded p-2" />
+      <input type="text" id="clinicName" placeholder="Clinic Name" class="w-full border rounded p-2" disabled />
+      <textarea id="diagnosis" placeholder="Diagnosis" class="w-full border rounded p-2" required></textarea>
+      <textarea id="charting" placeholder="Charting Notes" class="w-full border rounded p-2"></textarea>
+      <textarea id="notes" placeholder="Additional Notes" class="w-full border rounded p-2"></textarea>
+      <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Save Record</button>
+    </form>
   </div>
 </div>
 
-<!-- View Patient Records Modal -->
-<div id="viewRecordsModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-  <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl relative">
-    <h2 class="text-lg font-semibold mb-4">Patient Clinical Records</h2>
-    <button class="absolute top-3 right-3 text-gray-500" onclick="closeModal('viewRecordsModal')">✖</button>
-
-    <div class="mb-3">
-      <label>Select Patient:</label>
-      <select id="recordsPatientSelect" class="border rounded-md p-2 w-full"></select>
-    </div>
-
-    <div id="patientRecordsContainer" class="mt-4 max-h-96 overflow-y-auto border p-3 rounded-md"></div>
-
+<!-- 2️⃣ View Patient Records Modal -->
+<div id="viewRecordsModal" class="fixed inset-0 flex items-center justify-center hidden z-50">
+  <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
+    <h2 class="text-xl font-semibold mb-4">Patient Records</h2>
+    <button onclick="closeModal('viewRecordsModal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">&times;</button>
+    
+    <div id="patientRecordsContainer" class="space-y-4"></div>
     <button class="px-4 py-2 bg-green-600 text-white rounded-md mt-3" onclick="exportPatientRecordsPDF()">Export PDF</button>
+  </div>
+</div>
+
+
+    
   </div>
 </div>
     </div>
