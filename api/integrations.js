@@ -58,7 +58,7 @@ export default async function handler(req, res) {
           const conditions = [];
 
           if (patient_id) {
-            conditions.push("TRIM(LOWER(cr.patient_id)) = ?");
+            conditions.push("TRIM(LOWER(cr.patient_id)) = TRIM(LOWER(?))");
             params.push(patient_id.trim().toLowerCase());
           }
 
