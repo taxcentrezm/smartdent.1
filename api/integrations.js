@@ -11,34 +11,40 @@ export default async function handler(req, res) {
     if (isClinical) {
       switch (req.method) {
         // ---------- FETCH CLINICAL RECORDS ----------
-        case "GET": {
-          const { patient_id, clinic_id } = req.query;
+       case "GET": {
+  const { patient_id, clinic_id, distinct } = req.query;
 
-          if (!patient_id) {
-            console.log("⚠️ Missing patient_id in query");
-            return res.status(400).json({ error: "patient_id is required." });
-          }
+  // 1️⃣ Distinct patient list mode
+  if (distinct === "patients") {
+    const result = await client.execute(`
+      SELECT DISTINCT patient_id FROM clinical_records ORDER BY patient_id;
+    `);
+    return res.status(200).json({ data: result.rows });
+  }
 
-          const cleanId = patient_id.trim().toLowerCase();
-          let query = "SELECT * FROM clinical_records WHERE LOWER(patient_id) = ?";
-          const params = [cleanId];
+  // 2️⃣ Normal record fetch mode
+  if (!patient_id) {
+    return res.status(400).json({ error: "patient_id is required." });
+  }
 
-          if (clinic_id) {
-            query += " AND clinic_id = ?";
-            params.push(clinic_id.trim());
-          }
+  const cleanId = patient_id.trim().toLowerCase();
+  let query = "SELECT * FROM clinical_records WHERE LOWER(patient_id) = ?";
+  const params = [cleanId];
 
-          query += " ORDER BY datetime(created_at) DESC;";
-          console.log("🔍 Executing query:", query, "with params:", params);
+  if (clinic_id) {
+    query += " AND clinic_id = ?";
+    params.push(clinic_id.trim());
+  }
 
-          const result = await client.execute(query, params);
-          console.log(`💡 Fetched ${result.rows.length} clinical records for patient_id: ${cleanId}`);
+  query += " ORDER BY datetime(created_at) DESC;";
+  const result = await client.execute(query, params);
 
-          return res.status(200).json({
-            message: `${result.rows.length} records fetched`,
-            data: result.rows,
-          });
-        }
+  return res.status(200).json({
+    message: `${result.rows.length} records fetched`,
+    data: result.rows,
+  });
+}
+
 
         // ---------- CREATE NEW CLINICAL RECORD ----------
         case "POST": {
