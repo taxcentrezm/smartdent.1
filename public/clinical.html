@@ -135,7 +135,7 @@ async function loadClinicalRecords(patientId) {
   currentPatientId = patientId;
 
   try {
-    const res = await fetch(`/api/integrations/clinical?patient_id=${patientId}`);
+    fetch(`/api/integrations?type=clinical&patient_id=${patientId}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
