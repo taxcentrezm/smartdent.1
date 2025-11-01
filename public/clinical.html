@@ -130,6 +130,7 @@ async function loadPatients() {
 // ================================
 async function loadClinicalRecords(patientId) {
   if (!patientId) return;
+
   currentPatientId = patientId;
 
   try {
@@ -137,24 +138,30 @@ async function loadClinicalRecords(patientId) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // Save fetched records locally
     clinicalRecords = data.data || [];
+
     console.log(`💡 Fetched ${clinicalRecords.length} clinical records for patient ${patientId}`);
 
-    if (!clinicalRecords.length) {
-      clinicalContainer.innerHTML = '<p class="text-gray-500">No clinical records found.</p>';
-      return;
+    if (!clinicalContainer.querySelector('textarea')) {
+      clinicalContainer.innerHTML = `<textarea class="border rounded w-full p-2" rows="6"></textarea>`;
     }
 
-    // Prefill the textarea with the latest visit
-    const latestVisit = clinicalRecords[0]; // assuming data sorted by created_at DESC
-    renderClinicalRecords(latestVisit);
+    if (clinicalRecords.length === 0) {
+      clinicalContainer.querySelector('textarea').value = '';
+      clinicalContainer.innerHTML += '<p class="text-gray-500">No clinical records found.</p>';
+    } else {
+      // Prefill with the latest visit (first in the sorted array)
+      clinicalData = clinicalRecords[0];
+      clinicalContainer.querySelector('textarea').value = clinicalData.charting || '';
+      renderPrescriptions();
+    }
 
   } catch (err) {
     console.error('❌ Failed to load clinical records:', err);
     clinicalContainer.innerHTML = '<p class="text-red-500">Failed to load clinical records.</p>';
   }
 }
+
 
 // ================================
 // Render charting notes and prescriptions
