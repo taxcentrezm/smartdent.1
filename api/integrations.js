@@ -14,55 +14,56 @@ export default async function handler(req, res) {
         // GET → fetch records
         // -----------------------
         case "GET": {
-          const { patient_id, clinic_id, distinct } = req.query;
+  const { patient_id, clinic_id, distinct } = req.query;
 
-          // 1️⃣ Distinct patient list mode
-          if (distinct === "patients") {
-            const result = await client.execute(`
-              SELECT DISTINCT cr.patient_id, p.full_name, p.age
-              FROM clinical_records cr
-              LEFT JOIN patients p ON cr.patient_id = p.patient_id
-              ORDER BY cr.patient_id;
-            `);
-            console.log(`📋 Distinct patient list returned: ${result.rows.length}`);
-            return res.status(200).json({ data: result.rows });
-          }
+  // 1️⃣ Distinct patient list mode
+  if (distinct === "patients") {
+    const result = await client.execute(`
+      SELECT DISTINCT cr.patient_id, p.full_name,
+        CAST((julianday('now') - julianday(p.dob)) / 365.25 AS INTEGER) AS age
+      FROM clinical_records cr
+      LEFT JOIN patients p ON cr.patient_id = p.patient_id
+      ORDER BY cr.patient_id;
+    `);
+    console.log(`📋 Distinct patient list returned: ${result.rows.length}`);
+    return res.status(200).json({ data: result.rows });
+  }
 
-          // 2️⃣ Full record fetch mode
-          let query = `
-            SELECT cr.*, p.full_name, p.age
-            FROM clinical_records cr
-            LEFT JOIN patients p ON cr.patient_id = p.patient_id
-          `;
-          const params = [];
-          const conditions = [];
+  // 2️⃣ Full record fetch mode
+  let query = `
+    SELECT cr.*, p.full_name,
+      CAST((julianday('now') - julianday(p.dob)) / 365.25 AS INTEGER) AS age
+    FROM clinical_records cr
+    LEFT JOIN patients p ON cr.patient_id = p.patient_id
+  `;
+  const params = [];
+  const conditions = [];
 
-          if (patient_id) {
-            conditions.push("LOWER(cr.patient_id) = ?");
-            params.push(patient_id.trim().toLowerCase());
-          }
+  if (patient_id) {
+    conditions.push("LOWER(cr.patient_id) = ?");
+    params.push(patient_id.trim().toLowerCase());
+  }
 
-          if (clinic_id) {
-            conditions.push("cr.clinic_id = ?");
-            params.push(clinic_id.trim());
-          }
+  if (clinic_id) {
+    conditions.push("cr.clinic_id = ?");
+    params.push(clinic_id.trim());
+  }
 
-          if (conditions.length) {
-            query += " WHERE " + conditions.join(" AND ");
-          }
+  if (conditions.length) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
 
-          query += " ORDER BY datetime(cr.created_at) DESC;";
-          console.log("🔍 Executing query:", query, "with params:", params);
+  query += " ORDER BY datetime(cr.created_at) DESC;";
+  console.log("🔍 Executing query:", query, "with params:", params);
 
-          const result = await client.execute(query, params);
-          console.log(`✅ ${result.rows.length} clinical records fetched.`);
+  const result = await client.execute(query, params);
+  console.log(`✅ ${result.rows.length} clinical records fetched.`);
 
-          return res.status(200).json({
-            message: `${result.rows.length} record(s) fetched`,
-            data: result.rows,
-          });
-        }
-
+  return res.status(200).json({
+    message: `${result.rows.length} record(s) fetched`,
+    data: result.rows,
+  });
+}
         // -----------------------
         // POST → create record
         // -----------------------
