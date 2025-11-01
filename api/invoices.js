@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       // POST: Create new invoice
       // =====================================================
       case "POST": {
-        console.log("📥 Creating new invoice...");
+        console.log("🧾 Creating new invoice...");
 
         const {
           clinic_id,
@@ -36,40 +36,53 @@ export default async function handler(req, res) {
           quantity = 1,
           cost,
           date,
+          phone,
+          email,
+          dob,
+          gender,
         } = req.body;
 
         // 1️⃣ Validate required fields
-        if (!clinic_id || !patient_id || !cost || !date) {
+        if (!clinic_id || !cost || !date) {
           return res.status(400).json({
-            error: "Required fields missing: clinic_id, patient_id, cost, or date",
+            error: "Missing required fields: clinic_id, cost, or date",
           });
         }
 
-        // 2️⃣ Check if patient exists
+        // 2️⃣ Ensure patient exists or create new one
+        let finalPatientId = patient_id;
         let patientFullName = full_name?.trim() || "";
 
         try {
+          if (!finalPatientId || finalPatientId === "new") {
+            finalPatientId = randomUUID();
+            console.log(`🆕 Generated patient_id: ${finalPatientId}`);
+          }
+
           const existingPatient = await client.execute(
             "SELECT * FROM patients WHERE patient_id = ?;",
-            [patient_id]
+            [finalPatientId]
           );
 
-          // If found, use DB value
-          if (existingPatient.rows.length > 0) {
-            patientFullName = existingPatient.rows[0].full_name;
-          } else {
-            // Only create patient if full_name is provided
-            if (!patientFullName) {
-              return res.status(400).json({
-                error: "Cannot create new patient without full_name.",
-              });
-            }
-
+          if (existingPatient.rows.length === 0) {
             await client.execute(
-              "INSERT INTO patients (patient_id, full_name, clinic_id) VALUES (?, ?, ?);",
-              [patient_id, patientFullName, clinic_id]
+              `INSERT INTO patients (
+                patient_id, clinic_id, full_name, phone, email, dob, gender, created_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'));`,
+              [
+                finalPatientId,
+                clinic_id,
+                patientFullName || "Unnamed Patient",
+                phone || null,
+                email || null,
+                dob || null,
+                gender || null,
+              ]
             );
-            console.log(`✅ Patient created: ${patientFullName}`);
+            console.log(`✅ New patient created: ${patientFullName}`);
+          } else {
+            patientFullName = existingPatient.rows[0].full_name;
+            console.log(`👤 Existing patient found: ${patientFullName}`);
           }
         } catch (err) {
           console.error("❌ Patient check/create failed:", err.message);
@@ -79,11 +92,11 @@ export default async function handler(req, res) {
           });
         }
 
-        // 3️⃣ Create appointment
+        // 3️⃣ Create appointment entry
         try {
           await client.execute(
             "INSERT INTO appointments (clinic_id, patient_id, date, status) VALUES (?, ?, ?, ?);",
-            [clinic_id, patient_id, date, "Scheduled"]
+            [clinic_id, finalPatientId, date, "Scheduled"]
           );
           console.log("✅ Appointment created");
         } catch (err) {
@@ -107,13 +120,10 @@ export default async function handler(req, res) {
                 "INSERT INTO treatments (treatment_id, name, service_id, price) VALUES (?, ?, ?, ?);",
                 [treatment_id, treatment_name, service_id || null, cost]
               );
-              console.log(`✅ Treatment created: ${treatment_name}`);
+              console.log(`✅ Treatment recorded: ${treatment_name}`);
             }
           } catch (err) {
-            return res.status(500).json({
-              error: "Failed to create treatment",
-              details: err.message,
-            });
+            console.error("❌ Treatment error:", err.message);
           }
         }
 
@@ -127,27 +137,22 @@ export default async function handler(req, res) {
 
             if (stockItem.rows.length > 0) {
               const currentQty = stockItem.rows[0].quantity;
-              if (currentQty < quantity) {
-                return res.status(400).json({
-                  error: `Not enough stock for ${treatment_name}. Available: ${currentQty}`,
-                });
+              if (currentQty >= quantity) {
+                await client.execute(
+                  "UPDATE stock SET quantity = ? WHERE item = ? AND clinic_id = ?;",
+                  [currentQty - quantity, treatment_name, clinic_id]
+                );
+                console.log(`✅ Stock updated: ${treatment_name} → ${currentQty - quantity}`);
+              } else {
+                console.warn(`⚠️ Insufficient stock for ${treatment_name}`);
               }
-
-              await client.execute(
-                "UPDATE stock SET quantity = ? WHERE item = ? AND clinic_id = ?;",
-                [currentQty - quantity, treatment_name, clinic_id]
-              );
-              console.log(`✅ Stock deducted for ${treatment_name}`);
             }
           } catch (err) {
-            return res.status(500).json({
-              error: "Failed to deduct stock",
-              details: err.message,
-            });
+            console.error("❌ Stock deduction failed:", err.message);
           }
         }
 
-        // 6️⃣ Record service if not exists
+        // 6️⃣ Record service if missing
         if (service_id && service_name) {
           try {
             const existingService = await client.execute(
@@ -160,43 +165,46 @@ export default async function handler(req, res) {
                 "INSERT INTO services (service_id, clinic_id, name, price) VALUES (?, ?, ?, ?);",
                 [service_id, clinic_id, service_name, cost]
               );
-              console.log(`✅ Service recorded: ${service_name}`);
+              console.log(`✅ Service added: ${service_name}`);
             }
           } catch (err) {
-            return res.status(500).json({
-              error: "Failed to record service",
-              details: err.message,
-            });
+            console.error("❌ Service creation failed:", err.message);
           }
         }
 
-        // 7️⃣ Insert invoice
+        // 7️⃣ Create invoice
         try {
           const invoice_id = randomUUID();
+          const total = cost * quantity;
+
           await client.execute(
-            `INSERT INTO invoices
-              (invoice_id, clinic_id, patient_id, full_name, service_id, service_name, treatment_id, treatment_name, quantity, total, status, date, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+            `INSERT INTO invoices (
+              invoice_id, clinic_id, patient_id, full_name,
+              service_id, service_name, treatment_id, treatment_name,
+              quantity, total, status, date, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
             [
               invoice_id,
               clinic_id,
-              patient_id,
+              finalPatientId,
               patientFullName || "Unknown",
               service_id || null,
               service_name || null,
               treatment_id || null,
               treatment_name || null,
               quantity,
-              cost * quantity,
+              total,
               "Invoice",
               date,
               new Date().toISOString(),
             ]
           );
+
           console.log(`✅ Invoice created: ${invoice_id}`);
           return res.status(201).json({
             message: "Invoice created successfully",
             invoice_id,
+            patient_id: finalPatientId,
           });
         } catch (err) {
           console.error("❌ Failed to create invoice:", err.message);
@@ -207,16 +215,19 @@ export default async function handler(req, res) {
         }
       }
 
+      // =====================================================
+      // Unsupported method
+      // =====================================================
       default:
         res.setHeader("Allow", ["GET", "POST"]);
-        return res
-          .status(405)
-          .json({ error: `Method ${req.method} not allowed` });
+        return res.status(405).json({
+          error: `Method ${req.method} not allowed`,
+        });
     }
   } catch (err) {
     console.error("❌ Invoices API failed:", err.message);
     return res.status(500).json({
-      error: "Unexpected error",
+      error: "Unexpected server error",
       details: err.message,
     });
   }
