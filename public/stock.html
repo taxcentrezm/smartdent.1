@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartDent ERP — Stock Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+  <!-- Header -->
+  <header class="bg-indigo-600 text-white py-4 shadow flex justify-between px-6">
+    <h1 class="text-xl font-semibold">🦷 SmartDent ERP — Stock Management</h1>
+    <div class="flex gap-2">
+      <button id="addStockBtn" class="bg-white text-indigo-600 px-4 py-2 rounded shadow">+ Add Item</button>
+    </div>
+  </header>
+
+  <!-- Analytics Cards -->
+  <section class="grid md:grid-cols-3 gap-4 p-6">
+    <div class="bg-white p-4 rounded-xl shadow text-center">
+      <h2 class="text-gray-500">Total Items</h2>
+      <p id="totalItems" class="text-2xl font-bold text-indigo-600">0</p>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow text-center">
+      <h2 class="text-gray-500">Total Quantity</h2>
+      <p id="totalQuantity" class="text-2xl font-bold text-green-600">0</p>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow text-center">
+      <h2 class="text-gray-500">Low Stock</h2>
+      <p id="lowStock" class="text-2xl font-bold text-red-500">0</p>
+    </div>
+  </section>
+
+  <!-- Chart -->
+  <section class="p-6">
+    <div class="bg-white p-4 rounded-xl shadow">
+      <canvas id="stockChart" height="120"></canvas>
+    </div>
+  </section>
+
+  <!-- Stock Table -->
+  <section class="p-6">
+    <div class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-lg font-semibold mb-4">Inventory</h2>
+      <table class="min-w-full text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="text-left p-2">Name</th>
+            <th class="text-left p-2">Quantity</th>
+            <th class="text-left p-2">Reorder Level</th>
+            <th class="text-left p-2">Auto Reorder</th>
+            <th class="text-left p-2">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="stockTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Supplier Section -->
+  <section class="p-6">
+    <div class="bg-white p-4 rounded-xl shadow">
+      <h2 class="text-lg font-semibold mb-4">🛒 Order from Suppliers</h2>
+      <div id="suppliers" class="grid md:grid-cols-3 gap-3"></div>
+    </div>
+  </section>
+
+  <!-- Add Stock Modal -->
+  <div id="addStockModal" class="fixed inset-0 hidden bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md relative">
+      <h2 class="text-lg font-semibold mb-4">Add Stock Item</h2>
+      <form id="addStockForm" class="space-y-3">
+        <input name="name" placeholder="Item Name" required class="w-full border rounded p-2" />
+        <input name="quantity" type="number" placeholder="Quantity" class="w-full border rounded p-2" />
+        <input name="reorder_level" type="number" placeholder="Reorder Level" class="w-full border rounded p-2" />
+        <select name="auto_reorder" class="w-full border rounded p-2">
+          <option value="FALSE">Auto Reorder: Off</option>
+          <option value="TRUE">Auto Reorder: On</option>
+        </select>
+        <button class="bg-indigo-600 text-white px-4 py-2 rounded w-full">Save</button>
+      </form>
+      <button onclick="closeModal('addStockModal')" class="absolute top-3 right-3 text-gray-500">✖</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let stockData = [];
+let chart;
+
+// ===============================
+// 1️⃣ Fetch & Render Stock
+// ===============================
+async function fetchStock() {
+  try {
+    const res = await fetch('/api/stock?type=stock&clinic_id=clinic_001');
+    const json = await res.json();
+    stockData = json.data || [];
+    renderStockTable();
+    renderStockChart();
+  } catch (err) {
+    console.error('❌ Failed to fetch stock:', err);
+  }
+}
+
+// ===============================
+// 2️⃣ Fetch & Render Analytics
+// ===============================
+async function fetchAnalytics() {
+  try {
+    const res = await fetch('/api/stock?type=analytics&clinic_id=clinic_001');
+    const data = await res.json();
+    document.getElementById('totalItems').textContent = data.total_items || 0;
+    document.getElementById('totalQuantity').textContent = data.total_quantity || 0;
+    document.getElementById('lowStock').textContent = data.low_stock || 0;
+  } catch (err) {
+    console.error('❌ Failed to fetch analytics:', err);
+  }
+}
+
+// ===============================
+// 3️⃣ Fetch & Render Suppliers (E-commerce)
+// ===============================
+async function fetchSuppliers() {
+  try {
+    const res = await fetch('/api/stock?type=suppliers');
+    const { data } = await res.json();
+    const supplierContainer = document.getElementById('suppliers');
+    supplierContainer.innerHTML = data.map(s => `
+      <div class="p-4 border rounded-xl bg-white shadow hover:shadow-md transition">
+        <p class="font-semibold text-indigo-600">${s.item}</p>
+        <p class="text-sm text-gray-500 mb-2">${s.name}</p>
+        <p class="font-bold text-gray-800">ZMW ${s.price}</p>
+        <button onclick="openOrderModal('${s.id}','${s.name}','${s.item}','${s.price}')"
+          class="mt-2 px-3 py-1 bg-indigo-600 text-white rounded-md text-sm">Order</button>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('❌ Failed to fetch suppliers:', err);
+  }
+}
+
+// ===============================
+// 4️⃣ Render Stock Table
+// ===============================
+function renderStockTable() {
+  const tbody = document.getElementById('stockTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (stockData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500 py-4">No stock found</td></tr>`;
+    return;
+  }
+
+  stockData.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="px-3 py-2 border">${item.name || item.item}</td>
+      <td class="px-3 py-2 border text-center">${item.quantity}</td>
+      <td class="px-3 py-2 border text-center">${item.reorder_level}</td>
+      <td class="px-3 py-2 border text-center">
+        <button class="text-red-600 hover:underline text-sm" onclick="deleteStock('${item.stock_id}')">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ===============================
+// 5️⃣ Render Stock Chart
+// ===============================
+function renderStockChart() {
+  const ctx = document.getElementById('stockChart').getContext('2d');
+  if (chart) chart.destroy();
+
+  const labels = stockData.map(i => i.name || i.item);
+  const quantities = stockData.map(i => i.quantity);
+
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Stock Quantity',
+          data: quantities,
+          borderWidth: 1,
+          backgroundColor: 'rgba(79,70,229,0.5)',
+          borderColor: 'rgba(79,70,229,1)'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true } },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+// ===============================
+// 6️⃣ Add New Stock Item
+// ===============================
+async function addStockItem() {
+  const name = document.getElementById('stockName').value.trim();
+  const quantity = parseInt(document.getElementById('stockQty').value) || 0;
+  const reorder_level = parseInt(document.getElementById('reorderLevel').value) || 10;
+
+  if (!name) return alert('Enter stock item name.');
+
+  const res = await fetch('/api/stock?type=stock&clinic_id=clinic_001', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, quantity, reorder_level })
+  });
+
+  if (res.ok) {
+    alert('✅ Stock item added');
+    document.getElementById('stockName').value = '';
+    document.getElementById('stockQty').value = '';
+    document.getElementById('reorderLevel').value = '';
+    fetchStock();
+    fetchAnalytics();
+  } else {
+    const err = await res.json();
+    alert(`❌ Failed: ${err.error}`);
+  }
+}
+
+// ===============================
+// 7️⃣ Delete Stock Item
+// ===============================
+async function deleteStock(stock_id) {
+  if (!confirm('Delete this stock item?')) return;
+
+  const res = await fetch(`/api/stock?stock_id=${stock_id}&clinic_id=clinic_001`, {
+    method: 'DELETE'
+  });
+
+  if (res.ok) {
+    alert('🗑️ Stock item deleted');
+    fetchStock();
+    fetchAnalytics();
+  } else {
+    const err = await res.json();
+    alert(`❌ ${err.error}`);
+  }
+}
+
+// ===============================
+// 8️⃣ Order from Supplier
+// ===============================
+function openOrderModal(id, supplierName, itemName, price) {
+  const modal = document.getElementById('orderModal');
+  modal.classList.remove('hidden');
+  document.getElementById('supplierName').textContent = supplierName;
+  document.getElementById('orderItem').textContent = itemName;
+  document.getElementById('orderQty').value = 1;
+  document.getElementById('orderPrice').textContent = price;
+  modal.dataset.supplierId = id;
+  modal.dataset.itemName = itemName;
+  modal.dataset.price = price;
+}
+
+function closeOrderModal() {
+  document.getElementById('orderModal').classList.add('hidden');
+}
+
+async function confirmOrder() {
+  const modal = document.getElementById('orderModal');
+  const supplier_id = modal.dataset.supplierId;
+  const item = modal.dataset.itemName;
+  const price = modal.dataset.price;
+  const quantity = parseInt(document.getElementById('orderQty').value) || 1;
+
+  const res = await fetch('/api/stock?type=order&clinic_id=clinic_001', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ supplier_id, item, quantity, price })
+  });
+
+  if (res.ok) {
+    alert('🛒 Order placed successfully');
+    closeOrderModal();
+  } else {
+    const err = await res.json();
+    alert(`❌ ${err.error}`);
+  }
+}
+
+// ===============================
+// 9️⃣ Init
+// ===============================
+document.addEventListener('DOMContentLoaded', () => {
+  fetchStock();
+  fetchAnalytics();
+  fetchSuppliers();
+});
+</script>
+</body>
+</html>
