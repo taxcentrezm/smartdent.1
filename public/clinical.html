@@ -68,10 +68,16 @@
       <select id="newPatientSelect" class="w-full border rounded p-2 mb-2">
   <!-- Options populated dynamically from /api/patients -->
 </select>
+
+      <label>Patient Name </label>
       <input type="text" id="patientName" placeholder="Patient Name" class="w-full border rounded p-2" required />
+      <label>Patient Age</label>
       <input type="number" id="patientAge" placeholder="Age" class="w-full border rounded p-2" required />
+      <label>Patient ID</label>
       <input type="text" id="patientId" placeholder="Patient ID" class="w-full border rounded p-2" required />
+      <label>Phone Number</label>
       <input type="text" id="patientPhone" placeholder="Phone Number" class="w-full border rounded p-2" />
+      <label>Clinic Name</label>
       <input type="text" id="clinicName" placeholder="Clinic Name" class="w-full border rounded p-2" disabled />
       <textarea id="diagnosis" placeholder="Diagnosis" class="w-full border rounded p-2" required></textarea>
       <textarea id="charting" placeholder="Charting Notes" class="w-full border rounded p-2"></textarea>
@@ -86,6 +92,7 @@
   <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
     <h2 class="text-xl font-semibold mb-4">Patient Records</h2>
     <button onclick="closeModal('viewRecordsModal')" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">&times;</button>
+    <label>Patient Name/ID</label>
     <select id="recordsPatientSelect" class="w-full border rounded p-2 mb-4">
   <!-- Options populated dynamically from /api/integrations?type=clinical -->
 </select>
