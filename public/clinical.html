@@ -130,23 +130,22 @@
   // Load clinical records for a patient
   // ================================
   async function loadClinicalRecords(patientId) {
-    if (!patientId) return;
+  if (!patientId) return;
 
-    try {
-     const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      clinicalData = data.data?.[0] || null;
-
-      renderClinicalRecords();
-
-    } catch (err) {
-      console.error('❌ Failed to load clinical records:', err);
-      clinicalContainer.querySelector('textarea').value = '';
-      prescriptions.length = 0;
-      renderPrescriptions();
-    }
+  try {
+    const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    clinicalData = data.data?.[0] || null;
+    renderClinicalRecords();
+  } catch (err) {
+    console.error('❌ Failed to load clinical records:', err);
+    clinicalContainer.querySelector('textarea').value = '';
+    prescriptions.length = 0;
+    renderPrescriptions();
   }
+}
+
 
   // ================================
   // Render charting notes and prescriptions
@@ -259,6 +258,14 @@ async function saveClinicalRecord() {
 
     doc.save(`Clinical_Record_${currentPatientId}.pdf`);
   }
+
+  window.showTab = function(id){
+  ['charting','imaging','prescriptions'].forEach(tab => {
+    document.getElementById(tab).style.display = tab === id ? 'block' : 'none';
+  });
+  document.querySelectorAll('button').forEach(btn => btn.classList.remove('tab-active'));
+  event.target.classList.add('tab-active');
+}
 
   // ================================
   // Init
