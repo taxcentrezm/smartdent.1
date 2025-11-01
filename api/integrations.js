@@ -2,9 +2,8 @@ import { client } from "../db.js";
 
 export default async function handler(req, res) {
   try {
-    const url = req.url || "";
-    const isClinical = url.includes("clinical");
-
+    const { type } = req.query;
+const isClinical = type === "clinical";
     // ================================
     // CLINICAL RECORDS LOGIC
     // ================================
