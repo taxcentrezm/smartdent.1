@@ -30,7 +30,7 @@
         </button>
         <div class="relative">
           <button class="flex items-center gap-2 bg-white/90 px-3 py-2 rounded-full shadow-sm">
-            <img src="assets/images/avatar(1|).jpg" class="w-8 h-8 rounded-full object-cover">
+            <img src="assets/images/avatar(1).jpg" class="w-8 h-8 rounded-full object-cover">
             <span class="hidden md:inline-block text-sm">Dr._____</span>
             <i data-feather="chevron-down"></i>
           </button>
@@ -94,36 +94,43 @@
   let selectedPatient = null;
 
   /* ==========================
-     Load patients for dropdown
+     Load patients
   ========================== */
   async function loadPatients() {
     try {
       const res = await fetch("/api/patients");
       const data = await res.json();
-      const select = document.createElement("select");
+      const select = document.getElementById("patientSelect") || document.createElement("select");
       select.id = "patientSelect";
       select.className = "border rounded-md px-3 py-2 w-full mb-4";
-
       select.innerHTML = `<option value="">-- Select Patient --</option>`;
-      data.data.forEach(p => {
-        select.innerHTML += `<option value="${p.patient_id}">${p.full_name} (${p.phone})</option>`;
+
+      (data.data || []).forEach(p => {
+        select.innerHTML += `<option value="${p.patient_id}">${p.full_name}</option>`;
       });
 
-      select.addEventListener("change", e => {
+      select.onchange = e => {
         selectedPatient = e.target.value;
-        if (selectedPatient) {
-          loadClinicalRecords(selectedPatient);
-        } else {
-          document.getElementById("chartingNotes").value = "";
-          document.getElementById("prescriptionList").innerHTML = "";
-        }
-      });
+        if (selectedPatient) loadClinicalRecords(selectedPatient);
+        else resetClinical();
+      };
 
-      const container = document.querySelector(".card");
-      container.insertBefore(select, container.firstChild);
+      const card = document.querySelector(".card");
+      if (!document.getElementById("patientSelect")) {
+        card.insertBefore(select, card.firstChild);
+      }
     } catch (err) {
       console.error("❌ Failed to load patients:", err);
     }
+  }
+
+  /* ==========================
+     Reset UI
+  ========================== */
+  function resetClinical() {
+    document.getElementById("chartingNotes").value = "";
+    prescriptions.length = 0;
+    renderPrescriptions();
   }
 
   /* ==========================
@@ -131,64 +138,57 @@
   ========================== */
   async function loadClinicalRecords(patient_id) {
     try {
-      const res = await fetch(`/api/integrations/clinical?patient_id=${patient_id}`);
-      const records = await res.json();
-
-      if (records.length > 0) {
-        const latest = records[0];
-        document.getElementById("chartingNotes").value = latest.charting_notes || "";
-        const meds = JSON.parse(latest.prescriptions || "[]");
-        prescriptions.length = 0;
-        prescriptions.push(...meds);
-        renderPrescriptions();
-      } else {
-        document.getElementById("chartingNotes").value = "";
-        prescriptions.length = 0;
-        renderPrescriptions();
+      const res = await fetch(`/api/integrations?type=clinical&patient_id=${patient_id}`);
+      if (!res.ok) {
+        console.warn("⚠️ No clinical data found for patient:", patient_id);
+        resetClinical();
+        return;
       }
+
+      const records = await res.json();
+      const latest = records[0] || {};
+      document.getElementById("chartingNotes").value = latest.charting_notes || "";
+      const meds = JSON.parse(latest.prescriptions || "[]");
+      prescriptions.length = 0;
+      prescriptions.push(...meds);
+      renderPrescriptions();
     } catch (err) {
       console.error("❌ Failed to load clinical records:", err);
+      resetClinical();
     }
   }
 
   /* ==========================
-     Save clinical data
+     Save clinical
   ========================== */
   async function saveClinical() {
-    if (!selectedPatient) {
-      alert("⚠️ Please select a patient first.");
-      return;
-    }
-
+    if (!selectedPatient) return alert("⚠️ Please select a patient first.");
     const notes = document.getElementById("chartingNotes").value.trim();
 
     const payload = {
+      type: "clinical",
       patient_id: selectedPatient,
       charting_notes: notes,
-      imaging: [],
       prescriptions: prescriptions
     };
 
     try {
-      const res = await fetch("/api/integrations/clinical", {
+      const res = await fetch("/api/integrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Unknown error");
-
       alert("✅ Clinical record saved successfully!");
-      loadClinicalRecords(selectedPatient);
     } catch (err) {
-      console.error("❌ Failed to save clinical record:", err);
+      console.error("❌ Failed to save clinical:", err);
       alert("❌ Error: " + err.message);
     }
   }
 
   /* ==========================
-     Prescriptions Logic
+     Prescriptions
   ========================== */
   function renderPrescriptions() {
     const ul = document.getElementById("prescriptionList");
@@ -221,11 +221,11 @@
      Tabs
   ========================== */
   function showTab(id) {
-    ['charting', 'imaging', 'prescriptions'].forEach(tab => {
-      document.getElementById(tab).style.display = tab === id ? 'block' : 'none';
+    ["charting", "imaging", "prescriptions"].forEach(tab => {
+      document.getElementById(tab).style.display = tab === id ? "block" : "none";
     });
-    document.querySelectorAll('.tab-active').forEach(btn => btn.classList.remove('tab-active'));
-    event.target.classList.add('tab-active');
+    document.querySelectorAll(".tab-active").forEach(btn => btn.classList.remove("tab-active"));
+    event.target.classList.add("tab-active");
   }
 
   /* ==========================
@@ -233,15 +233,25 @@
   ========================== */
   document.addEventListener("DOMContentLoaded", () => {
     feather.replace();
+
+    // Ensure single charting notes exists
+    if (!document.getElementById("chartingNotes")) {
+      const textarea = document.createElement("textarea");
+      textarea.id = "chartingNotes";
+      textarea.className = "w-full border rounded-md p-2";
+      textarea.rows = 4;
+      textarea.placeholder = "Charting notes…";
+      document.querySelector("#charting").appendChild(textarea);
+
+      const saveBtn = document.querySelector("#charting button");
+      saveBtn.onclick = saveClinical;
+    }
+
     loadPatients();
     renderPrescriptions();
-    document.querySelector("#charting button").setAttribute("onclick", "saveClinical()");
-    document.getElementById("charting").insertAdjacentHTML(
-      "beforeend",
-      `<textarea id="chartingNotes" class="w-full border rounded-md p-2" rows="4" placeholder="Charting notes…"></textarea>`
-    );
   });
 </script>
+
 
 </body>
 </html>
