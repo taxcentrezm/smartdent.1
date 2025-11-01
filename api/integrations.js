@@ -1,6 +1,5 @@
 import { client } from "../db.js";
 
-
 export default async function handler(req, res) {
   try {
     const url = req.url || "";
@@ -12,25 +11,27 @@ export default async function handler(req, res) {
     if (isClinical) {
       switch (req.method) {
         case "GET": {
-          const { patient_id, clinic_id, export: exportType } = req.query;
+          const { patient_id, clinic_id } = req.query;
           if (!patient_id) {
+            console.log("⚠️ Missing patient_id in query");
             return res.status(400).json({ error: "patient_id is required." });
           }
 
-          let query = "SELECT * FROM clinical_records WHERE patient_id = ?";
-          const params = [patient_id];
+          const cleanId = patient_id.trim().toLowerCase();
+          let query = "SELECT * FROM clinical_records WHERE LOWER(patient_id) = ?";
+          const params = [cleanId];
 
           if (clinic_id) {
             query += " AND clinic_id = ?";
-            params.push(clinic_id);
+            params.push(clinic_id.trim());
           }
 
           query += " ORDER BY datetime(created_at) DESC;";
+          console.log("🔍 Executing query:", query, "with params:", params);
+
           const result = await client.execute(query, params);
+          console.log(`✅ Found ${result.rows.length} records for patient_id: ${cleanId}`);
 
-      
-
-          // JSON response
           return res.status(200).json({
             message: `${result.rows.length} records fetched`,
             data: result.rows,
@@ -44,21 +45,24 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: "patient_id, clinic_id, and diagnosis are required." });
           }
 
+          const payload = [
+            patient_id.trim(),
+            clinic_id.trim(),
+            diagnosis.trim(),
+            charting || "",
+            JSON.stringify(imaging || []),
+            JSON.stringify(prescriptions || []),
+            notes || "",
+          ];
+
           await client.execute(
             `INSERT INTO clinical_records 
               (patient_id, clinic_id, diagnosis, charting, imaging, prescriptions, notes, created_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP);`,
-            [
-              patient_id,
-              clinic_id,
-              diagnosis,
-              charting || "",
-              JSON.stringify(imaging || []),
-              JSON.stringify(prescriptions || []),
-              notes || "",
-            ]
+            payload
           );
 
+          console.log(`✅ Clinical record inserted for patient_id: ${patient_id}`);
           return res.status(201).json({ message: "Clinical record saved successfully." });
         }
 
@@ -85,9 +89,10 @@ export default async function handler(req, res) {
 
         await client.execute(
           "INSERT INTO integrations (name, type, api_key) VALUES (?, ?, ?);",
-          [name, type, api_key || null]
+          [name.trim(), type.trim(), api_key || null]
         );
 
+        console.log(`✅ Integration created: ${name} (${type})`);
         return res.status(201).json({ message: "Integration created" });
       }
 
