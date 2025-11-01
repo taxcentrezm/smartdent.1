@@ -17,12 +17,11 @@ export default async function handler(req, res) {
           }
 
           // Fetch all records for the patient, sorted by created_at DESC
-          const result = await client.execute(
-            `SELECT * FROM clinical_records
-             WHERE patient_id = ?
-             ORDER BY created_at DESC;`,
-            [patient_id]
-          );
+         const result = await client.execute(
+  "SELECT * FROM clinical_records WHERE patient_id = ? ORDER BY datetime(created_at) DESC;",
+  [patient_id]
+);
+
 
           return res.status(200).json({
             message: `${result.rows.length} records fetched`,
