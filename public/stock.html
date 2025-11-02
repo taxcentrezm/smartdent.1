@@ -150,6 +150,7 @@
   </div>
 </div>
 
+
 <!-- Order Modal -->
 <div id="orderModal" class="modal-center">
   <div class="modal-panel small">
@@ -290,6 +291,27 @@ document.getElementById('addStockBtn').addEventListener('click', () => {
   document.getElementById('addStockMsg').textContent = '';
   openModal('addStockModal');
 });
+    
+function openDeductModal(stock_id, itemName) {
+  const label = document.getElementById('deductItemLabel');
+  const idInput = document.getElementById('deductStockId');
+  const qtyInput = document.getElementById('deductQty');
+  const treatmentInput = document.getElementById('deductTreatment');
+  const msg = document.getElementById('deductMsg');
+
+  if (!label || !idInput || !qtyInput || !treatmentInput || !msg) {
+    console.error("❌ Deduct modal elements not found in DOM.");
+    showToast("Deduct modal failed to open.");
+    return;
+  }
+
+  label.textContent = itemName;
+  idInput.value = stock_id;
+  qtyInput.value = 1;
+  treatmentInput.value = '';
+  msg.textContent = '';
+  openModal('deductModal');
+}
 
 async function submitNewStock() {
   const name = document.getElementById('newStockName').value.trim();
