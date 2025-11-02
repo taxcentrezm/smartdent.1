@@ -11,11 +11,9 @@ export default async function handler(req, res) {
     console.log(`🟢 Stock API called — Method: ${method}, Type: ${type}, Clinic: ${clinic_id}`);
 
     switch (method) {
-      // =====================================================
-      // 1️⃣ GET — Fetch Stock, Suppliers, Analytics, Usage
-      // =====================================================
+      // ================= GET =================
       case "GET": {
-        // -------- Stock --------
+        // ---- Stock ----
         if (type === "stock") {
           const stockRes = await client.execute(
             "SELECT * FROM stock WHERE clinic_id = ?;",
@@ -25,7 +23,7 @@ export default async function handler(req, res) {
           return res.status(200).json({ data: stockRes.rows });
         }
 
-        // -------- Analytics --------
+        // ---- Analytics ----
         if (type === "analytics") {
           const stockRes = await client.execute(
             "SELECT * FROM stock WHERE clinic_id = ?;",
@@ -34,29 +32,26 @@ export default async function handler(req, res) {
           const total_items = stockRes.rows.length;
           const total_quantity = stockRes.rows.reduce((sum, i) => sum + (i.quantity || 0), 0);
           const low_stock = stockRes.rows.filter(i => (i.quantity || 0) <= (i.reorder_level || 10)).length;
-
           console.log(`📊 Analytics — Total Items: ${total_items}, Total Quantity: ${total_quantity}, Low Stock: ${low_stock}`);
           return res.status(200).json({ total_items, total_quantity, low_stock });
         }
 
-        // -------- Suppliers --------
+        // ---- Suppliers ----
         if (type === "suppliers") {
           const suppliersRes = await client.execute(
-            `SELECT s.supplier_id, s.name AS supplier_name, s.contact, si.item_name, si.price, si.sku, si.unit, si.moq
-             FROM suppliers s
-             LEFT JOIN supplier_items si ON s.supplier_id = si.supplier_id;`
+            "SELECT supplier_id, name, contact FROM suppliers;"
           );
-          console.log(`✅ Fetched ${suppliersRes.rows.length} supplier items`);
+          console.log(`✅ Fetched ${suppliersRes.rows.length} suppliers`);
           return res.status(200).json({ data: suppliersRes.rows });
         }
 
-        // -------- Usage --------
+        // ---- Usage ----
         if (type === "usage") {
           const limit = parseInt(req.query.limit) || 50;
           const usageRes = await client.execute(
-            `SELECT su.*, st.name AS item_name
+            `SELECT su.usage_id, su.stock_id, su.quantity_used, su.used_in_service, su.created_at, st.name AS item_name
              FROM stock_usage su
-             JOIN stock st ON st.stock_id = su.stock_id
+             LEFT JOIN stock st ON st.stock_id = su.stock_id
              WHERE su.clinic_id = ?
              ORDER BY datetime(su.created_at) DESC
              LIMIT ?;`,
@@ -69,106 +64,89 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Invalid type specified for GET" });
       }
 
-      // =====================================================
-      // 2️⃣ POST — Add Stock, Place Order, or Deduct
-      // =====================================================
+      // ================= POST =================
       case "POST": {
         const { action } = body;
 
         // ---- Add Stock ----
         if (action === "add") {
-          const { name, quantity, reorder_level = 10, auto_reorder = false } = body;
+          const { name, quantity, reorder_level = 10 } = body;
           if (!name || quantity == null) return res.status(400).json({ error: "name and quantity are required" });
 
           const stock_id = randomUUID();
           await client.execute(
-            `INSERT INTO stock (stock_id, clinic_id, name, quantity, reorder_level, auto_reorder)
-             VALUES (?, ?, ?, ?, ?, ?);`,
-            [stock_id, clinic_id, name.trim(), quantity, reorder_level, auto_reorder]
+            `INSERT INTO stock (stock_id, clinic_id, name, quantity, reorder_level)
+             VALUES (?, ?, ?, ?, ?);`,
+            [stock_id, clinic_id, name.trim(), quantity, reorder_level]
           );
-
           console.log(`✅ Stock added — ${name} (${quantity})`);
           return res.status(201).json({ message: "Stock item added", stock_id });
         }
 
         // ---- Place Order ----
         if (action === "order") {
-          const { supplier_id, item_name, quantity, price } = body;
+          const { supplier_id, item_name, quantity, price = 0 } = body;
           if (!supplier_id || !item_name || !quantity) return res.status(400).json({ error: "Missing order details" });
 
           const order_id = randomUUID();
           await client.execute(
             `INSERT INTO stock_orders (order_id, supplier_id, item_name, quantity, price, clinic_id)
              VALUES (?, ?, ?, ?, ?, ?);`,
-            [order_id, supplier_id, item_name, quantity, price || 0, clinic_id]
+            [order_id, supplier_id, item_name, quantity, price, clinic_id]
           );
-
           console.log(`🛒 Order placed — ${item_name} x${quantity} from supplier ${supplier_id}`);
           return res.status(201).json({ message: "Order placed", order_id });
         }
 
         // ---- Deduct Stock ----
         if (action === "deduct") {
-          const { stock_id, quantity_used, used_by = "system", used_in_service = "invoice" } = body;
+          const { stock_id, quantity_used, used_in_service = "invoice" } = body;
           if (!stock_id || !quantity_used) return res.status(400).json({ error: "stock_id and quantity_used are required" });
 
           const stockRes = await client.execute("SELECT * FROM stock WHERE stock_id = ?;", [stock_id]);
           if (!stockRes.rows.length) return res.status(404).json({ error: "Stock item not found" });
 
           const stockItem = stockRes.rows[0];
-          const currentQty = stockItem.quantity || 0;
-          if (currentQty < quantity_used) return res.status(400).json({ error: `Insufficient stock for ${stockItem.name}` });
+          const remaining = (stockItem.quantity || 0) - quantity_used;
+          if (remaining < 0) return res.status(400).json({ error: "Insufficient stock" });
 
-          await client.execute("UPDATE stock SET quantity = quantity - ? WHERE stock_id = ?;", [quantity_used, stock_id]);
+          await client.execute("UPDATE stock SET quantity = ? WHERE stock_id = ?;", [remaining, stock_id]);
           await client.execute(
             `INSERT INTO stock_usage (usage_id, clinic_id, stock_id, quantity_used, used_in_service)
              VALUES (?, ?, ?, ?, ?);`,
             [randomUUID(), clinic_id, stock_id, quantity_used, used_in_service]
           );
 
-          console.log(`➖ Deducted ${quantity_used} from ${stockItem.name}. Remaining: ${currentQty - quantity_used}`);
-          return res.status(200).json({
-            message: "Stock deducted successfully",
-            item: stockItem.name,
-            remaining: currentQty - quantity_used,
-          });
+          console.log(`➖ Deducted ${quantity_used} from ${stockItem.name}. Remaining: ${remaining}`);
+          return res.status(200).json({ message: "Stock deducted", remaining, item: stockItem.name });
         }
 
         return res.status(400).json({ error: "Invalid action specified for POST" });
       }
 
-      // =====================================================
-      // 3️⃣ PATCH — Deduct stock (alternate method)
-      // =====================================================
+      // ================= PATCH =================
       case "PATCH": {
-        const { stock_id, quantity_used, used_by = "system", used_in_service = "invoice" } = body;
+        const { stock_id, quantity_used, used_in_service = "invoice" } = body;
         if (!stock_id || !quantity_used) return res.status(400).json({ error: "stock_id and quantity_used are required" });
 
         const stockRes = await client.execute("SELECT * FROM stock WHERE stock_id = ?;", [stock_id]);
         if (!stockRes.rows.length) return res.status(404).json({ error: "Stock item not found" });
 
         const stockItem = stockRes.rows[0];
-        const currentQty = stockItem.quantity || 0;
-        if (currentQty < quantity_used) return res.status(400).json({ error: `Insufficient stock for ${stockItem.name}` });
+        const remaining = (stockItem.quantity || 0) - quantity_used;
+        if (remaining < 0) return res.status(400).json({ error: "Insufficient stock" });
 
-        await client.execute("UPDATE stock SET quantity = quantity - ? WHERE stock_id = ?;", [quantity_used, stock_id]);
+        await client.execute("UPDATE stock SET quantity = ? WHERE stock_id = ?;", [remaining, stock_id]);
         await client.execute(
           `INSERT INTO stock_usage (usage_id, clinic_id, stock_id, quantity_used, used_in_service)
            VALUES (?, ?, ?, ?, ?);`,
           [randomUUID(), clinic_id, stock_id, quantity_used, used_in_service]
         );
 
-        console.log(`➖ PATCH Deduct — ${quantity_used} from ${stockItem.name}. Remaining: ${currentQty - quantity_used}`);
-        return res.status(200).json({
-          message: "Stock deducted successfully",
-          item: stockItem.name,
-          remaining: currentQty - quantity_used,
-        });
+        console.log(`➖ PATCH Deduct — ${quantity_used} from ${stockItem.name}. Remaining: ${remaining}`);
+        return res.status(200).json({ message: "Stock deducted", remaining, item: stockItem.name });
       }
 
-      // =====================================================
-      // Unsupported Method
-      // =====================================================
       default:
         res.setHeader("Allow", ["GET", "POST", "PATCH"]);
         return res.status(405).json({ error: `Method ${method} not allowed` });
