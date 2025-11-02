@@ -12,6 +12,7 @@ export default async function handler(req, res) {
     switch (method) {
       // ================= GET =================
       case "GET": {
+        // Fetch stock items
         if (type === "stock") {
           const stockRes = await client.execute(
             `SELECT * FROM stock WHERE clinic_id = '${clinic_id}';`
@@ -19,6 +20,7 @@ export default async function handler(req, res) {
           return res.status(200).json({ data: stockRes.rows });
         }
 
+        // Fetch usage records
         if (type === "usage") {
           const limit = Math.min(parseInt(req.query.limit) || 30, 100);
           const usageRes = await client.execute(
@@ -33,6 +35,7 @@ export default async function handler(req, res) {
           return res.status(200).json({ data: usageRes.rows });
         }
 
+        // Fetch analytics
         if (type === "analytics") {
           const stockRes = await client.execute(
             `SELECT * FROM stock WHERE clinic_id = '${clinic_id}';`
@@ -43,21 +46,26 @@ export default async function handler(req, res) {
           return res.status(200).json({ total_items, total_quantity, low_stock });
         }
 
+        // Fetch suppliers
         if (type === "suppliers") {
           const suppliersRes = await client.execute("SELECT * FROM suppliers;");
           return res.status(200).json({ data: suppliersRes.rows });
         }
 
+        // Fetch supplier catalog
+        if (type === "catalog") {
+          const catalogRes = await client.execute("SELECT * FROM supplier_items;");
+          return res.status(200).json({ data: catalogRes.rows });
+        }
+
         return res.status(400).json({ error: "Invalid type for GET" });
       }
-
-  
-
 
       // ================= POST =================
       case "POST": {
         const { action } = body;
 
+        // Deduct stock
         if (action === "deduct") {
           const { stock_id, quantity_used, used_in_service = "invoice" } = body;
           if (!stock_id || !quantity_used) {
@@ -88,6 +96,7 @@ export default async function handler(req, res) {
           return res.status(200).json({ message: "Stock deducted", remaining });
         }
 
+        // Place order
         if (action === "order") {
           const { supplier_id, item, quantity, price } = body;
           if (!supplier_id || !item || !quantity || !price) {
@@ -102,6 +111,22 @@ export default async function handler(req, res) {
           );
 
           return res.status(201).json({ message: "Order placed", order_id });
+        }
+
+        // Add new stock
+        if (action === "add") {
+          const { name, quantity, reorder_level = 10 } = body;
+          if (!name || !quantity) {
+            return res.status(400).json({ error: "Missing stock details" });
+          }
+
+          const stock_id = randomUUID();
+          await client.execute(
+            `INSERT INTO stock (stock_id, clinic_id, name, quantity, reorder_level, auto_reorder, created_at)
+             VALUES ('${stock_id}', '${clinic_id}', '${name}', ${quantity}, ${reorder_level}, 'TRUE', datetime('now'));`
+          );
+
+          return res.status(201).json({ message: "Stock added", stock_id });
         }
 
         return res.status(400).json({ error: "Invalid action for POST" });
