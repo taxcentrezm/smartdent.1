@@ -169,7 +169,7 @@ async function loadPatientsDropdown() {
   select.innerHTML = '';
 
   try {
-    const res = await fetch('/api/integrations?type=clinical');
+    const res = await fetch('/api/integrations/clinical');
     const data = await res.json();
     const seen = new Set();
 
@@ -258,7 +258,7 @@ async function loadRecordsPatientsDropdown() {
   select.innerHTML = '';
 
   try {
-    const res = await fetch('/api/integrations?type=clinical');
+    const res = await fetch('/api/integrations/clinical');
     const data = await res.json();
     const patientsMap = new Map();
 
@@ -295,7 +295,7 @@ async function loadPatientRecords(patientId) {
   if (!patientId) return;
 
   try {
-    const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
+    const res = await fetch(`/api/integrations/clinical?patient_id=${patientId}`);
     const data = await res.json();
     currentPatientRecords = data.data || [];
 
