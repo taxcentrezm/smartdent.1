@@ -9,6 +9,7 @@ export default async function handler(req, res) {
     const body = req.body || {};
 
     switch (method) {
+      // ================= GET =================
       case "GET": {
         if (type === "stock") {
           const stockRes = await client.execute("SELECT * FROM stock WHERE clinic_id = ?;", [clinic_id]);
@@ -55,6 +56,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: "Invalid type for GET" });
       }
 
+      // ================= POST =================
       case "POST": {
         const { action } = body;
 
@@ -86,8 +88,8 @@ export default async function handler(req, res) {
           const order_id = randomUUID();
           const total = quantity * price;
           await client.execute(
-            `INSERT INTO stock_orders (order_id, clinic_id, supplier_id, item, quantity, price, total, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+            `INSERT INTO stock_orders (order_id, clinic_id, supplier_id, item, quantity, price, total, status, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'));`,
             [order_id, clinic_id, supplier_id, item, quantity, price, total, "Pending"]
           );
 
