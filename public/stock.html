@@ -460,6 +460,78 @@
       document.getElementById('deductMsg').textContent = json.error || "Deduct failed.";
     }
   }
+// ------------------ SUPPLIERS MODAL ------------------
+document.getElementById('viewSuppliersBtn').addEventListener('click', () => openModal('supplierModal'));
+
+// ------------------ ORDER MODAL ------------------
+function openOrderForItem(itemName) {
+  document.getElementById('orderItemName').value = itemName || '';
+  document.getElementById('orderQty').value = 1;
+  document.getElementById('orderMsg').textContent = '';
+  openModal('orderModal');
+}
+
+async function submitOrder() {
+  const item = document.getElementById('orderItemName').value.trim();
+  const quantity = parseInt(document.getElementById('orderQty').value);
+  const supplier_id = document.getElementById('orderSupplier').value;
+
+  if (!item || !quantity || quantity <= 0 || !supplier_id) {
+    document.getElementById('orderMsg').textContent = "Please fill all fields with valid values.";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/stock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "order", clinic_id: CLINIC_ID, supplier_id, item, quantity, price: 0 })
+    });
+    const json = await res.json();
+    if (res.ok) {
+      closeModal('orderModal');
+      showToast(`✅ Order placed: ${item} x${quantity}`);
+    } else {
+      document.getElementById('orderMsg').textContent = json.error || "Order failed.";
+    }
+  } catch (err) {
+    console.error("❌ submitOrder error:", err);
+    document.getElementById('orderMsg').textContent = "Order failed due to network error.";
+  }
+}
+
+// ------------------ ADD STOCK MODAL ------------------
+document.getElementById('addStockBtn').addEventListener('click', () => openModal('addStockModal'));
+
+async function submitNewStock() {
+  const name = document.getElementById('newStockName').value.trim();
+  const quantity = parseInt(document.getElementById('newStockQty').value);
+  const reorder_level = parseInt(document.getElementById('newStockReorder').value) || 10;
+
+  if (!name || !quantity || quantity < 0) {
+    document.getElementById('addStockMsg').textContent = "Please enter valid stock name and quantity.";
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/stock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "add_stock", clinic_id: CLINIC_ID, name, quantity, reorder_level })
+    });
+    const json = await res.json();
+    if (res.ok) {
+      closeModal('addStockModal');
+      showToast(`✅ Stock added: ${name} x${quantity}`);
+      await fetchStock();
+    } else {
+      document.getElementById('addStockMsg').textContent = json.error || "Failed to add stock.";
+    }
+  } catch (err) {
+    console.error("❌ submitNewStock error:", err);
+    document.getElementById('addStockMsg').textContent = "Failed to add stock due to network error.";
+  }
+}
 
   // ------------------ INIT ------------------
   window.addEventListener('DOMContentLoaded', async () => {
