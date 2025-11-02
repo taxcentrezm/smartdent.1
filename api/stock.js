@@ -131,11 +131,11 @@ export default async function handler(req, res) {
         // -------- ORDER NEW STOCK --------
         if (action === "order") {
           console.log("[INFO] 📦 Processing new order...");
-          const { supplier_id, item_name, quantity, price } = body;
+          const { supplier_id, item, quantity, price } = body;
           console.log("[DEBUG] Incoming order data:", body);
 
           // Validate required fields
-          if (!supplier_id || !item_name || !quantity || !price) {
+          if (!supplier_id || !item || !quantity || !price) {
             console.error("[ERROR] ❌ Missing order details:", body);
             return res
               .status(400)
@@ -145,9 +145,17 @@ export default async function handler(req, res) {
           try {
             // Insert into stock_orders
             await client.execute({
-              sql: `INSERT INTO stock_orders (order_id, clinic_id, supplier_id, item_name, quantity, price, order_date)
-                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
-              args: [randomUUID(), clinic_id, supplier_id, item_name, quantity, price],
+              sql: `INSERT INTO stock_orders (order_id, clinic_id, supplier_id, item, quantity, price, total, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending', datetime('now'))`,
+              args: [
+                randomUUID(),
+                clinic_id,
+                supplier_id,
+                item,
+                quantity,
+                price,
+                price * quantity,
+              ],
             });
 
             console.log("✅ Order recorded in stock_orders");
@@ -157,10 +165,10 @@ export default async function handler(req, res) {
               sql: `UPDATE supplier_items 
                     SET available_quantity = available_quantity - ? 
                     WHERE supplier_id = ? AND item_name = ?`,
-              args: [quantity, supplier_id, item_name],
+              args: [quantity, supplier_id, item],
             });
 
-            console.log(`🧾 Supplier item '${item_name}' updated (-${quantity})`);
+            console.log(`🧾 Supplier item '${item}' updated (-${quantity})`);
 
             // Add/update stock
             await client.execute({
@@ -169,10 +177,10 @@ export default async function handler(req, res) {
                     ON CONFLICT(name) DO UPDATE SET 
                       quantity = quantity + excluded.quantity,
                       last_updated = datetime('now');`,
-              args: [clinic_id, item_name, quantity, price, supplier_id],
+              args: [clinic_id, item, quantity, price, supplier_id],
             });
 
-            console.log(`🏪 Stock updated for '${item_name}' (+${quantity})`);
+            console.log(`🏪 Stock updated for '${item}' (+${quantity})`);
             return res
               .status(200)
               .json({ success: true, message: "Order processed successfully" });
