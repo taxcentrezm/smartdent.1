@@ -70,24 +70,32 @@
       </div>
     </div>
 
-    <!-- Stock Table -->
-    <div class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold mb-4">Stock Items</h2>
-      <div class="overflow-x-auto">
-        <table class="w-full table-auto text-sm">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="p-2 border">Item</th>
-              <th class="p-2 border">Quantity</th>
-              <th class="p-2 border">Reorder Level</th>
-              <th class="p-2 border">Clinic</th>
-              <th class="p-2 border">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="stockTableBody"></tbody>
-        </table>
-      </div>
+
+   <!-- Stock Table -->
+<div class="bg-white rounded-xl shadow p-4">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="font-semibold">Stock Items</h2>
+    <div class="flex gap-2">
+      <button id="addStockBtn" class="bg-indigo-600 text-white px-3 py-1 rounded">Add Stock</button>
+      <button id="viewSuppliersBtn" class="bg-green-600 text-white px-3 py-1 rounded">Suppliers</button>
     </div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full table-auto text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="p-2 border">Item</th>
+          <th class="p-2 border">Quantity</th>
+          <th class="p-2 border">Reorder Level</th>
+          <th class="p-2 border">Clinic</th>
+          <th class="p-2 border">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="stockTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
 
     <!-- Recent Usage Table -->
     <div class="bg-white rounded-xl shadow p-4">
@@ -127,7 +135,9 @@
 
     async function fetchStock() {
       try {
-        const res = await fetch(`/api/stock?type=stock&clinic_id=${CLINIC_ID}`);
+        const res = await fetch(`/api/stock?type=stock&clinic_id=${CLINIC_ID}`, {
+  headers: { 'Cache-Control': 'no-cache' }
+});
         const json = await res.json();
         stockItems = Array.isArray(json.data) ? json.data : [];
         renderStockTable();
@@ -150,6 +160,16 @@
         showToast('Failed to load analytics.');
       }
     }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+  await fetchStock(); // ensures stockItems is populated
+  await Promise.all([
+    fetchSuppliers(),
+    fetchAnalytics(),
+    fetchUsage(50)
+  ]);
+});
+
 
     async function fetchUsage(limit = 30) {
       try {
