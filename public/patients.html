@@ -1051,6 +1051,7 @@ async function fetchPatients() {
     const json = await res.json();
     patients = Array.isArray(json.data) ? json.data : [];
     renderPatients();
+    renderPatientOptions();
   } catch (err) {
     console.error("❌ Failed to fetch patients:", err);
     alert("Could not load patient records.");
@@ -1178,11 +1179,202 @@ document.getElementById('logoutBtn').onclick = () => {
   if (confirm("Log out of SmartDent ERP?")) alert("Logged out successfully!");
 };
 
-// ===== INITIALIZE =====
-document.addEventListener("DOMContentLoaded", fetchPatients);
+// ===== INVOICING =====
+const invoiceModal = document.getElementById('invoiceModal');
+const invoiceForm = document.getElementById('invoiceForm');
+const invoiceDate = document.getElementById('invoiceDate');
+const invoicePatient = document.getElementById('invoicePatient');
+const invoiceDentist = document.getElementById('invoiceDentist');
+const serviceList = document.getElementById('serviceList');
+const invoiceTotal = document.getElementById('invoiceTotal');
+
+function openInvoiceModal() {
+  renderPatientOptions();
+  renderDentistOptions();
+  invoiceDate.value = new Date().toISOString().split('T')[0];
+  invoiceModal.classList.remove('hidden');
+  invoiceModal.classList.add('flex');
+}
+
+function closeInvoiceModal() {
+  invoiceModal.classList.add('hidden');
+  invoiceModal.classList.remove('flex');
+}
+
+function renderPatientOptions() {
+  invoicePatient.innerHTML = '<option value="">Select Patient</option>';
+  patients.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = p.name;
+    invoicePatient.appendChild(opt);
+  });
+}
+
+function renderDentistOptions() {
+  invoiceDentist.innerHTML = '<option value="">Select Dentist</option>';
+  ["Dr. Phiri", "Dr. Mwale"].forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    invoiceDentist.appendChild(opt);
+  });
+}
+
+function addServiceLine() {
+  const div = document.createElement('div');
+  div.className = 'flex gap-2';
+  div.innerHTML = `
+    <input type="text" placeholder="Service Description" class="flex-1 border rounded-md px-2 py-1">
+    <input type="number" placeholder="Amount" class="w-24 border rounded-md px-2 py-1 text-right">
+  `;
+  serviceList.appendChild(div);
+}
+
+serviceList.addEventListener('input', () => {
+  const amounts = [...serviceList.querySelectorAll('input[type="number"]')].map(i => parseFloat(i.value) || 0);
+  invoiceTotal.textContent = `$${amounts.reduce((a,b)=>a+b,0).toFixed(2)}`;
+});
+
+invoiceForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const patient = invoicePatient.value;
+  const dentist = invoiceDentist.value;
+  const date = invoiceDate.value;
+  const services = [...serviceList.querySelectorAll('div')].map(div => {
+    const [desc, amt] = div.querySelectorAll('input');
+    return { desc: desc.value.trim(), amt: parseFloat(amt.value) || 0 };
+  });
+  const total = services.reduce((a,b)=>a+b.amt,0);
+
+  if (!patient || !dentist || services.length === 0) {
+    alert('Please fill in all details');
+    return;
+  }
+
+  const res = await fetch("/api/invoices", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ patient, dentist, date, services, total })
+  });
+
+  if (res.ok) {
+    alert(`✅ Invoice saved for ${patient}`);
+    closeInvoiceModal();
+  } else {
+    alert("❌ Failed to save invoice.");
+  }
+});
+
+// ===== APPOINTMENTS =====
+const scheduleModal = document.getElementById('scheduleModal');
+const scheduleForm = document.getElementById('scheduleForm');
+const schedulePatient = document.getElementById('schedulePatient');
+const scheduleDentist = document.getElementById('scheduleDentist');
+const scheduleDate = document.getElementById('scheduleDate');
+const scheduleTime = document.getElementById('scheduleTime');
+const appointmentsTableBody = document.getElementById('appointmentsTableBody');
+
+function openScheduleModal() {
+  schedulePatient.innerHTML = '<option value="">Select Patient</option>';
+  patients.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.name;
+    opt.textContent = p.name;
+    schedulePatient.appendChild(opt);
+  });
+
+  scheduleDentist.innerHTML = '<option value="">Select Dentist</option>';
+  ["Dr. Phiri", "Dr. Mwale"].forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    scheduleDentist.appendChild(opt);
+  });
+
+  scheduleDate.value = new Date().toISOString().split('T')[0];
+  scheduleTime.value = "09:00";
+
+  scheduleModal.classList.remove('hidden');
+  scheduleModal.classList.add('flex');
+}
+
+function closeScheduleModal() {
+  scheduleModal.classList.add('hidden');
+  scheduleModal.classList.remove('flex');
+}
+
+if (scheduleModal) {
+  scheduleModal.addEventListener('click', e => {
+    if (e.target === scheduleModal) closeScheduleModal();
+  });
+}
+
+scheduleForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const patient = schedulePatient.value;
+  const dentist = scheduleDentist.value;
+  const date = scheduleDate.value;
+  const time = scheduleTime.value;
+
+  if (!patient || !dentist || !date || !time) {
+    alert("Please fill all fields");
+    return;
+  }
+
+  const res = await fetch("/api/appointments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ patient, dentist, date, time })
+  });
+
+  if (res.ok) {
+    alert(`✅ Appointment scheduled for ${patient}`);
+    closeScheduleModal();
+    fetchAppointments();
+  } else {
+    alert("❌ Failed to schedule appointment.");
+  }
+});
+
+async function fetchAppointments() {
+  try {
+    const res = await fetch("/api/appointments");
+    const json = await res.json();
+    const appointments = Array.isArray(json.data) ? json.data : [];
+
+    appointmentsTableBody.innerHTML = '';
+    if (appointments.length === 0) {
+      appointmentsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-3 text-gray-500">No upcoming appointments</td></tr>`;
+      return;
+    }
+
+    appointments.forEach(a => {
+      const tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50';
+      tr.innerHTML = `
+        <td class="border px-3 py-2">${a.patient}</td>
+        <td class="border px-3 py-2">${a.dentist}</td>
+        <td class="border px-3 py-2">${a.date}</td>
+        <td class="border px-3 py-2">${a.time}</td>
+      `;
+      appointmentsTableBody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error("❌ Failed to fetch appointments:", err);
+    appointmentsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-3 text-red-500">Error loading appointments</td></tr>`;
+  }
+}
+
+// Quick Actions
+document.addEventListener('DOMContentLoaded', () => {
+  const scheduleBtn = document.getElementById('scheduleBtn');
+  const manageBtn = document.getElementById('manageBtn');
+  if (scheduleBtn) scheduleBtn.onclick = openScheduleModal;
+  if (manageBtn) manageBtn.onclick = () => openPatientModal();
+  fetchAppointments();
+});
 </script>
-
-
 
 </body>
 </html>
