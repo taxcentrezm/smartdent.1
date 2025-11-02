@@ -9,7 +9,8 @@ export default async function handler(req, res) {
     if (method === "GET") {
       const result = await client.execute(`
         SELECT * FROM appointments
-        ORDER BY appointment_date ASC, created_at DESC;
+WHERE appointment_date > CURRENT_DATE
+ORDER BY appointment_date ASC;
       `);
       return res.status(200).json({ data: result.rows });
     }
