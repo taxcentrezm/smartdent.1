@@ -55,8 +55,9 @@ const usageRes = await client.execute(
    WHERE su.clinic_id = ?
    ORDER BY datetime(su.created_at) DESC
    LIMIT ?;`,
-  [clinic_id, String(limit)] // 🔧 Convert to string
+  [clinic_id, String(limit)] // 🔧 Convert to string to avoid SQLITE_MISMATCH
 );
+
           console.log(`📈 Fetched ${usageRes.rows.length} recent usage records`);
           return res.status(200).json({ data: usageRes.rows });
         }
