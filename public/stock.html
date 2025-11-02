@@ -4,7 +4,33 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SmartDent ERP — Stock & Suppliers</title>
+ <style>
+    .modal-center {
+      display: none; position: fixed; inset: 0; z-index: 60;
+      align-items: center; justify-content: center;
+    }
+    .modal-panel {
+      width: 100%; max-width: 900px; background: white;
+      border-radius: 12px; padding: 1.25rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 50; display:none;
+    }
+    .small { max-width: 480px; }
 
+    /* ✅ Chart container fix */
+    .chart-container {
+      position: relative;
+      height: 320px;
+      max-height: 360px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js -->
