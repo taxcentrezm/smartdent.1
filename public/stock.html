@@ -357,6 +357,27 @@
       showToast("Failed to load suppliers.");
     }
   }
+function renderSuppliersTable() {
+  const tbody = document.getElementById('supplierTableBody');
+  tbody.innerHTML = '';
+
+  if (!suppliers.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="p-2 text-center text-gray-500">No suppliers available</td></tr>`;
+    return;
+  }
+
+  suppliers.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="p-2 border">${escapeHtml(s.name || '—')}</td>
+      <td class="p-2 border">${escapeHtml(s.item || '—')}</td>
+      <td class="p-2 border">${s.price ? '$' + s.price : '—'}</td>
+      <td class="p-2 border">${escapeHtml(s.contact || '—')}</td>
+      <td class="p-2 border">${escapeHtml(s.email || '—')}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
   // ------------------ ANALYTICS ------------------
   async function fetchAnalytics() {
@@ -461,7 +482,12 @@
     }
   }
 // ------------------ SUPPLIERS MODAL ------------------
-document.getElementById('viewSuppliersBtn').addEventListener('click', () => openModal('supplierModal'));
+document.getElementById('viewSuppliersBtn').addEventListener('click', async () => {
+  await fetchSuppliers();
+  renderSuppliersTable();
+  openModal('supplierModal');
+});
+
 
 // ------------------ ORDER MODAL ------------------
 function openOrderForItem(itemName) {
@@ -517,7 +543,7 @@ async function submitNewStock() {
     const res = await fetch("/api/stock", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "add_stock", clinic_id: CLINIC_ID, name, quantity, reorder_level })
+      body: JSON.stringify({ action: "add", clinic_id: CLINIC_ID, name, quantity, reorder_level })
     });
     const json = await res.json();
     if (res.ok) {
