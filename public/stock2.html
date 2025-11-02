@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SmartDent ERP — Stock & Suppliers</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF for exports -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    .modal-center {
+      display: none; position: fixed; inset: 0; z-index: 60;
+      align-items: center; justify-content: center;
+    }
+    .modal-panel {
+      width: 100%; max-width: 900px; background: white;
+      border-radius: 12px; padding: 1.25rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 50; display:none;
+    }
+    .small { max-width: 480px; }
+
+    /* ✅ Chart container fix */
+    .chart-container {
+      position: relative;
+      height: 320px;
+      max-height: 360px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 font-sans text-gray-800">
+
+  <!-- Header -->
+  <header class="bg-indigo-600 text-white py-4 shadow">
+    <div class="container mx-auto px-4 flex justify-between items-center">
+      <h1 class="text-lg font-semibold">SmartDent ERP — Stock & Suppliers</h1>
+      <div class="flex items-center gap-3">
+        <button id="refreshBtn" class="bg-white text-indigo-700 px-3 py-1 rounded">Refresh</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container mx-auto px-4 py-6 space-y-6">
+
+    <!-- Analytics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <div class="text-sm text-gray-500">Total Items</div>
+        <div id="totalItems" class="text-2xl font-bold">0</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <div class="text-sm text-gray-500">Total Quantity</div>
+        <div id="totalQuantity" class="text-2xl font-bold">0</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <div class="text-sm text-gray-500">Low Stock Items</div>
+        <div id="lowStock" class="text-2xl font-bold">0</div>
+      </div>
+      <div class="bg-white rounded-xl shadow p-4 text-center">
+        <div class="text-sm text-gray-500">Recent Usage (last 7 days)</div>
+        <div id="recentUsageCount" class="text-2xl font-bold">0</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <!-- Stock Levels Chart -->
+      <div class="bg-white rounded-xl shadow p-4">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-semibold">Stock Levels</h2>
+          <div class="text-sm text-gray-500">Live overview</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="stockChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Usage Chart -->
+      <div class="bg-white rounded-xl shadow p-4">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-semibold">Recent Stock Usage</h2>
+          <div class="text-sm text-gray-500">Last 30 entries</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="usageChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock Table -->
+    <div class="bg-white rounded-xl shadow p-4">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="font-semibold">Stock Items</h2>
+        <div class="flex gap-2">
+          <button id="addStockBtn" class="bg-indigo-600 text-white px-3 py-1 rounded">Add Stock</button>
+          <button id="viewSuppliersBtn" class="bg-green-600 text-white px-3 py-1 rounded">Suppliers</button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full table-auto text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="p-2 border">Item</th>
+              <th class="p-2 border">Quantity</th>
+              <th class="p-2 border">Reorder Level</th>
+              <th class="p-2 border">Clinic</th>
+              <th class="p-2 border">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="stockTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Supplier Cards -->
+    <div id="supplierCards" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+
+    <!-- Recent Usage Table -->
+    <div class="bg-white rounded-xl shadow p-4">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="font-semibold">Recent Stock Usage</h2>
+        <button id="exportUsagePdf" class="bg-indigo-600 text-white px-3 py-1 rounded">Export PDF</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="p-2 border">Date</th>
+              <th class="p-2 border">Item</th>
+              <th class="p-2 border">Quantity</th>
+              <th class="p-2 border">Used By</th>
+              <th class="p-2 border">Related To</th>
+            </tr>
+          </thead>
+          <tbody id="usageTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Overlay -->
+  <div id="overlay" class="overlay"></div>
+
+  <!-- All Modals stay unchanged -->
+  <!-- (SuppliersModal, OrderModal, AddStockModal, DeductModal remain as in your original code) -->
+
+  <!-- ✅ Scripts -->
+  <script>
+    /* Keep your entire JavaScript logic as-is — only update the chart options below */
+    
+    function renderStockChart() {
+      const ctx = document.getElementById('stockChart').getContext('2d');
+      const labels = stockItems.map(i => i.name);
+      const data = stockItems.map(i => i.quantity || 0);
+
+      if (stockChart) stockChart.destroy();
+      stockChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Quantity',
+            data,
+            backgroundColor: 'rgba(59,130,246,0.6)',
+            borderColor: 'rgba(59,130,246,1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 2,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function renderUsageChart() {
+      const ctx = document.getElementById('usageChart').getContext('2d');
+      const map = {};
+      usageRecords.forEach(r => {
+        const name = r.item_name || r.name || 'Unknown';
+        map[name] = (map[name] || 0) + (r.quantity || 0);
+      });
+      const labels = Object.keys(map).slice(0, 12);
+      const data = labels.map(l => map[l]);
+
+      if (usageChart) usageChart.destroy();
+      usageChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Used',
+            data,
+            borderColor: 'rgba(239,68,68,0.8)',
+            backgroundColor: 'rgba(239,68,68,0.15)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 2,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+  </script>
+
+</body>
+</html>
