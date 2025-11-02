@@ -32,9 +32,9 @@
     </div>
   </header>
 
-  <main class="container mx-auto px-4 py-6 space-y-6">
+   <main class="container mx-auto px-4 py-6 space-y-6">
 
-    <!-- Analytics -->
+    <!-- Analytics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div class="bg-white rounded-xl shadow p-4 text-center">
         <div class="text-sm text-gray-500">Total Items</div>
@@ -54,30 +54,32 @@
       </div>
     </div>
 
-    <!-- Charts row -->
+    <!-- Charts Row -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-      <!-- Stock levels chart -->
+      <!-- Stock Levels Chart -->
       <div class="bg-white rounded-xl shadow p-4">
         <div class="flex justify-between items-center mb-3">
           <h2 class="font-semibold">Stock Levels</h2>
           <div class="text-sm text-gray-500">Live overview</div>
         </div>
-        <canvas id="stockChart" class="w-full h-64"></canvas>
+        <div class="chart-container">
+          <canvas id="stockChart"></canvas>
+        </div>
       </div>
 
-      <!-- Recent usage chart -->
+      <!-- Usage Chart -->
       <div class="bg-white rounded-xl shadow p-4">
         <div class="flex justify-between items-center mb-3">
           <h2 class="font-semibold">Recent Stock Usage</h2>
-          <div class="text-sm text-gray-500">by item (last 30 entries)</div>
+          <div class="text-sm text-gray-500">Last 30 entries</div>
         </div>
-        <canvas id="usageChart" class="w-full h-64"></canvas>
+        <div class="chart-container">
+          <canvas id="usageChart"></canvas>
+        </div>
       </div>
-
     </div>
 
-    <!-- Stock table and actions -->
+    <!-- Stock Table -->
     <div class="bg-white rounded-xl shadow p-4">
       <div class="flex justify-between items-center mb-4">
         <h2 class="font-semibold">Stock Items</h2>
@@ -89,8 +91,8 @@
 
       <div class="overflow-x-auto">
         <table class="w-full table-auto text-sm">
-          <thead>
-            <tr class="bg-gray-50 text-left">
+          <thead class="bg-gray-50">
+            <tr>
               <th class="p-2 border">Item</th>
               <th class="p-2 border">Quantity</th>
               <th class="p-2 border">Reorder Level</th>
@@ -103,16 +105,14 @@
       </div>
     </div>
 
-    <!-- Supplier cards (compact) -->
+    <!-- Supplier Cards -->
     <div id="supplierCards" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
 
-    <!-- Recent Stock Usage table -->
+    <!-- Recent Usage Table -->
     <div class="bg-white rounded-xl shadow p-4">
       <div class="flex justify-between items-center mb-3">
         <h2 class="font-semibold">Recent Stock Usage</h2>
-        <div class="flex items-center gap-2">
-          <button id="exportUsagePdf" class="bg-indigo-600 text-white px-3 py-1 rounded">Export PDF</button>
-        </div>
+        <button id="exportUsagePdf" class="bg-indigo-600 text-white px-3 py-1 rounded">Export PDF</button>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
@@ -132,7 +132,7 @@
 
   </main>
 
-  <!-- overlays & modals -->
+<!-- Overlay -->
   <div id="overlay" class="overlay"></div>
 
   <!-- Suppliers modal -->
@@ -595,59 +595,69 @@
     }
   });
 
-  // Render stock chart
-  function renderStockChart() {
-    const ctx = document.getElementById('stockChart').getContext('2d');
-    const labels = stockItems.map(i => i.name);
-    const data = stockItems.map(i => i.quantity || 0);
+   function renderStockChart() {
+      const ctx = document.getElementById('stockChart').getContext('2d');
+      const labels = stockItems.map(i => i.name);
+      const data = stockItems.map(i => i.quantity || 0);
 
-    if (stockChart) stockChart.destroy();
-    stockChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Quantity',
-          data,
-          backgroundColor: 'rgba(59,130,246,0.6)',
-          borderColor: 'rgba(59,130,246,1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        scales: { y: { beginAtZero: true } },
-        plugins: { legend: { display: false } },
-        maintainAspectRatio: false
-      }
-    });
-  }
+      if (stockChart) stockChart.destroy();
+      stockChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Quantity',
+            data,
+            backgroundColor: 'rgba(59,130,246,0.6)',
+            borderColor: 'rgba(59,130,246,1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 2,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
 
-  // Render usage chart
-  function renderUsageChart() {
-    const ctx = document.getElementById('usageChart').getContext('2d');
-    // aggregate usage by item name
-    const map = {};
-    usageRecords.forEach(r => {
-      const name = r.item_name || r.name || r.item || 'Unknown';
-      map[name] = (map[name] || 0) + (r.quantity || 0);
-    });
-    const labels = Object.keys(map).slice(0, 12);
-    const data = labels.map(l => map[l]);
+    function renderUsageChart() {
+      const ctx = document.getElementById('usageChart').getContext('2d');
+      const map = {};
+      usageRecords.forEach(r => {
+        const name = r.item_name || r.name || 'Unknown';
+        map[name] = (map[name] || 0) + (r.quantity || 0);
+      });
+      const labels = Object.keys(map).slice(0, 12);
+      const data = labels.map(l => map[l]);
 
-    if (usageChart) usageChart.destroy();
-    usageChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{ label: 'Used', data, borderWidth: 2, fill: true }]
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        maintainAspectRatio: false
-      }
-    });
-  }
-
+      if (usageChart) usageChart.destroy();
+      usageChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Used',
+            data,
+            borderColor: 'rgba(239,68,68,0.8)',
+            backgroundColor: 'rgba(239,68,68,0.15)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 2,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+  
   // Render usage table
   function renderUsageTable() {
     const tbody = document.getElementById('usageTableBody');
