@@ -5,14 +5,17 @@ import { randomUUID } from "crypto";
 export default async function handler(req, res) {
   try {
     const { method } = req;
-    const { type, clinic_id = "clinic_001" } = req.query;
+    const { type } = req.query;
+    const clinic_id = "clinic_001"; // hardcoded for inline queries
     const body = req.body || {};
 
     switch (method) {
       // ================= GET =================
       case "GET": {
         if (type === "stock") {
-          const stockRes = await client.execute("SELECT * FROM stock_orders WHERE clinic_id = 'clinic_001';", [clinic_id]);
+          const stockRes = await client.execute(
+            `SELECT * FROM stock WHERE clinic_id = '${clinic_id}';`
+          );
           return res.status(200).json({ data: stockRes.rows });
         }
 
@@ -22,16 +25,17 @@ export default async function handler(req, res) {
             `SELECT su.*, st.name AS item_name
              FROM stock_usage su
              LEFT JOIN stock st ON st.stock_id = su.stock_id
-             WHERE su.clinic_id = ?
+             WHERE su.clinic_id = '${clinic_id}'
              ORDER BY datetime(su.created_at) DESC
-             LIMIT ${limit};`,
-            [clinic_id]
+             LIMIT ${limit};`
           );
           return res.status(200).json({ data: usageRes.rows });
         }
 
         if (type === "analytics") {
-          const stockRes = await client.execute("SELECT * FROM stock WHERE clinic_id = ?;", [clinic_id]);
+          const stockRes = await client.execute(
+            `SELECT * FROM stock WHERE clinic_id = '${clinic_id}';`
+          );
           const total_items = stockRes.rows.length;
           const total_quantity = stockRes.rows.reduce((sum, i) => sum + (i.quantity || 0), 0);
           const low_stock = stockRes.rows.filter(i => (i.quantity || 0) <= (i.reorder_level || 10)).length;
@@ -49,7 +53,9 @@ export default async function handler(req, res) {
         }
 
         if (type === "orders") {
-          const ordersRes = await client.execute("SELECT * FROM stock_orders WHERE clinic_id = ?;", [clinic_id]);
+          const ordersRes = await client.execute(
+            `SELECT * FROM stock_orders WHERE clinic_id = '${clinic_id}';`
+          );
           return res.status(200).json({ data: ordersRes.rows });
         }
 
@@ -62,20 +68,29 @@ export default async function handler(req, res) {
 
         if (action === "deduct") {
           const { stock_id, quantity_used, used_in_service = "invoice" } = body;
-          if (!stock_id || !quantity_used) return res.status(400).json({ error: "Missing usage details" });
+          if (!stock_id || !quantity_used) {
+            return res.status(400).json({ error: "Missing usage details" });
+          }
 
-          const stockRes = await client.execute("SELECT * FROM stock WHERE stock_id = ?;", [stock_id]);
-          if (!stockRes.rows.length) return res.status(404).json({ error: "Stock item not found" });
+          const stockRes = await client.execute(
+            `SELECT * FROM stock WHERE stock_id = '${stock_id}';`
+          );
+          if (!stockRes.rows.length) {
+            return res.status(404).json({ error: "Stock item not found" });
+          }
 
           const stockItem = stockRes.rows[0];
           const remaining = (stockItem.quantity || 0) - quantity_used;
-          if (remaining < 0) return res.status(400).json({ error: "Insufficient stock" });
+          if (remaining < 0) {
+            return res.status(400).json({ error: "Insufficient stock" });
+          }
 
-          await client.execute("UPDATE stock SET quantity = ? WHERE stock_id = ?;", [remaining, stock_id]);
+          await client.execute(
+            `UPDATE stock SET quantity = ${remaining} WHERE stock_id = '${stock_id}';`
+          );
           await client.execute(
             `INSERT INTO stock_usage (usage_id, clinic_id, stock_id, quantity_used, used_in_service)
-             VALUES (?, ?, ?, ?, ?);`,
-            [randomUUID(), clinic_id, stock_id, quantity_used, used_in_service]
+             VALUES ('${randomUUID()}', '${clinic_id}', '${stock_id}', ${quantity_used}, '${used_in_service}');`
           );
 
           return res.status(200).json({ message: "Stock deducted", remaining });
@@ -83,14 +98,15 @@ export default async function handler(req, res) {
 
         if (action === "order") {
           const { supplier_id, item, quantity, price } = body;
-          if (!supplier_id || !item || !quantity || !price) return res.status(400).json({ error: "Missing order details" });
+          if (!supplier_id || !item || !quantity || !price) {
+            return res.status(400).json({ error: "Missing order details" });
+          }
 
           const order_id = randomUUID();
           const total = quantity * price;
           await client.execute(
             `INSERT INTO stock_orders (order_id, clinic_id, supplier_id, item, quantity, price, total, status, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'));`,
-            [order_id, clinic_id, supplier_id, item, quantity, price, total, "Pending"]
+             VALUES ('${order_id}', '${clinic_id}', '${supplier_id}', '${item}', ${quantity}, ${price}, ${total}, 'Pending', datetime('now'));`
           );
 
           return res.status(201).json({ message: "Order placed", order_id });
