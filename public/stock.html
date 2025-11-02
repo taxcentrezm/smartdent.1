@@ -428,41 +428,31 @@ function renderSuppliersTable() {
     renderCatalog(filtered);
   }
 
- async function orderFromCatalog(supplier_id, item_name, price) {
+function orderFromCatalog(supplier_id, item_name, price) {
   const quantity = parseInt(prompt(`Enter quantity to order for "${item_name}":`));
   if (!quantity || quantity <= 0) return alert("Invalid quantity");
 
-  const orderData = {
-    action: "order",
-    clinic_id: "clinic_001",
-    supplier_id,
-    item_name,
-    quantity,
-    price
-  };
-
-  console.log("[orderFromCatalog] Sending order data:", orderData);
-
-  try {
-    const res = await fetch("/api/stock", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(orderData)
-    });
-
-    const data = await res.json();
-    console.log("[orderFromCatalog] Response:", data);
-
-    if (data.success) {
-      alert(`✅ Order placed successfully for ${item_name} (${quantity} units)`);
-      loadSupplierCatalog(); // refresh supplier catalog
-    } else {
-      alert(`❌ Order failed: ${data.error}`);
-    }
-  } catch (err) {
+  fetch("/api/stock", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      action: "order", 
+      clinic_id: CLINIC_ID, 
+      supplier_id, 
+      item: item_name, // <- change here from item_name to item
+      quantity, 
+      price 
+    })
+  })
+  .then(res => res.json())
+  .then(json => {
+    if (json.success) showToast(`✅ Order placed: ${item_name} x${quantity}`);
+    else showToast(`❌ Order failed: ${json.error}`);
+  })
+  .catch(err => {
     console.error("❌ Order error:", err);
-    alert("Order failed due to a network or server error.");
-  }
+    showToast("Order failed.");
+  });
 }
 
 
