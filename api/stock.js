@@ -47,16 +47,16 @@ export default async function handler(req, res) {
 
         // ---- Usage ----
         if (type === "usage") {
-          const limit = parseInt(req.query.limit) || 50;
-          const usageRes = await client.execute(
-            `SELECT su.usage_id, su.stock_id, su.quantity_used, su.used_in_service, su.created_at, st.name AS item_name
-             FROM stock_usage su
-             LEFT JOIN stock st ON st.stock_id = su.stock_id
-             WHERE su.clinic_id = ?
-             ORDER BY datetime(su.created_at) DESC
-             LIMIT ?;`,
-            [clinic_id, limit]
-          );
+const limit = parseInt(req.query.limit) || 50;
+const usageRes = await client.execute(
+  `SELECT su.usage_id, su.stock_id, su.quantity_used, su.used_in_service, su.created_at, st.name AS item_name
+   FROM stock_usage su
+   LEFT JOIN stock st ON st.stock_id = su.stock_id
+   WHERE su.clinic_id = ?
+   ORDER BY datetime(su.created_at) DESC
+   LIMIT ?;`,
+  [clinic_id, String(limit)] // 🔧 Convert to string
+);
           console.log(`📈 Fetched ${usageRes.rows.length} recent usage records`);
           return res.status(200).json({ data: usageRes.rows });
         }
