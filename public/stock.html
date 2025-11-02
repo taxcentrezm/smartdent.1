@@ -96,6 +96,20 @@
   </div>
 </div>
 
+<!-- Supplier Item Catalog -->
+<div class="bg-white rounded-xl shadow p-4">
+  <h2 class="font-semibold mb-3">Supplier Item Catalog</h2>
+
+  <!-- Search and Filter -->
+  <div class="flex flex-wrap gap-4 mb-4">
+    <input type="text" id="catalogSearch" class="border p-2 rounded w-full md:w-1/2" placeholder="Search item name..." />
+    <input type="number" id="catalogPriceFilter" class="border p-2 rounded w-full md:w-1/4" placeholder="Max price" />
+    <button onclick="filterCatalog()" class="bg-indigo-600 text-white px-3 py-1 rounded">Filter</button>
+  </div>
+
+  <!-- Catalog Grid -->
+  <div id="catalogGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+</div>
 
     <!-- Recent Usage Table -->
     <div class="bg-white rounded-xl shadow p-4">
@@ -120,11 +134,87 @@
 
   <!-- Overlay -->
   <div id="overlay" class="overlay"></div>
+<!-- Deduct Modal -->
+<div id="deductModal" class="modal-center">
+  <div class="modal-panel small">
+    <h2 class="font-semibold mb-2">Deduct Stock</h2>
+    <div class="space-y-2">
+      <div><strong>Item:</strong> <span id="deductItemLabel"></span></div>
+      <input type="hidden" id="deductStockId" />
+      <input type="number" id="deductQty" class="w-full border p-2 rounded" placeholder="Quantity to deduct" />
+      <input type="text" id="deductTreatment" class="w-full border p-2 rounded" placeholder="Used in service (e.g. Cleaning)" />
+      <button onclick="submitDeduct()" class="bg-red-600 text-white px-3 py-1 rounded">Confirm Deduct</button>
+      <div id="deductMsg" class="text-sm text-red-600"></div>
+    </div>
+    <button onclick="closeModal('deductModal')" class="mt-4 text-sm text-gray-500">Cancel</button>
+  </div>
+</div>
+
+<!-- Order Modal -->
+<div id="orderModal" class="modal-center">
+  <div class="modal-panel small">
+    <h2 class="font-semibold mb-2">Order More Stock</h2>
+    <form id="orderForm" class="space-y-2">
+      <input type="text" id="orderItemName" class="w-full border p-2 rounded" placeholder="Item name" />
+      <input type="number" id="orderQty" class="w-full border p-2 rounded" placeholder="Quantity" />
+      <select id="orderSupplier" class="w-full border p-2 rounded"></select>
+      <button type="button" onclick="submitOrder()" class="bg-green-600 text-white px-3 py-1 rounded">Place Order</button>
+      <div id="orderMsg" class="text-sm text-red-600"></div>
+    </form>
+    <button onclick="closeModal('orderModal')" class="mt-4 text-sm text-gray-500">Cancel</button>
+  </div>
+</div>
+  <!-- Add Stock Modal -->
+<div id="addStockModal" class="modal-center">
+  <div class="modal-panel small">
+    <h2 class="font-semibold mb-2">Add New Stock Item</h2>
+    <div class="space-y-2">
+      <input type="text" id="newStockName" class="w-full border p-2 rounded" placeholder="Item name" />
+      <input type="number" id="newStockQty" class="w-full border p-2 rounded" placeholder="Initial quantity" />
+      <input type="number" id="newStockReorder" class="w-full border p-2 rounded" placeholder="Reorder level (default 10)" />
+      <button onclick="submitNewStock()" class="bg-indigo-600 text-white px-3 py-1 rounded">Add Stock</button>
+      <div id="addStockMsg" class="text-sm text-red-600"></div>
+    </div>
+    <button onclick="closeModal('addStockModal')" class="mt-4 text-sm text-gray-500">Cancel</button>
+  </div>
+</div>
+<!-- Supplier Dashboard Modal -->
+<div id="supplierModal" class="modal-center">
+  <div class="modal-panel">
+    <h2 class="font-semibold mb-2">Supplier Dashboard</h2>
+    <div id="supplierTable" class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="p-2 border">Name</th>
+            <th class="p-2 border">Item</th>
+            <th class="p-2 border">Price</th>
+            <th class="p-2 border">Contact</th>
+            <th class="p-2 border">Email</th>
+          </tr>
+        </thead>
+        <tbody id="supplierTableBody"></tbody>
+      </table>
+    </div>
+    <button onclick="closeModal('supplierModal')" class="mt-4 text-sm text-gray-500">Close</button>
+  </div>
+</div>
+
 
   <script>
     const CLINIC_ID = 'clinic_001';
     let stockItems = [], suppliers = [], usageRecords = [];
     let stockChart = null, usageChart = null;
+
+    document.getElementById('addStockBtn').addEventListener('click', () => {
+  alert("Add Stock feature coming soon. You can wire it to a modal or form.");
+});
+
+document.getElementById('viewSuppliersBtn').addEventListener('click', async () => {
+  const res = await fetch(`/api/stock?type=suppliers`);
+  const json = await res.json();
+  alert(`Suppliers:\n\n${json.data.map(s => `${s.name} (${s.item})`).join('\n')}`);
+});
 
     function showToast(msg, duration = 3000) {
       const toast = document.getElementById('toast');
@@ -147,6 +237,29 @@
         showToast('Failed to load stock items.');
       }
     }
+document.getElementById('viewSuppliersBtn').addEventListener('click', async () => {
+  try {
+    const res = await fetch(`/api/stock?type=suppliers`);
+    const json = await res.json();
+    suppliers = Array.isArray(json.data) ? json.data : [];
+
+    const tbody = document.getElementById('supplierTableBody');
+    tbody.innerHTML = suppliers.map(s => `
+      <tr>
+        <td class="p-2 border">${escapeHtml(s.name)}</td>
+        <td class="p-2 border">${escapeHtml(s.item)}</td>
+        <td class="p-2 border">${s.price}</td>
+        <td class="p-2 border">${escapeHtml(s.contact)}</td>
+        <td class="p-2 border">${escapeHtml(s.email)}</td>
+      </tr>
+    `).join("");
+
+    openModal('supplierModal');
+  } catch (err) {
+    console.error("❌ Supplier fetch error:", err);
+    showToast("Failed to load suppliers.");
+  }
+});
 
     async function fetchAnalytics() {
       try {
@@ -170,6 +283,104 @@
   ]);
 });
 
+document.getElementById('addStockBtn').addEventListener('click', () => {
+  document.getElementById('newStockName').value = '';
+  document.getElementById('newStockQty').value = '';
+  document.getElementById('newStockReorder').value = '';
+  document.getElementById('addStockMsg').textContent = '';
+  openModal('addStockModal');
+});
+
+async function submitNewStock() {
+  const name = document.getElementById('newStockName').value.trim();
+  const quantity = parseInt(document.getElementById('newStockQty').value);
+  const reorder_level = parseInt(document.getElementById('newStockReorder').value) || 10;
+
+  if (!name || !quantity) {
+    document.getElementById('addStockMsg').textContent = "Name and quantity are required.";
+    return;
+  }
+let supplierItems = [];
+
+async function fetchCatalog() {
+  try {
+    const res = await fetch(`/api/stock?type=catalog`);
+    const json = await res.json();
+    supplierItems = Array.isArray(json.data) ? json.data : [];
+    renderCatalog(supplierItems);
+  } catch (err) {
+    console.error("❌ fetchCatalog error:", err);
+    showToast("Failed to load supplier catalog.");
+  }
+}
+
+function renderCatalog(items) {
+  const grid = document.getElementById("catalogGrid");
+  grid.innerHTML = items.map(item => `
+    <div class="border p-3 rounded shadow">
+      <div class="font-semibold">${escapeHtml(item.item_name)}</div>
+      <div class="text-sm text-gray-500">Price: $${item.price} • Available: ${item.available_quantity}</div>
+      <button onclick="orderFromCatalog('${item.supplier_id}', '${item.item_name}', ${item.price})"
+        class="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm">Order</button>
+    </div>
+  `).join("");
+}
+
+function filterCatalog() {
+  const search = document.getElementById("catalogSearch").value.toLowerCase();
+  const maxPrice = parseFloat(document.getElementById("catalogPriceFilter").value);
+  const filtered = supplierItems.filter(item => {
+    const matchesName = item.item_name.toLowerCase().includes(search);
+    const matchesPrice = isNaN(maxPrice) || item.price <= maxPrice;
+    return matchesName && matchesPrice;
+  });
+  renderCatalog(filtered);
+}
+
+function orderFromCatalog(supplier_id, item, price) {
+  const quantity = prompt(`Enter quantity to order for "${item}":`);
+  const qty = parseInt(quantity);
+  if (!qty || qty <= 0) return alert("Invalid quantity");
+
+  fetch("/api/stock", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "order",
+      clinic_id: CLINIC_ID,
+      supplier_id,
+      item,
+      quantity: qty,
+      price
+    })
+  }).then(res => res.json()).then(json => {
+    if (json.message) {
+      showToast(`✅ Order placed: ${item} x${qty}`);
+    } else {
+      showToast(`❌ Order failed: ${json.error}`);
+    }
+  }).catch(err => {
+    console.error("❌ Order error:", err);
+    showToast("Order failed.");
+  });
+}
+
+  const res = await fetch("/api/stock", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "add", clinic_id: CLINIC_ID, name, quantity, reorder_level })
+  });
+
+  const json = await res.json();
+  if (res.ok) {
+    closeModal('addStockModal');
+    showToast(`✅ Added stock: ${name}`);
+    await fetchStock();
+    await fetchAnalytics();
+  } else {
+    document.getElementById('addStockMsg').textContent = json.error || "Add failed.";
+  }
+}
 
     async function fetchUsage(limit = 30) {
       try {
@@ -348,13 +559,82 @@
         optName.value = itemName;
       }
     }
+async function submitDeduct() {
+  const stock_id = document.getElementById('deductStockId').value;
+  const quantity_used = parseInt(document.getElementById('deductQty').value);
+  const used_in_service = document.getElementById('deductTreatment').value || "invoice";
+
+  if (!stock_id || !quantity_used) {
+    document.getElementById('deductMsg').textContent = "Missing required fields.";
+    return;
+  }
+
+  const res = await fetch("/api/stock", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "deduct", clinic_id: CLINIC_ID, stock_id, quantity_used, used_in_service })
+  });
+
+  const json = await res.json();
+  if (res.ok) {
+    closeModal('deductModal');
+    showToast(`✅ Deducted ${quantity_used} from stock`);
+    await fetchStock();
+    await fetchUsage(50);
+  } else {
+    document.getElementById('deductMsg').textContent = json.error || "Deduct failed.";
+  }
+}
+async function submitOrder() {
+  const item = document.getElementById('orderItemName').value;
+  const quantity = parseInt(document.getElementById('orderQty').value);
+  const supplier_id = document.getElementById('orderSupplier').value;
+
+  if (!item || !quantity || !supplier_id) {
+    document.getElementById('orderMsg').textContent = "Missing required fields.";
+    return;
+  }
+
+  const supplier = suppliers.find(s => s.supplier_id === supplier_id);
+  const price = supplier?.price || 0;
+
+  const res = await fetch("/api/stock", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "order", clinic_id: CLINIC_ID, supplier_id, item, quantity, price })
+  });
+
+  const json = await res.json();
+  if (res.ok) {
+    closeModal('orderModal');
+    showToast(`✅ Order placed: ${item} x${quantity}`);
+  } else {
+    document.getElementById('orderMsg').textContent = json.error || "Order failed.";
+  }
+}
+async function fetchSuppliers() {
+  try {
+    const res = await fetch(`/api/stock?type=suppliers`);
+    const json = await res.json();
+    suppliers = Array.isArray(json.data) ? json.data : [];
+
+    const select = document.getElementById('orderSupplier');
+    if (select) {
+      select.innerHTML = suppliers.map(s => `<option value="${s.supplier_id}">${s.name} (${s.item})</option>`).join("");
+    }
+  } catch (err) {
+    console.error("❌ fetchSuppliers error:", err);
+    showToast("Failed to load suppliers.");
+  }
+}
 
     document.getElementById('refreshBtn').addEventListener('click', async () => {
       await Promise.all([fetchStock(), fetchAnalytics(), fetchUsage(50)]);
     });
 
     window.addEventListener('DOMContentLoaded', async () => {
-      await Promise.all([fetchStock(), fetchAnalytics(), fetchUsage(50)]);
+      await Promise.all([fetchStock(), fetchAnalytics(), fetchCatalog(),fetchUsage(50)]);
+
     });
   </script>
 </body>
