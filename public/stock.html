@@ -345,7 +345,7 @@
 
 async function fetchUsage(limit = 30) {
   try {
-    const res = await fetch(`/api/stock?type=usage&clinic_id=${CLINIC_ID}`);
+    const res = await fetch(`/api/stock?type=usage&clinic_id=${CLINIC_ID}&limit=${limit}`);
     if (!res.ok) throw new Error('Failed to fetch usage');
     const json = await res.json();
 
@@ -358,7 +358,6 @@ async function fetchUsage(limit = 30) {
     });
 
     usageRecords = usageRecords.slice(0, limit);
-
     renderUsageTable();
     renderUsageChart();
     document.getElementById('recentUsageCount').textContent = usageRecords.length;
@@ -376,7 +375,6 @@ async function fetchUsage(limit = 30) {
     tbody.innerHTML = `<tr><td colspan="5" class="p-2 text-center text-red-500">Usage data unavailable</td></tr>`;
   }
 }
-
 
   // ============================
   // Render functions
