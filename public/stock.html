@@ -343,31 +343,40 @@
     }
   }
 
-  async function fetchUsage(limit = 30) {
-    try {
-      const res = await fetch(`/api/stock?type=usage&clinic_id=${CLINIC_ID}`);
-      if (!res.ok) throw new Error('Failed to fetch usage');
-      const json = await res.json();
+async function fetchUsage(limit = 30) {
+  try {
+    const res = await fetch(`/api/stock?type=usage&clinic_id=${CLINIC_ID}`);
+    if (!res.ok) throw new Error('Failed to fetch usage');
+    const json = await res.json();
 
-      // Map usage to include stock name
-      usageRecords = (Array.isArray(json.data) ? json.data : []).map(u => {
-        const stock = stockItems.find(s => s.stock_id === u.stock_id) || {};
-        return {
-          ...u,
-          item_name: stock.name || u.stock_id
-        };
-      });
+    usageRecords = (Array.isArray(json.data) ? json.data : []).map(u => {
+      const stock = stockItems.find(s => s.stock_id === u.stock_id) || {};
+      return {
+        ...u,
+        item_name: stock.name || u.stock_id
+      };
+    });
 
-      // Limit to latest records
-      usageRecords = usageRecords.slice(0, limit);
+    usageRecords = usageRecords.slice(0, limit);
 
-      renderUsageTable();
-      renderUsageChart();
-      document.getElementById('recentUsageCount').textContent = usageRecords.length;
-    } catch (err) {
-      console.error('❌ fetchUsage error:', err);
-    }
+    renderUsageTable();
+    renderUsageChart();
+    document.getElementById('recentUsageCount').textContent = usageRecords.length;
+  } catch (err) {
+    console.error('❌ fetchUsage error:', err);
+
+    // Fallback: clear usage data
+    usageRecords = [];
+    renderUsageTable();
+    renderUsageChart();
+    document.getElementById('recentUsageCount').textContent = '0';
+
+    // Optional: show message in table
+    const tbody = document.getElementById('usageTableBody');
+    tbody.innerHTML = `<tr><td colspan="5" class="p-2 text-center text-red-500">Usage data unavailable</td></tr>`;
   }
+}
+
 
   // ============================
   // Render functions
