@@ -7,7 +7,129 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.3.3/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f9fafb;
+    color: #1f2937;
+  }
+
+  h1, h2, h3 {
+    color: #111827;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.5rem;
+    border: 1px solid #e5e7eb;
+  }
+
+  th {
+    background-color: #f3f4f6;
+    font-weight: 600;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f9fafb;
+  }
+
+  tr:hover {
+    background-color: #e5e7eb;
+  }
+
+  /* Modal overlay */
+  #overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 40;
+  }
+
+  /* Modals */
+  #addStockModal, #deductModal, #orderModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  #addStockModal .modal-content,
+  #deductModal .modal-content,
+  #orderModal .modal-content {
+    background-color: #ffffff;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+  }
+
+  /* Buttons */
+  button {
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  button:hover {
+    opacity: 0.9;
+  }
+
+  .text-red-600 {
+    color: #dc2626 !important;
+  }
+
+  .text-xl {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  /* Supplier cards */
+  #supplierCards > div {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  #supplierCards > div:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    table, thead, tbody, th, td, tr {
+      display: block;
+    }
+    th {
+      display: none;
+    }
+    td {
+      border: none;
+      position: relative;
+      padding-left: 50%;
+      margin-bottom: 0.5rem;
+    }
+    td::before {
+      content: attr(data-label);
+      position: absolute;
+      left: 0;
+      width: 45%;
+      padding-left: 0.5rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+  }
+</style>
+
 </head>
+
 <body class="bg-gray-50 p-4">
 
   <h1 class="text-2xl font-bold mb-4">Clinic Inventory & Stock</h1>
