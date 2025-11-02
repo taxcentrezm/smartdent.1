@@ -114,23 +114,57 @@ export default async function handler(req, res) {
           return res.status(200).json({ message: "Stock deducted", remaining });
         }
 
-        if (action === "order") {
-          const { supplier_id, item, quantity, price } = body;
-          if (!supplier_id || !item || !quantity || !price)
-            return res.status(400).json({ error: "Missing order details" });
+       // ------------------ ORDER NEW STOCK ------------------
+if (action === "order") {
+  console.log("[INFO] 📦 Processing new order...");
 
-          const order_id = randomUUID();
-          const total = quantity * price;
-          await client.execute(
-            `INSERT INTO stock_orders (order_id, clinic_id, supplier_id, item, quantity, price, total, status, created_at)
-             VALUES ('${order_id}', '${clinic_id}', '${supplier_id}', '${item}', ${quantity}, ${price}, ${total}, 'Pending', datetime('now'));`
-          );
+  const { clinic_id, supplier_id, item_name, quantity, price } = body;
 
-          return res.status(201).json({ message: "Order placed", order_id });
-        }
+  console.log("[DEBUG] Incoming order data:", body);
 
-        return res.status(400).json({ error: "Invalid action for POST" });
-      }
+  // Validate required fields
+  if (!clinic_id || !supplier_id || !item_name || !quantity || !price) {
+    console.error("[ERROR] ❌ Missing order details", body);
+    return new Response(JSON.stringify({ success: false, error: "Missing order details" }), { status: 400 });
+  }
+
+  try {
+    // Insert order record
+    await client.execute({
+      sql: `INSERT INTO stock_orders (clinic_id, supplier_id, item_name, quantity, price, order_date)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+      args: [clinic_id, supplier_id, item_name, quantity, price]
+    });
+
+    console.log("[INFO] ✅ Order inserted successfully into stock_orders.");
+
+    // Update supplier_items quantity
+    await client.execute({
+      sql: `UPDATE supplier_items 
+            SET available_quantity = available_quantity - ? 
+            WHERE supplier_id = ? AND item_name = ?`,
+      args: [quantity, supplier_id, item_name]
+    });
+
+    console.log(`[INFO] 🧾 Supplier item '${item_name}' updated (-${quantity}).`);
+
+    // Add to main stock
+    await client.execute({
+      sql: `INSERT INTO stock (clinic_id, item_name, quantity, unit_price, supplier_id, last_updated)
+            VALUES (?, ?, ?, ?, ?, datetime('now'))
+            ON CONFLICT(item_name) DO UPDATE SET quantity = quantity + excluded.quantity, last_updated = datetime('now');`,
+      args: [clinic_id, item_name, quantity, price, supplier_id]
+    });
+
+    console.log(`[INFO] 🏪 Stock updated for '${item_name}' (+${quantity}).`);
+
+    return new Response(JSON.stringify({ success: true, message: "Order processed successfully." }), { status: 200 });
+  } catch (error) {
+    console.error("[ERROR] ❌ Stock API error:", error);
+    return new Response(JSON.stringify({ success: false, error: error.message }), { status: 500 });
+  }
+}
+
 
       default:
         res.setHeader("Allow", ["GET", "POST"]);
