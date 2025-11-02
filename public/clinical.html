@@ -157,8 +157,13 @@ modalOverlay.addEventListener('click', () => {
   closeModal('viewRecordsModal');
 });
 
-document.getElementById('newRecordBtn').addEventListener('click', () => openModal('newRecordModal', loadPatientsDropdown));
-document.getElementById('viewRecordsBtn').addEventListener('click', () => openModal('viewRecordsModal', loadRecordsPatientsDropdown));
+document.getElementById('newRecordBtn').addEventListener('click', () =>
+  openModal('newRecordModal', loadPatientsDropdown)
+);
+
+document.getElementById('viewRecordsBtn').addEventListener('click', () =>
+  openModal('viewRecordsModal', loadRecordsPatientsDropdown)
+);
 
 // ====================
 // Load Patients for New Record
@@ -169,7 +174,7 @@ async function loadPatientsDropdown() {
   select.innerHTML = '';
 
   try {
-    const res = await fetch('/api/integrations/clinical');
+    const res = await fetch('/api/integrations?type=clinical');
     const data = await res.json();
     const seen = new Set();
 
@@ -190,13 +195,17 @@ async function loadPatientsDropdown() {
         dob: p.dob || '',
         clinic: p.clinic_id || 'Clinic'
       };
-      Object.entries(dataset).forEach(([key, val]) => opt.dataset[key] = val);
+
+      Object.entries(dataset).forEach(([key, val]) => {
+        opt.dataset[key] = val;
+      });
+
       select.appendChild(opt);
     });
 
     select.addEventListener('change', () => {
       const opt = select.selectedOptions[0];
-      ['name','age','phone','email','gender','dob','clinic'].forEach(field => {
+      ['name', 'age', 'phone', 'email', 'gender', 'dob', 'clinic'].forEach(field => {
         document.getElementById(`patient${field.charAt(0).toUpperCase() + field.slice(1)}`).value = opt.dataset[field];
       });
       document.getElementById('patientId').value = opt.value;
@@ -211,7 +220,7 @@ async function loadPatientsDropdown() {
 // ====================
 // Save New Record
 // ====================
-document.getElementById('newRecordForm').addEventListener('submit', async (e) => {
+document.getElementById('newRecordForm').addEventListener('submit', async e => {
   e.preventDefault();
 
   const payload = {
@@ -258,7 +267,7 @@ async function loadRecordsPatientsDropdown() {
   select.innerHTML = '';
 
   try {
-    const res = await fetch('/api/integrations/clinical');
+    const res = await fetch('/api/integrations?type=clinical');
     const data = await res.json();
     const patientsMap = new Map();
 
@@ -295,7 +304,7 @@ async function loadPatientRecords(patientId) {
   if (!patientId) return;
 
   try {
-    const res = await fetch(`/api/integrations/clinical?patient_id=${patientId}`);
+    const res = await fetch(`/api/integrations?type=clinical&patient_id=${patientId}`);
     const data = await res.json();
     currentPatientRecords = data.data || [];
 
@@ -360,11 +369,14 @@ function exportPatientRecordsPDF() {
     doc.text(`Diagnosis: ${r.diagnosis || 'N/A'}`, 10, y); y += 6;
     doc.text(`Charting: ${r.charting || 'N/A'}`, 10, y); y += 6;
 
-    const prescriptions = Array.isArray(r.prescriptions) ? r.prescriptions.join(', ') : r.prescriptions || 'N/A';
+    const prescriptions = Array.isArray(r.prescriptions)
+      ? r.prescriptions.join(', ')
+      : r.prescriptions || 'N/A';
     doc.text(`Prescriptions: ${prescriptions}`, 10, y); y += 6;
 
     const notes = r.notes || 'N/A';
-    doc.splitTextToSize(`Notes: ${notes}`, 180).forEach(line => {
+    const wrappedNotes = doc.splitTextToSize(`Notes: ${notes}`, 180);
+    wrappedNotes.forEach(line => {
       doc.text(line, 10, y);
       y += 6;
     });
@@ -380,7 +392,5 @@ function exportPatientRecordsPDF() {
   doc.save(filename);
 }
 </script>
-
-  
 </body>
 </html>
