@@ -116,17 +116,20 @@ export default async function handler(req, res) {
           return res.status(200).json({ data: suppliers.rows || [] });
         }
 
-        if (type === "usage") {
-          const usage = await client.execute(
-            `SELECT su.date_used, su.item_id, st.name AS item_name, su.quantity, su.used_by, su.related_to
-             FROM stock_usage su
-             JOIN stock st ON st.stock_id = su.item_id
-             WHERE st.clinic_id = ?
-             ORDER BY su.date_used DESC LIMIT 30;`,
-            [clinic_id]
-          );
-          return res.status(200).json({ data: usage.rows || [] });
-        }
+       if (type === "usage") {
+  const usage = await client.execute(
+    `SELECT su.usage_id, su.stock_id AS item_id, st.name AS item_name, su.quantity_used AS quantity,
+            su.used_in_service AS related_to, su.created_at
+     FROM stock_usage su
+     JOIN stock st ON st.stock_id = su.stock_id
+     WHERE st.clinic_id = ?
+     ORDER BY su.created_at DESC
+     LIMIT 30;`,
+    [clinic_id]
+  );
+
+  return res.status(200).json({ data: usage.rows || [] });
+}
 
         return res.status(400).json({ error: "Invalid type specified." });
       }
