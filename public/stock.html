@@ -201,128 +201,104 @@
   </div>
 </div>
 
+<script>
+const CLINIC_ID = 'clinic_001';
+let stockItems = [], suppliers = [], usageRecords = [], supplierItems = [];
+let stockChart = null, usageChart = null;
 
-  <script>
-    const CLINIC_ID = 'clinic_001';
-    let stockItems = [], suppliers = [], usageRecords = [];
-    let stockChart = null, usageChart = null;
+function showToast(msg, duration = 3000) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', duration);
+}
 
-    document.getElementById('addStockBtn').addEventListener('click', () => {
-  alert("Add Stock feature coming soon. You can wire it to a modal or form.");
-});
+function escapeHtml(s) {
+  if (!s && s !== 0) return '';
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
 
-document.getElementById('viewSuppliersBtn').addEventListener('click', async () => {
-  const res = await fetch(`/api/stock?type=suppliers`);
-  const json = await res.json();
-  alert(`Suppliers:\n\n${json.data.map(s => `${s.name} (${s.item})`).join('\n')}`);
-});
+function openModal(id) {
+  document.getElementById('overlay').style.display = 'block';
+  const m = document.getElementById(id);
+  if (m) m.style.display = 'flex';
+}
 
-    function showToast(msg, duration = 3000) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.style.display = 'block';
-      setTimeout(() => toast.style.display = 'none', duration);
-    }
+function closeModal(id) {
+  document.getElementById('overlay').style.display = 'none';
+  const m = document.getElementById(id);
+  if (m) m.style.display = 'none';
+  ['orderMsg', 'addStockMsg', 'deductMsg'].forEach(i => {
+    const el = document.getElementById(i);
+    if (el) el.textContent = '';
+  });
+}
 
-    async function fetchStock() {
-      try {
-        const res = await fetch(`/api/stock?type=stock&clinic_id=${CLINIC_ID}`, {
-  headers: { 'Cache-Control': 'no-cache' }
-});
-        const json = await res.json();
-        stockItems = Array.isArray(json.data) ? json.data : [];
-        renderStockTable();
-        renderStockChart();
-      } catch (err) {
-        console.error('❌ fetchStock error:', err);
-        showToast('Failed to load stock items.');
-      }
-    }
-document.getElementById('viewSuppliersBtn').addEventListener('click', async () => {
+async function fetchStock() {
+  try {
+    const res = await fetch(`/api/stock?type=stock&clinic_id=${CLINIC_ID}`);
+    const json = await res.json();
+    stockItems = Array.isArray(json.data) ? json.data : [];
+    renderStockTable();
+    renderStockChart();
+  } catch (err) {
+    console.error('❌ fetchStock error:', err);
+    showToast('Failed to load stock items.');
+  }
+}
+
+async function fetchAnalytics() {
+  try {
+    const res = await fetch(`/api/stock?type=analytics&clinic_id=${CLINIC_ID}`);
+    const a = await res.json();
+    document.getElementById('totalItems').textContent = a.total_items ?? stockItems.length;
+    document.getElementById('totalQuantity').textContent = a.total_quantity ?? stockItems.reduce((s,i)=>s+(i.quantity||0),0);
+    document.getElementById('lowStock').textContent = a.low_stock ?? stockItems.filter(i => (i.quantity||0) <= (i.reorder_level||10)).length;
+  } catch (err) {
+    console.error('❌ fetchAnalytics error:', err);
+    showToast('Failed to load analytics.');
+  }
+}
+
+async function fetchUsage(limit = 30) {
+  try {
+    const res = await fetch(`/api/stock?type=usage&clinic_id=${CLINIC_ID}&limit=${limit}`);
+    const json = await res.json();
+    usageRecords = (Array.isArray(json.data) ? json.data : []).map(u => {
+      const stock = stockItems.find(s => s.stock_id === u.stock_id) || {};
+      return { ...u, item_name: stock.name || u.stock_id };
+    }).slice(0, limit);
+    renderUsageTable();
+    renderUsageChart();
+    document.getElementById('recentUsageCount').textContent = usageRecords.length;
+  } catch (err) {
+    console.error('❌ fetchUsage error:', err);
+    usageRecords = [];
+    renderUsageTable();
+    renderUsageChart();
+    document.getElementById('recentUsageCount').textContent = '0';
+    document.getElementById('usageTableBody').innerHTML = `<tr><td colspan="5" class="p-2 text-center text-red-500">Usage data unavailable</td></tr>`;
+    showToast('Usage data fetch failed.');
+  }
+}
+
+async function fetchSuppliers() {
   try {
     const res = await fetch(`/api/stock?type=suppliers`);
     const json = await res.json();
     suppliers = Array.isArray(json.data) ? json.data : [];
 
-    const tbody = document.getElementById('supplierTableBody');
-    tbody.innerHTML = suppliers.map(s => `
-      <tr>
-        <td class="p-2 border">${escapeHtml(s.name)}</td>
-        <td class="p-2 border">${escapeHtml(s.item)}</td>
-        <td class="p-2 border">${s.price}</td>
-        <td class="p-2 border">${escapeHtml(s.contact)}</td>
-        <td class="p-2 border">${escapeHtml(s.email)}</td>
-      </tr>
-    `).join("");
-
-    openModal('supplierModal');
+    const select = document.getElementById('orderSupplier');
+    if (select) {
+      select.innerHTML = suppliers.map(s => `<option value="${s.supplier_id}">${s.name} (${s.item})</option>`).join("");
+    }
   } catch (err) {
-    console.error("❌ Supplier fetch error:", err);
+    console.error("❌ fetchSuppliers error:", err);
     showToast("Failed to load suppliers.");
   }
-});
-
-    async function fetchAnalytics() {
-      try {
-        const res = await fetch(`/api/stock?type=analytics&clinic_id=${CLINIC_ID}`);
-        const a = await res.json();
-        document.getElementById('totalItems').textContent = a.total_items ?? stockItems.length;
-        document.getElementById('totalQuantity').textContent = a.total_quantity ?? stockItems.reduce((s,i)=>s+(i.quantity||0),0);
-        document.getElementById('lowStock').textContent = a.low_stock ?? stockItems.filter(i => (i.quantity||0) <= (i.reorder_level||10)).length;
-      } catch (err) {
-        console.error('❌ fetchAnalytics error:', err);
-        showToast('Failed to load analytics.');
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', async () => {
-  await fetchStock(); // ensures stockItems is populated
-  await Promise.all([
-    fetchSuppliers(),
-    fetchAnalytics(),
-    fetchUsage(50)
-  ]);
-});
-
-document.getElementById('addStockBtn').addEventListener('click', () => {
-  document.getElementById('newStockName').value = '';
-  document.getElementById('newStockQty').value = '';
-  document.getElementById('newStockReorder').value = '';
-  document.getElementById('addStockMsg').textContent = '';
-  openModal('addStockModal');
-});
-    
-function openDeductModal(stock_id, itemName) {
-  const label = document.getElementById('deductItemLabel');
-  const idInput = document.getElementById('deductStockId');
-  const qtyInput = document.getElementById('deductQty');
-  const treatmentInput = document.getElementById('deductTreatment');
-  const msg = document.getElementById('deductMsg');
-
-  if (!label || !idInput || !qtyInput || !treatmentInput || !msg) {
-    console.error("❌ Deduct modal elements not found in DOM.");
-    showToast("Deduct modal failed to open.");
-    return;
-  }
-
-  label.textContent = itemName;
-  idInput.value = stock_id;
-  qtyInput.value = 1;
-  treatmentInput.value = '';
-  msg.textContent = '';
-  openModal('deductModal');
 }
-
-async function submitNewStock() {
-  const name = document.getElementById('newStockName').value.trim();
-  const quantity = parseInt(document.getElementById('newStockQty').value);
-  const reorder_level = parseInt(document.getElementById('newStockReorder').value) || 10;
-
-  if (!name || !quantity) {
-    document.getElementById('addStockMsg').textContent = "Name and quantity are required.";
-    return;
-  }
-let supplierItems = [];
 
 async function fetchCatalog() {
   try {
@@ -336,13 +312,113 @@ async function fetchCatalog() {
   }
 }
 
+function renderStockTable() {
+  const tbody = document.getElementById('stockTableBody');
+  tbody.innerHTML = '';
+  stockItems.forEach(item => {
+    const tr = document.createElement('tr');
+    const lowClass = (item.quantity <= (item.reorder_level || 10)) ? 'text-rose-600 font-semibold' : '';
+    tr.innerHTML = `
+      <td class="p-2 border">${escapeHtml(item.name)}</td>
+      <td class="p-2 border ${lowClass}">${item.quantity}</td>
+      <td class="p-2 border">${item.reorder_level ?? 10}</td>
+      <td class="p-2 border">${escapeHtml(item.clinic_id || '')}</td>
+      <td class="p-2 border">
+        <div class="flex gap-2">
+          <button class="px-2 py-1 bg-red-600 text-white rounded text-sm" onclick="openDeductModal('${escapeHtml(item.stock_id)}','${escapeHtml(item.name)}')">Deduct</button>
+          <button class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm" onclick="openOrderForItem('${escapeHtml(item.name)}')">Order More</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderStockChart() {
+  const ctx = document.getElementById('stockChart').getContext('2d');
+  const labels = stockItems.map(i => i.name);
+  const data = stockItems.map(i => i.quantity || 0);
+
+  if (stockChart) stockChart.destroy();
+  stockChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Quantity',
+        data,
+        backgroundColor: 'rgba(59,130,246,0.6)',
+        borderColor: 'rgba(59,130,246,1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2,
+      scales: { y: { beginAtZero: true } },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+function renderUsageTable() {
+  const tbody = document.getElementById('usageTableBody');
+  tbody.innerHTML = '';
+  usageRecords.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="p-2 border">${u.created_at || 'N/A'}</td>
+      <td class="p-2 border">${escapeHtml(u.item_name)}</td>
+      <td class="p-2 border">${u.quantity_used ?? 0}</td>
+      <td class="p-2 border">${escapeHtml(u.used_by || '—')}</td>
+      <td class="p-2 border">${escapeHtml(u.used_in_service || '—')}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderUsageChart() {
+  const ctx = document.getElementById('usageChart').getContext('2d');
+  const map = {};
+  usageRecords.forEach(r => {
+    map[r.item_name] = (map[r.item_name] || 0) + (r.quantity_used || 0);
+  });
+  const labels = Object.keys(map).slice(0, 12);
+  const data = labels.map(l => map[l]);
+
+  if (usageChart) usageChart.destroy();
+  usageChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Used',
+        data,
+        borderColor: 'rgba(239,68,68,0.8)',
+        backgroundColor: 'rgba(239,68,68,0.15)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
 function renderCatalog(items) {
   const grid = document.getElementById("catalogGrid");
   grid.innerHTML = items.map(item => `
     <div class="border p-3 rounded shadow">
       <div class="font-semibold">${escapeHtml(item.item_name)}</div>
       <div class="text-sm text-gray-500">Price: $${item.price} • Available: ${item.available_quantity}</div>
-      <button onclick="orderFromCatalog('${item.supplier_id}', '${item.item_name}', ${item.price})"
+      <button onclick="orderFromCatalog('${item.supplier_id}', '${escapeHtml(item.item_name)}', ${item.price})"
         class="mt-2 bg-green-600 text-white px-3 py-1 rounded text-sm">Order</button>
     </div>
   `).join("");
@@ -386,278 +462,6 @@ function orderFromCatalog(supplier_id, item, price) {
     showToast("Order failed.");
   });
 }
-
-  const res = await fetch("/api/stock", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "add", clinic_id: CLINIC_ID, name, quantity, reorder_level })
-  });
-
-  const json = await res.json();
-  if (res.ok) {
-    closeModal('addStockModal');
-    showToast(`✅ Added stock: ${name}`);
-    await fetchStock();
-    await fetchAnalytics();
-  } else {
-    document.getElementById('addStockMsg').textContent = json.error || "Add failed.";
-  }
-}
-
-    async function fetchUsage(limit = 30) {
-      try {
-        const res = await fetch(`/api/stock?type=usage&clinic_id=${CLINIC_ID}&limit=${limit}`);
-        if (!res.ok) throw new Error('Failed to fetch usage');
-        const json = await res.json();
-        usageRecords = (Array.isArray(json.data) ? json.data : []).map(u => {
-          const stock = stockItems.find(s => s.stock_id === u.stock_id) || {};
-          return { ...u, item_name: stock.name || u.stock_id };
-        }).slice(0, limit);
-        renderUsageTable();
-        renderUsageChart();
-        document.getElementById('recentUsageCount').textContent = usageRecords.length;
-      } catch (err) {
-        console.error('❌ fetchUsage error:', err);
-        usageRecords = [];
-        renderUsageTable();
-        renderUsageChart();
-        document.getElementById('recentUsageCount').textContent = '0';
-        document.getElementById('usageTableBody').innerHTML = `<tr><td colspan="5" class="p-2 text-center text-red-500">Usage data unavailable</td></tr>`;
-        showToast('Usage data fetch failed.');
-      }
-    }
-
-    function renderUsageTable() {
-      const tbody = document.getElementById('usageTableBody');
-      tbody.innerHTML = '';
-      usageRecords.forEach(u => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="p-2 border">${u.created_at || 'N/A'}</td>
-          <td class="p-2 border">${escapeHtml(u.item_name)}</td>
-          <td class="p-2 border">${u.quantity_used ?? 0}</td>
-          <td class="p-2 border">${escapeHtml(u.used_by || '—')}</td>
-          <td class="p-2 border">${escapeHtml(u.used_in_service || '—')}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function renderUsageChart() {
-      const ctx = document.getElementById('usageChart').getContext('2d');
-      const map = {};
-      usageRecords.forEach(r => {
-        map[r.item_name] = (map[r.item_name] || 0) + (r.quantity_used || 0);
-      });
-      const labels = Object.keys(map).slice(0, 12);
-      const data = labels.map(l => map[l]);
-
-      if (usageChart) usageChart.destroy();
-      usageChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Used',
-            data,
-            borderColor: 'rgba(239,68,68,0.8)',
-            backgroundColor: 'rgba(239,68,68,0.15)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          aspectRatio: 2,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true } }
-        }
-      });
-    }
-
-    function renderStockTable() {
-      const tbody = document.getElementById('stockTableBody');
-      tbody.innerHTML = '';
-      stockItems.forEach(item => {
-        const tr = document.createElement('tr');
-        const lowClass = (item.quantity <= (item.reorder_level || 10)) ? 'text-rose-600 font-semibold' : '';
-        tr.innerHTML = `
-          <td class="p-2 border">${escapeHtml(item.name)}</td>
-          <td class="p-2 border ${lowClass}">${item.quantity}</td>
-          <td class="p-2 border">${item.reorder_level ?? 10}</td>
-          <td class="p-2 border">${escapeHtml(item.clinic_id || '')}</td>
-          <td class="p-2 border">
-            <div class="flex gap-2">
-              <button class="px-2 py-1 bg-red-600 text-white rounded text-sm" onclick="openDeductModal('${escapeHtml(item.stock_id)}','${escapeHtml(item.name)}')">Deduct</button>
-              <button class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm" onclick="openOrderForItem('${escapeHtml(item.name)}')">Order More</button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function renderStockChart() {
-      const ctx = document.getElementById('stockChart').getContext('2d');
-      const labels = stockItems.map(i => i.name);
-      const data = stockItems.map(i => i.quantity || 0);
-
-      if (stockChart) stockChart.destroy();
-      stockChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Quantity',
-            data,
-            backgroundColor: 'rgba(59,130,246,0.6)',
-            borderColor: 'rgba(59,130,246,1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          aspectRatio: 2,
-          scales: { y: { beginAtZero: true } },
-          plugins: { legend: { display: false } }
-        }
-      });
-    }
-
-    function escapeHtml(s) {
-      if (!s && s !== 0) return '';
-      return String(s).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[c]));
-    }
-
-    function showToast(msg, duration = 3000) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.style.display = 'block';
-      setTimeout(() => toast.style.display = 'none', duration);
-    }
-
-    function openModal(id) {
-      document.getElementById('overlay').style.display = 'block';
-      const m = document.getElementById(id);
-      if (m) m.style.display = 'flex';
-    }
-
-    function closeModal(id) {
-      document.getElementById('overlay').style.display = 'none';
-      const m = document.getElementById(id);
-      if (m) m.style.display = 'none';
-      ['orderMsg', 'addStockMsg', 'deductMsg'].forEach(i => {
-        const el = document.getElementById(i);
-        if (el) el.textContent = '';
-      });
-    }
-
-    function openDeductModal(stock_id, itemName) {
-      document.getElementById('deductItemLabel').textContent = itemName;
-      document.getElementById('deductStockId').value = stock_id;
-      document.getElementById('deductQty').value = 1;
-      document.getElementById('deductUnit').value = '';
-      document.getElementById('deductPatient').value = '';
-      document.getElementById('deductTreatment').value = '';
-      document.getElementById('deductMsg').textContent = '';
-      openModal('deductModal');
-    }
-
-    function openOrderForItem(itemName) {
-      openModal('orderModal');
-      const optName = document.getElementById('orderItemName');
-      if (!optName) {
-        const input = document.createElement('input');
-        input.id = 'orderItemName';
-        input.type = 'hidden';
-        input.value = itemName;
-        document.getElementById('orderForm').appendChild(input);
-      } else {
-        optName.value = itemName;
-      }
-    }
-async function submitDeduct() {
-  const stock_id = document.getElementById('deductStockId').value;
-  const quantity_used = parseInt(document.getElementById('deductQty').value);
-  const used_in_service = document.getElementById('deductTreatment').value || "invoice";
-
-  if (!stock_id || !quantity_used) {
-    document.getElementById('deductMsg').textContent = "Missing required fields.";
-    return;
-  }
-
-  const res = await fetch("/api/stock", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "deduct", clinic_id: CLINIC_ID, stock_id, quantity_used, used_in_service })
-  });
-
-  const json = await res.json();
-  if (res.ok) {
-    closeModal('deductModal');
-    showToast(`✅ Deducted ${quantity_used} from stock`);
-    await fetchStock();
-    await fetchUsage(50);
-  } else {
-    document.getElementById('deductMsg').textContent = json.error || "Deduct failed.";
-  }
-}
-async function submitOrder() {
-  const item = document.getElementById('orderItemName').value;
-  const quantity = parseInt(document.getElementById('orderQty').value);
-  const supplier_id = document.getElementById('orderSupplier').value;
-
-  if (!item || !quantity || !supplier_id) {
-    document.getElementById('orderMsg').textContent = "Missing required fields.";
-    return;
-  }
-
-  const supplier = suppliers.find(s => s.supplier_id === supplier_id);
-  const price = supplier?.price || 0;
-
-  const res = await fetch("/api/stock", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "order", clinic_id: CLINIC_ID, supplier_id, item, quantity, price })
-  });
-
-  const json = await res.json();
-  if (res.ok) {
-    closeModal('orderModal');
-    showToast(`✅ Order placed: ${item} x${quantity}`);
-  } else {
-    document.getElementById('orderMsg').textContent = json.error || "Order failed.";
-  }
-}
-async function fetchSuppliers() {
-  try {
-    const res = await fetch(`/api/stock?type=suppliers`);
-    const json = await res.json();
-    suppliers = Array.isArray(json.data) ? json.data : [];
-
-    const select = document.getElementById('orderSupplier');
-    if (select) {
-      select.innerHTML = suppliers.map(s => `<option value="${s.supplier_id}">${s.name} (${s.item})</option>`).join("");
-    }
-  } catch (err) {
-    console.error("❌ fetchSuppliers error:", err);
-    showToast("Failed to load suppliers.");
-  }
-}
-
-    document.getElementById('refreshBtn').addEventListener('click', async () => {
-      await Promise.all([fetchStock(), fetchAnalytics(), fetchUsage(50)]);
-    });
-
-    window.addEventListener('DOMContentLoaded', async () => {
-      await Promise.all([fetchStock(), fetchAnalytics(), fetchCatalog(),fetchUsage(50)]);
-
-    });
-  </script>
+</script>
 </body>
 </html>
