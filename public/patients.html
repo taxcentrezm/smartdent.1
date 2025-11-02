@@ -1043,10 +1043,18 @@ const deleteBtn = document.getElementById('deleteBtn');
 const editIndex = document.getElementById('editIndex');
 const modalTitle = document.getElementById('modalTitle');
 
-let patients = JSON.parse(localStorage.getItem('patients')) || [];
+let patients = [];
 
-function savePatients() {
-  localStorage.setItem('patients', JSON.stringify(patients));
+async function fetchPatients() {
+  try {
+    const res = await fetch("/api/patients");
+    const json = await res.json();
+    patients = Array.isArray(json.data) ? json.data : [];
+    renderPatients();
+  } catch (err) {
+    console.error("❌ Failed to fetch patients:", err);
+    alert("Could not load patient records.");
+  }
 }
 
 function renderPatients(list = patients) {
@@ -1081,7 +1089,8 @@ function openPatientModal(index = null) {
     patientForm.note.value = p.note;
     patientForm.date.value = p.date;
     patientForm.status.value = p.status;
-    editIndex.value = index;
+    editIndex.value = p.id;
+    deleteBtn.dataset.index = index;
     deleteBtn.classList.remove('hidden');
   } else {
     modalTitle.textContent = 'Add Patient';
@@ -1096,44 +1105,62 @@ function closePatientModal() {
   patientModal.classList.remove('active');
 }
 
-patientForm.onsubmit = e => {
+patientForm.onsubmit = async e => {
   e.preventDefault();
   const data = {
+    id: editIndex.value || null,
     name: patientForm.name.value.trim(),
     note: patientForm.note.value.trim(),
     date: patientForm.date.value,
     status: patientForm.status.value
   };
-  if (editIndex.value !== '') patients[editIndex.value] = data;
-  else patients.push(data);
-  savePatients();
-  renderPatients();
-  closePatientModal();
+
+  const res = await fetch("/api/patients", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+
+  if (res.ok) {
+    closePatientModal();
+    fetchPatients();
+  } else {
+    alert("Failed to save patient.");
+  }
 };
 
-deleteBtn.onclick = () => {
+deleteBtn.onclick = async () => {
   const pwd = prompt("Enter password to delete:");
-  if (pwd === "admin123") {
-    patients.splice(editIndex.value, 1);
-    savePatients();
-    renderPatients();
+  if (pwd !== "admin123") return alert("Incorrect password!");
+
+  const index = deleteBtn.dataset.index;
+  const patient = patients[index];
+  const res = await fetch("/api/patients", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: patient.id })
+  });
+
+  if (res.ok) {
     closePatientModal();
-  } else alert("Incorrect password!");
+    fetchPatients();
+  } else {
+    alert("Failed to delete patient.");
+  }
 };
 
 document.getElementById('cancelBtn').onclick = closePatientModal;
 document.getElementById('addBtn').onclick = () => openPatientModal();
 window.onclick = e => { if (e.target === patientModal) closePatientModal(); };
 
-// Search
 document.getElementById('searchBtn').onclick = () => {
   const q = document.getElementById('searchInput').value.toLowerCase();
-  renderPatients(patients.filter(p => 
+  renderPatients(patients.filter(p =>
     p.name.toLowerCase().includes(q) || p.note.toLowerCase().includes(q)
   ));
 };
 
-// Doctor dropdown
+// ===== DOCTOR DROPDOWN =====
 const doctorBtn = document.getElementById('doctorBtn');
 const doctorDropdown = document.getElementById('doctorDropdown');
 if (doctorBtn && doctorDropdown) {
@@ -1151,257 +1178,10 @@ document.getElementById('logoutBtn').onclick = () => {
   if (confirm("Log out of SmartDent ERP?")) alert("Logged out successfully!");
 };
 
-// ===== INVOICING LOGIC =====
-const invoiceModal = document.getElementById('invoiceModal');
-const invoiceForm = document.getElementById('invoiceForm');
-const invoiceDate = document.getElementById('invoiceDate');
-const invoicePatient = document.getElementById('invoicePatient');
-const invoiceDentist = document.getElementById('invoiceDentist');
-const serviceList = document.getElementById('serviceList');
-const invoiceTotal = document.getElementById('invoiceTotal');
-
-let invoices = JSON.parse(localStorage.getItem('invoices')) || [];
-
-function openInvoiceModal() {
-  renderPatientOptions();
-  renderDentistOptions();
-  invoiceDate.value = new Date().toISOString().split('T')[0];
-  invoiceModal.classList.remove('hidden');
-  invoiceModal.classList.add('flex');
-}
-
-function closeInvoiceModal() {
-  invoiceModal.classList.add('hidden');
-  invoiceModal.classList.remove('flex');
-}
-
-if (invoiceModal) {
-  invoiceModal.addEventListener('click', e => {
-    if (e.target === invoiceModal) closeInvoiceModal();
-  });
-}
-
-function renderPatientOptions() {
-  if (!invoicePatient) return;
-  invoicePatient.innerHTML = '<option value="">Select Patient</option>';
-  patients.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.name;
-    opt.textContent = p.name;
-    invoicePatient.appendChild(opt);
-  });
-}
-
-function renderDentistOptions() {
-  if (!invoiceDentist) return;
-  let dentists = JSON.parse(localStorage.getItem('dentists') || '[]');
-  if (dentists.length === 0) {
-    dentists = [{name: "Dr. Phiri"}, {name: "Dr. Mwale"}];
-    localStorage.setItem('dentists', JSON.stringify(dentists));
-  }
-  invoiceDentist.innerHTML = '<option value="">Select Dentist</option>';
-  dentists.forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d.name;
-    opt.textContent = d.name;
-    invoiceDentist.appendChild(opt);
-  });
-}
-
-function addServiceLine() {
-  if (!serviceList) return;
-  const div = document.createElement('div');
-  div.className = 'flex gap-2';
-  div.innerHTML = `
-    <input type="text" placeholder="Service Description" class="flex-1 border rounded-md px-2 py-1">
-    <input type="number" placeholder="Amount" class="w-24 border rounded-md px-2 py-1 text-right">
-  `;
-  serviceList.appendChild(div);
-}
-
-if (serviceList) {
-  serviceList.addEventListener('input', () => {
-    const amounts = [...serviceList.querySelectorAll('input[type="number"]')].map(i => parseFloat(i.value) || 0);
-    invoiceTotal.textContent = `$${amounts.reduce((a,b)=>a+b,0).toFixed(2)}`;
-  });
-}
-
-if (invoiceForm) {
-  invoiceForm.addEventListener('submit', e => {
-    e.preventDefault();
-    const patient = invoicePatient?.value;
-    const dentist = invoiceDentist?.value;
-    const date = invoiceDate?.value;
-    const services = [...serviceList.querySelectorAll('div')].map(div => {
-      const [desc, amt] = div.querySelectorAll('input');
-      return { desc: desc.value.trim(), amt: parseFloat(amt.value) || 0 };
-    });
-    const total = services.reduce((a,b)=>a+b.amt,0);
-
-    if (!patient || !dentist || services.length === 0) {
-      alert('Please fill in all details');
-      return;
-    }
-
-    invoices.push({ patient, dentist, date, services, total });
-    localStorage.setItem('invoices', JSON.stringify(invoices));
-
-    alert(`Invoice saved for ${patient} by ${dentist}`);
-    closeInvoiceModal();
-  });
-}
-
-  // ===== SCHEDULE APPOINTMENT LOGIC =====
-const scheduleModal = document.getElementById('scheduleModal');
-const scheduleForm = document.getElementById('scheduleForm');
-const schedulePatient = document.getElementById('schedulePatient');
-const scheduleDentist = document.getElementById('scheduleDentist');
-const scheduleDate = document.getElementById('scheduleDate');
-const scheduleTime = document.getElementById('scheduleTime');
-
-function openScheduleModal() {
-  // Populate patients
-  schedulePatient.innerHTML = '<option value="">Select Patient</option>';
-  patients.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.name;
-    opt.textContent = p.name;
-    schedulePatient.appendChild(opt);
-  });
-
-  // Populate dentists
-  let dentists = JSON.parse(localStorage.getItem('dentists') || '[]');
-  if (dentists.length === 0) {
-    dentists = [{name: "Dr. Phiri"}, {name: "Dr. Mwale"}];
-    localStorage.setItem('dentists', JSON.stringify(dentists));
-  }
-  scheduleDentist.innerHTML = '<option value="">Select Dentist</option>';
-  dentists.forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d.name;
-    opt.textContent = d.name;
-    scheduleDentist.appendChild(opt);
-  });
-
-  // Set current date/time defaults
-  scheduleDate.value = new Date().toISOString().split('T')[0];
-  scheduleTime.value = "09:00";
-
-  scheduleModal.classList.remove('hidden');
-  scheduleModal.classList.add('flex');
-}
-
-function closeScheduleModal() {
-  scheduleModal.classList.add('hidden');
-  scheduleModal.classList.remove('flex');
-}
-
-if (scheduleModal) {
-  scheduleModal.addEventListener('click', e => {
-    if (e.target === scheduleModal) closeScheduleModal();
-  });
-}
-
-// Handle schedule form submission
-if (scheduleForm) {
-  scheduleForm.addEventListener('submit', e => {
-    e.preventDefault();
-    const patient = schedulePatient.value;
-    const dentist = scheduleDentist.value;
-    const date = scheduleDate.value;
-    const time = scheduleTime.value;
-
-    if (!patient || !dentist || !date || !time) {
-      alert("Please fill all fields");
-      return;
-    }
-
-    // Demo: forward appointment to patient email
-    alert(`Appointment for ${patient} with ${dentist} on ${date} at ${time} has been forwarded to patient's email.`);
-
-    closeScheduleModal();
-  });
-}
-
-// Connect quick action button
-document.addEventListener('DOMContentLoaded', () => {
-  const scheduleBtn = document.getElementById('scheduleBtn');
-  if (scheduleBtn) scheduleBtn.onclick = openScheduleModal;
-});
-
-
-  // ===== APPOINTMENTS TRACKING =====
-let appointments = JSON.parse(localStorage.getItem('appointments') || '[]');
-
-const appointmentsTableBody = document.getElementById('appointmentsTableBody');
-
-function saveAppointments() {
-  localStorage.setItem('appointments', JSON.stringify(appointments));
-}
-
-function renderAppointments() {
-  if (!appointmentsTableBody) return;
-  appointmentsTableBody.innerHTML = '';
-  if (appointments.length === 0) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="4" class="text-center p-3 text-gray-500">No upcoming appointments</td>`;
-    appointmentsTableBody.appendChild(tr);
-    return;
-  }
-
-  appointments.forEach(a => {
-    const tr = document.createElement('tr');
-    tr.className = 'hover:bg-gray-50';
-    tr.innerHTML = `
-      <td class="border px-3 py-2">${a.patient}</td>
-      <td class="border px-3 py-2">${a.dentist}</td>
-      <td class="border px-3 py-2">${a.date}</td>
-      <td class="border px-3 py-2">${a.time}</td>
-    `;
-    appointmentsTableBody.appendChild(tr);
-  });
-}
-
-// Update schedule form submission to save and render appointments
-if (scheduleForm) {
-  scheduleForm.addEventListener('submit', e => {
-    e.preventDefault();
-    const patient = schedulePatient.value;
-    const dentist = scheduleDentist.value;
-    const date = scheduleDate.value;
-    const time = scheduleTime.value;
-
-    if (!patient || !dentist || !date || !time) {
-      alert("Please fill all fields");
-      return;
-    }
-
-    // Save appointment
-    appointments.push({ patient, dentist, date, time });
-    saveAppointments();
-    renderAppointments();
-
-    // Demo alert
-    alert(`Appointment for ${patient} with ${dentist} on ${date} at ${time} has been forwarded to patient's email.`);
-
-    closeScheduleModal();
-  });
-}
-
-// Render on page load
-document.addEventListener('DOMContentLoaded', renderAppointments);
-
-// Quick Actions
-document.addEventListener('DOMContentLoaded', () => {
-  const manageBtn = document.getElementById('manageBtn');
-
-
-  if (manageBtn) manageBtn.onclick = openPatientModal;
-});
-
-// Initialize
-renderPatients();
+// ===== INITIALIZE =====
+document.addEventListener("DOMContentLoaded", fetchPatients);
 </script>
+
 
 
 </body>
