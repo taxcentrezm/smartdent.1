@@ -12,7 +12,7 @@ export default async function handler(req, res) {
       // ================= GET =================
       case "GET": {
         if (type === "stock") {
-          const stockRes = await client.execute("SELECT * FROM stock WHERE clinic_id = ?;", [clinic_id]);
+          const stockRes = await client.execute("SELECT * FROM stock_orders WHERE clinic_id = 'clinic_001';", [clinic_id]);
           return res.status(200).json({ data: stockRes.rows });
         }
 
