@@ -47,17 +47,16 @@ export default async function handler(req, res) {
 
         // ---- Usage ----
         if (type === "usage") {
-const limit = parseInt(req.query.limit) || 50;
-const usageRes = await client.execute(
-  `SELECT su.usage_id, su.stock_id, su.quantity_used, su.used_in_service, su.created_at, st.name AS item_name
-   FROM stock_usage su
-   LEFT JOIN stock st ON st.stock_id = su.stock_id
-   WHERE su.clinic_id = ?
-   ORDER BY datetime(su.created_at) DESC
-   LIMIT ?;`,
-  [clinic_id, String(limit)] // 🔧 Convert to string to avoid SQLITE_MISMATCH
-);
-
+          const limit = Math.min(parseInt(req.query.limit) || 50, 100); // cap to prevent abuse
+          const usageRes = await client.execute(
+            `SELECT su.usage_id, su.stock_id, su.quantity_used, su.used_in_service, su.created_at, st.name AS item_name
+             FROM stock_usage su
+             LEFT JOIN stock st ON st.stock_id = su.stock_id
+             WHERE su.clinic_id = ?
+             ORDER BY datetime(su.created_at) DESC
+             LIMIT ${limit};`, // ✅ inline limit to avoid SQLITE_MISMATCH
+            [clinic_id]
+          );
           console.log(`📈 Fetched ${usageRes.rows.length} recent usage records`);
           return res.status(200).json({ data: usageRes.rows });
         }
@@ -72,7 +71,9 @@ const usageRes = await client.execute(
         // ---- Add Stock ----
         if (action === "add") {
           const { name, quantity, reorder_level = 10 } = body;
-          if (!name || quantity == null) return res.status(400).json({ error: "name and quantity are required" });
+          if (!name || quantity == null) {
+            return res.status(400).json({ error: "name and quantity are required" });
+          }
 
           const stock_id = randomUUID();
           await client.execute(
@@ -87,7 +88,9 @@ const usageRes = await client.execute(
         // ---- Place Order ----
         if (action === "order") {
           const { supplier_id, item_name, quantity, price = 0 } = body;
-          if (!supplier_id || !item_name || !quantity) return res.status(400).json({ error: "Missing order details" });
+          if (!supplier_id || !item_name || !quantity) {
+            return res.status(400).json({ error: "Missing order details" });
+          }
 
           const order_id = randomUUID();
           await client.execute(
@@ -102,14 +105,20 @@ const usageRes = await client.execute(
         // ---- Deduct Stock ----
         if (action === "deduct") {
           const { stock_id, quantity_used, used_in_service = "invoice" } = body;
-          if (!stock_id || !quantity_used) return res.status(400).json({ error: "stock_id and quantity_used are required" });
+          if (!stock_id || !quantity_used) {
+            return res.status(400).json({ error: "stock_id and quantity_used are required" });
+          }
 
           const stockRes = await client.execute("SELECT * FROM stock WHERE stock_id = ?;", [stock_id]);
-          if (!stockRes.rows.length) return res.status(404).json({ error: "Stock item not found" });
+          if (!stockRes.rows.length) {
+            return res.status(404).json({ error: "Stock item not found" });
+          }
 
           const stockItem = stockRes.rows[0];
           const remaining = (stockItem.quantity || 0) - quantity_used;
-          if (remaining < 0) return res.status(400).json({ error: "Insufficient stock" });
+          if (remaining < 0) {
+            return res.status(400).json({ error: "Insufficient stock" });
+          }
 
           await client.execute("UPDATE stock SET quantity = ? WHERE stock_id = ?;", [remaining, stock_id]);
           await client.execute(
@@ -128,14 +137,20 @@ const usageRes = await client.execute(
       // ================= PATCH =================
       case "PATCH": {
         const { stock_id, quantity_used, used_in_service = "invoice" } = body;
-        if (!stock_id || !quantity_used) return res.status(400).json({ error: "stock_id and quantity_used are required" });
+        if (!stock_id || !quantity_used) {
+          return res.status(400).json({ error: "stock_id and quantity_used are required" });
+        }
 
         const stockRes = await client.execute("SELECT * FROM stock WHERE stock_id = ?;", [stock_id]);
-        if (!stockRes.rows.length) return res.status(404).json({ error: "Stock item not found" });
+        if (!stockRes.rows.length) {
+          return res.status(404).json({ error: "Stock item not found" });
+        }
 
         const stockItem = stockRes.rows[0];
         const remaining = (stockItem.quantity || 0) - quantity_used;
-        if (remaining < 0) return res.status(400).json({ error: "Insufficient stock" });
+        if (remaining < 0) {
+          return res.status(400).json({ error: "Insufficient stock" });
+        }
 
         await client.execute("UPDATE stock SET quantity = ? WHERE stock_id = ?;", [remaining, stock_id]);
         await client.execute(
