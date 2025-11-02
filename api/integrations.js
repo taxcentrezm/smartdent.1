@@ -26,43 +26,60 @@ export default async function handler(req, res) {
         // GET → fetch records
         // -----------------------
         case "GET": {
-          const { patient_id, clinic_id, record_id, name_only } = req.query;
-          let query = `SELECT * FROM clinical_records_enriched`;
-          const params = [];
-          const conditions = [];
+  const { patient_id, clinic_id, record_id, name_only } = req.query;
+  const conditions = [];
+  const params = [];
 
-          if (record_id && name_only === "true") {
-            query = `SELECT full_name FROM clinical_records_enriched WHERE TRIM(LOWER(record_id)) = TRIM(LOWER(?)) LIMIT 1;`;
-            params.push(record_id.trim().toLowerCase());
-            const result = await client.execute(query, params);
-            const name = result.rows[0]?.full_name || null;
-            return res.status(200).json({ full_name: name });
-          }
+  // Normalize inputs
+  const normalizedPatientId = patient_id?.trim().toLowerCase();
+  const normalizedRecordId = record_id?.trim().toLowerCase();
 
-          if (patient_id) {
-            conditions.push("TRIM(LOWER(patient_id)) = TRIM(LOWER(?))");
-            params.push(patient_id.trim().toLowerCase());
-          }
+  // 🔍 Return name only for a specific record
+  if (record_id && name_only === "true") {
+    const query = `
+      SELECT full_name
+      FROM clinical_records_enriched
+      WHERE LOWER(TRIM(record_id)) = ?
+      LIMIT 1;
+    `;
+    const result = await client.execute(query, [normalizedRecordId]);
+    const name = result.rows[0]?.full_name || null;
+    return res.status(200).json({ full_name: name });
+  }
 
-          if (clinic_id) {
-            conditions.push("clinic_id = ?");
-            params.push(clinic_id.trim());
-          }
+  // 🔍 Build dynamic filters
+  if (normalizedPatientId) {
+    conditions.push("LOWER(TRIM(patient_id)) = ?");
+    params.push(normalizedPatientId);
+  }
 
-          if (conditions.length) {
-            query += " WHERE " + conditions.join(" AND ");
-          }
+  if (clinic_id) {
+    conditions.push("clinic_id = ?");
+    params.push(clinic_id.trim());
+  }
 
-          query += " ORDER BY datetime(created_at) DESC;";
-          console.log("🔍 Executing query:", query.trim(), "with params:", params);
+  let query = `
+    SELECT *
+    FROM clinical_records_enriched
+  `;
 
-          const result = await client.execute(query.trim(), params);
-          console.log(`✅ ${result.rows.length} enriched records fetched.`);
-          return res.status(200).json({
-            message: `${result.rows.length} record(s) fetched`,
-            data: result.rows,
-          });
-        }
+  if (conditions.length) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  query += " ORDER BY datetime(created_at) DESC;";
+
+  console.log("🔍 Executing query:", query.trim(), "with params:", params);
+
+  const result = await client.execute(query.trim(), params);
+  console.log(`✅ ${result.rows.length} enriched records fetched.`);
+
+  return res.status(200).json({
+    message: `${result.rows.length} record(s) fetched`,
+    data: result.rows,
+  });
+}
+
 
         // -----------------------
         // POST → create enriched record
