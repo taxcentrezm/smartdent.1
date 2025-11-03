@@ -6,7 +6,6 @@
   <title>SmartDent Assistant (iOS Enhanced)</title>
   <script src="https://unpkg.com/feather-icons"></script>
   <style>
-   
     :root {
       --ios-blue: #007aff;
       --ios-bg: rgba(255, 255, 255, 0.55);
@@ -33,7 +32,6 @@
       z-index: 1000;
       display: flex;
       align-items: center;
-      justify-content: center;
       flex-direction: column;
     }
 
@@ -53,7 +51,7 @@
       box-shadow: 0 8px 20px rgba(0,0,0,0.25);
     }
 
-    /* Expanded Hover Greeting */
+    /* Hover Greeting */
     .hover-greeting {
       position: absolute;
       bottom: 88px;
@@ -112,6 +110,7 @@
       justify-content: space-between;
       font-weight: 600;
       border-bottom: 1px solid var(--ios-border);
+      cursor: grab;
     }
 
     .chat-header .agent-select {
@@ -235,89 +234,86 @@
 
     button:active { transform: scale(0.97); }
 
-/* Sheet (anchored to chat window) */
-.sheet {
-  position: fixed;
-  bottom: -10px; /* same height as chat window bottom position */
-  right: 24px;   /* align with chat window */
-  width: 360px;  /* match chat width */
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(25px);
-  border-top-left-radius: 18px;
-  border-top-right-radius: 18px;
-  padding: 16px;
-  box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.15);
-  transform: translateY(120%);
-  transition: transform 0.5s cubic-bezier(0.22, 1.4, 0.36, 1);
-  z-index: 2000; /* ensure it's above chat */
-}
+    /* Agent Sheet */
+    .sheet {
+      position: fixed;
+      bottom: 100px;
+      right: 24px;
+      width: 360px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(25px);
+      border-top-left-radius: 18px;
+      border-top-right-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.15);
+      transform: translateY(120%);
+      transition: transform 0.5s cubic-bezier(0.22, 1.4, 0.36, 1);
+      z-index: 2000;
+    }
+    .sheet.active { transform: translateY(0); }
 
-/* Bounce-up animation when active */
-.sheet.active {
-  transform: translateY(0);
-}
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 1500;
+    }
+    .sheet-backdrop.active { opacity: 1; pointer-events: all; }
 
-/* Backdrop */
-.sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(8px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  z-index: 1500;
-}
+    .agent-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      color: var(--text-dark);
+      transition: background 0.2s ease, transform 0.15s ease;
+    }
+    .agent-option:hover { background: rgba(0,0,0,0.05); transform: scale(1.02); }
+    .agent-option i { width: 18px; height: 18px; }
+    .agent-option span { font-weight: 500; }
 
-.sheet-backdrop.active {
-  opacity: 1;
-  pointer-events: all;
-}
+    /* Confirmation Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.25);
+      backdrop-filter: blur(5px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      z-index: 2500;
+    }
+    .modal-backdrop.active { opacity: 1; pointer-events: all; }
 
-/* Agent options */
-.agent-option {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  color: var(--text-dark);
-  transition: background 0.2s ease, transform 0.15s ease;
-}
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: rgba(255,255,255,0.95);
+      padding: 20px;
+      border-radius: 18px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.22, 1.4, 0.36, 1);
+      z-index: 2600;
+    }
+    .modal.active { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    .modal-content p { font-size: 15px; line-height: 1.4; }
 
-.agent-option:hover {
-  background: rgba(0, 0, 0, 0.05);
-  transform: scale(1.02);
-}
-
-.agent-option i {
-  width: 18px;
-  height: 18px;
-}
-
-.agent-option span {
-  font-weight: 500;
-}
-    .chat-log .assistant:first-child {
-  animation: bounceIn 0.4s ease;
-}
-
-@keyframes bounceIn {
-  0% { transform: translateY(20px); opacity: 0; }
-  60% { transform: translateY(-8px); opacity: 1; }
-  100% { transform: translateY(0); }
-}
-
-</style>
+  </style>
 </head>
 <body>
-  <!-- Floating Avatar Trigger -->
+  <!-- Floating Avatar -->
   <div class="floating-avatar-wrapper">
     <img src="avatar.gif" alt="Assistant Avatar" class="floating-avatar" onclick="toggleChat()" />
-    <div class="hover-greeting">
-      👋 Hey there! I'm <b>SmartDent</b>
-    </div>
+    <div class="hover-greeting">👋 Hey there! I'm <b>SmartDent</b></div>
   </div>
 
   <!-- Chat Window -->
@@ -329,35 +325,35 @@
       </div>
       <button onclick="toggleChat()">⛶</button>
     </div>
-
     <div class="chat-log" id="chat-log"></div>
     <div class="typing-indicator" id="typing-indicator">
       <span></span><span></span><span></span>
     </div>
-
     <form id="chat-form">
       <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
       <button type="submit">Send</button>
     </form>
   </div>
 
-  <!-- iOS Sheet -->
+  <!-- Agent Sheet -->
   <div class="sheet-backdrop" id="sheetBackdrop"></div>
   <div class="sheet" id="sheet">
-    <div class="agent-option" data-agent="Assistant" data-icon="cpu">
-      <i data-feather="cpu"></i><span>Assistant</span>
-    </div>
-    <div class="agent-option" data-agent="Clinical" data-icon="activity">
-      <i data-feather="activity"></i><span>Clinical</span>
-    </div>
-    <div class="agent-option" data-agent="Billing" data-icon="credit-card">
-      <i data-feather="credit-card"></i><span>Billing</span>
-    </div>
-    <div class="agent-option" data-agent="Research" data-icon="book-open">
-      <i data-feather="book-open"></i><span>Research</span>
-    </div>
-    <div class="agent-option" data-agent="Accounting" data-icon="bar-chart-2">
-      <i data-feather="bar-chart-2"></i><span>Accounting</span>
+    <div class="agent-option" data-agent="Assistant" data-icon="cpu"><i data-feather="cpu"></i><span>Assistant</span></div>
+    <div class="agent-option" data-agent="Clinical" data-icon="activity"><i data-feather="activity"></i><span>Clinical</span></div>
+    <div class="agent-option" data-agent="Billing" data-icon="credit-card"><i data-feather="credit-card"></i><span>Billing</span></div>
+    <div class="agent-option" data-agent="Research" data-icon="book-open"><i data-feather="book-open"></i><span>Research</span></div>
+    <div class="agent-option" data-agent="Accounting" data-icon="bar-chart-2"><i data-feather="bar-chart-2"></i><span>Accounting</span></div>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <p id="modal-text">Would you like to switch to this agent?</p>
+      <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+        <button id="modal-decline" style="background:#ccc; color:#000;">Decline</button>
+        <button id="modal-accept" style="background:var(--ios-blue); color:#fff;">Accept</button>
+      </div>
     </div>
   </div>
 
@@ -369,6 +365,14 @@
     const sheet = document.getElementById("sheet");
     const backdrop = document.getElementById("sheetBackdrop");
     const log = document.getElementById("chat-log");
+
+    const modal = document.getElementById("modal");
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const modalText = document.getElementById("modal-text");
+    const modalAccept = document.getElementById("modal-accept");
+    const modalDecline = document.getElementById("modal-decline");
+
+    let pendingAgent = null;
 
     const agentDetails = {
       "Assistant": "I'm your general assistant 🤖 — guiding you across SmartDent tasks and features.",
@@ -382,46 +386,62 @@
       chatWindow.style.display = chatWindow.style.display === "none" ? "flex" : "none";
     }
 
+    // Sheet open/close
     agentSelect.onclick = () => {
-  sheet.classList.add("active");
-  backdrop.classList.add("active");
-};
+      sheet.classList.add("active");
+      backdrop.classList.add("active");
+    };
 
-backdrop.onclick = () => {
-  sheet.classList.remove("active");
-  backdrop.classList.remove("active");
-};
+    backdrop.onclick = () => {
+      sheet.classList.remove("active");
+      backdrop.classList.remove("active");
+    };
 
-document.querySelectorAll(".agent-option").forEach(opt => {
-  opt.onclick = () => {
-    const name = opt.dataset.agent;
-    const icon = opt.dataset.icon;
+    // Agent click → confirmation modal
+    document.querySelectorAll(".agent-option").forEach(opt => {
+      opt.onclick = () => {
+        const name = opt.dataset.agent;
+        pendingAgent = { name, icon: opt.dataset.icon };
+        modalText.textContent = `Would you like to switch to ${name} agent?`;
+        modal.classList.add("active");
+        modalBackdrop.classList.add("active");
+      };
+    });
 
-    // Update agent name and icon
-    document.getElementById("agent-name").textContent = name;
-    document.querySelector("#agent-select i").setAttribute("data-feather", icon);
-    feather.replace();
+    modalAccept.onclick = () => {
+      if (!pendingAgent) return;
+      const { name, icon } = pendingAgent;
 
-    // Close sheet immediately
-    sheet.classList.remove("active");
-    backdrop.classList.remove("active");
+      document.getElementById("agent-name").textContent = name;
+      document.querySelector("#agent-select i").setAttribute("data-feather", icon);
+      feather.replace();
 
-    // Send the first assistant message about the agent
-    appendMessage("assistant", `✨ Welcome to <b>${name}</b> Mode!<br>${agentDetails[name]}`);
-  };
-});
+      appendMessage("assistant", `✨ Welcome to ${name} Mode! ${agentDetails[name]}`);
 
+      sheet.classList.remove("active");
+      backdrop.classList.remove("active");
+      modal.classList.remove("active");
+      modalBackdrop.classList.remove("active");
 
+      pendingAgent = null;
+    };
 
+    modalDecline.onclick = () => {
+      modal.classList.remove("active");
+      modalBackdrop.classList.remove("active");
+      pendingAgent = null;
+    };
+
+    // Chat messages
     function appendMessage(role, text) {
       const msg = document.createElement("div");
       msg.className = role;
-      msg.innerHTML = text;
+      msg.innerHTML = text; // support bold/HTML
       log.appendChild(msg);
       log.scrollTop = log.scrollHeight;
     }
 
-    document.getElementById("chat-form").addEventListener("submit", (e) => {
+    document.getElementById("chat-form").addEventListener("submit", e => {
       e.preventDefault();
       const input = document.getElementById("chat-input");
       const msg = input.value.trim();
@@ -435,7 +455,7 @@ document.querySelectorAll(".agent-option").forEach(opt => {
       setTimeout(() => appendMessage(role, text), 600);
     }
 
-    // Dragging
+    // Dragging chat window
     const header = document.getElementById("chat-header");
     let offsetX, offsetY, isDragging = false;
     header.addEventListener("mousedown", e => {
