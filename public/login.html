@@ -67,27 +67,36 @@
     <p>New user? <a href="register.html">Create an account</a></p>
   </div>
 
-  <script>
-    document.getElementById("loginBtn").addEventListener("click", () => {
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
+<script>
+document.getElementById("loginBtn").addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
 
-      const userData = JSON.parse(localStorage.getItem("userData"));
-
-      if (!userData) {
-        alert("No user found. Please register first.");
-        window.location.href = "register.html";
-        return;
-      }
-
-      if (email === userData.email && password === userData.password) {
-        localStorage.setItem("isLoggedIn", "true");
-        alert("Login successful!");
-        window.location.href = "settings.html";
-      } else {
-        alert("Incorrect email or password.");
-      }
+  try {
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "login", userData: { email, password } }),
     });
-  </script>
+
+    const result = await res.json();
+
+    if (!result.success) {
+      alert(result.message);
+      return;
+    }
+
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("user", JSON.stringify(result.user));
+    localStorage.setItem("clinic", JSON.stringify(result.clinic));
+
+    alert("Login successful!");
+    window.location.href = "settings.html";
+  } catch (err) {
+    alert("Login failed: " + err.message);
+  }
+});
+</script>
+
 </body>
 </html>
