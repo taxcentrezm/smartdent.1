@@ -116,13 +116,30 @@
   <script>
     feather.replace();
 
-    function showTab(id){
-      ['clinic','users','locale','integrations'].forEach(tab => {
-        document.getElementById(tab).style.display = tab === id ? 'block' : 'none';
-      });
-      document.querySelectorAll('button').forEach(btn => btn.classList.remove('tab-active'));
-      event.target.classList.add('tab-active');
-    }
-  </script>
+
+if (!localStorage.getItem("isLoggedIn")) {
+  window.location.href = "login.html";
+}
+
+const user = JSON.parse(localStorage.getItem("user"));
+const clinic = JSON.parse(localStorage.getItem("clinic"));
+
+if (user && clinic) {
+  document.getElementById("userName").textContent = `Name: ${user.full_name}`;
+  document.getElementById("userEmail").textContent = `Email: ${user.email}`;
+  document.getElementById("specialty").textContent = `Specialty: ${user.specialty}`;
+  document.getElementById("licenseNumber").textContent = `License: ${user.license_number}`;
+  document.getElementById("companyName").textContent = `Clinic: ${clinic.name}`;
+  document.getElementById("companyEmail").textContent = `Email: ${clinic.email}`;
+  document.getElementById("currency").textContent = `Currency: ${clinic.currency}`;
+}
+
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  localStorage.clear();
+  alert("You’ve been logged out.");
+  window.location.href = "login.html";
+});
+</script>
+
 </body>
 </html>
