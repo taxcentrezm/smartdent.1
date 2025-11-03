@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SmartDent Assistant</title>
+  <style>
+    body {
+  font-family: Arial, sans-serif;
+  background: #f4f6f9;
+  margin: 0;
+  padding: 0;
+}
+
+.assistant-container {
+  max-width: 400px;
+  margin: 40px auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: #0078d4;
+  color: white;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.avatar-face {
+  font-size: 32px;
+  margin-right: 12px;
+}
+
+.avatar-message {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.chat-window {
+  padding: 16px;
+}
+
+.chat-log {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.chat-log div {
+  margin-bottom: 8px;
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.chat-log .user {
+  background: #e0f7fa;
+  text-align: right;
+}
+
+.chat-log .assistant {
+  background: #f1f1f1;
+  text-align: left;
+}
+
+#chat-form {
+  display: flex;
+  gap: 8px;
+}
+
+#chat-input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+button {
+  padding: 8px 12px;
+  border: none;
+  background: #0078d4;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+    .avatar-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin-right: 12px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+  </style>
+</head>
+<body>
+  <div class="assistant-container">
+    <div class="avatar">
+  <img src="avatar.gif" alt="Assistant Avatar" class="avatar-img" />
+  <div class="avatar-message">Hi there, I’m your work buddie 👋</div>
+</div>
+
+    <div class="chat-window">
+      <div class="chat-log" id="chat-log"></div>
+      <form id="chat-form">
+        <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("chat-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = document.getElementById("chat-input");
+  const message = input.value.trim();
+  if (!message) return;
+
+  appendMessage("user", message);
+  input.value = "";
+
+  // Simple command: "show clinic info"
+  if (message.toLowerCase().includes("clinic")) {
+    try {
+     const res = await fetch(`/api/clinic?chat=true&message=how many clinics`);
+const clinics = await res.json();
+      const reply = clinics.length
+        ? `Found ${clinics.length} clinic(s): ${clinics.map(c => c.name).join(", ")}`
+        : "No clinics found.";
+      appendMessage("assistant", reply);
+    } catch (err) {
+      appendMessage("assistant", "Sorry, I couldn’t fetch clinic info.");
+    }
+  } else {
+    appendMessage("assistant", "I'm still learning! Try asking about clinic info.");
+  }
+});
+
+function appendMessage(role, text) {
+  const log = document.getElementById("chat-log");
+  const msg = document.createElement("div");
+  msg.className = role;
+  msg.textContent = text;
+  log.appendChild(msg);
+  log.scrollTop = log.scrollHeight;
+}
+
+    function updateAvatarMood(mood) {
+  const avatar = document.querySelector(".avatar-img");
+  if (mood === "thinking") avatar.src = "avatar-thinking.gif";
+  else avatar.src = "avatar.gif";
+}
+
+  </script>
+</body>
+</html>
