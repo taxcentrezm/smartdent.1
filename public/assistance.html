@@ -387,16 +387,20 @@ document.querySelectorAll(".agent-option").forEach(opt => {
     const name = opt.dataset.agent;
     const icon = opt.dataset.icon;
 
+    // Update agent name and icon
     document.getElementById("agent-name").textContent = name;
     document.querySelector("#agent-select i").setAttribute("data-feather", icon);
     feather.replace();
 
-    appendMessage("assistant", `✨ You’re now in <b>${name}</b> Mode.<br>${agentDetails[name]}`);
-    
+    // Close sheet immediately
     sheet.classList.remove("active");
     backdrop.classList.remove("active");
+
+    // Send the first assistant message about the agent
+    appendMessage("assistant", `✨ Welcome to <b>${name}</b> Mode!<br>${agentDetails[name]}`);
   };
 });
+
 
 
     function appendMessage(role, text) {
