@@ -109,19 +109,19 @@ button {
   </style>
 </head>
 <body>
-  <div class="assistant-container">
-  <div class="avatar" onclick="toggleChat()">
-    <img src="avatar.gif" alt="Assistant Avatar" class="avatar-img" />
-    <div class="avatar-message">Hi there, I’m your work buddie 👋</div>
-  </div>
+ <div class="avatar">
+  <img src="avatar.gif" alt="Assistant Avatar" class="avatar-img" onclick="toggleChat()" />
+  <div class="avatar-message">Hi there, I’m your work buddie 👋</div>
+</div>
 
-  <div class="chat-window" id="chat-window" style="display: none;">
-    <div class="chat-log" id="chat-log"></div>
-    <form id="chat-form">
-      <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
-      <button type="submit">Send</button>
-    </form>
-  </div>
+<div class="chat-window" id="chat-window" style="display: none;">
+  <div class="chat-log" id="chat-log"></div>
+  <form id="chat-form">
+    <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
+    <button type="submit">Send</button>
+  </form>
+</div>
+
 </div>
 
   <script>
@@ -150,6 +150,11 @@ const clinics = await res.json();
     appendMessage("assistant", "I'm still learning! Try asking about clinic info.");
   }
 });
+    
+function toggleChat() {
+  const chatWindow = document.getElementById("chat-window");
+  chatWindow.style.display = chatWindow.style.display === "none" ? "block" : "none";
+}
 
 function appendMessage(role, text) {
   const log = document.getElementById("chat-log");
