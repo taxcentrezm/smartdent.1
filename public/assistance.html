@@ -3,295 +3,337 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartDent Assistant</title>
+  <title>SmartDent Assistant (iOS 16 Style)</title>
   <style>
-/* Floating Avatar */
-.floating-avatar-wrapper {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 1000;
-}
+    :root {
+      --ios-blue: #007aff;
+      --ios-bg: rgba(255, 255, 255, 0.55);
+      --ios-border: rgba(255, 255, 255, 0.3);
+      --ios-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      --ios-radius: 18px;
+      --text-dark: #1c1c1e;
+      --text-light: #ffffff;
+    }
 
-.floating-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  cursor: pointer;
-}
+    /* Floating Avatar */
+    .floating-avatar-wrapper {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-.hover-greeting {
-  position: absolute;
-  bottom: 80px;
-  right: 0;
-  background: #0078d4;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 14px;
-  opacity: 0;
-  transition: opacity 0.5s ease-in-out;
-  pointer-events: none;
-}
+    .floating-avatar {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255,255,255,0.4);
+    }
 
-.floating-avatar:hover + .hover-greeting {
-  opacity: 1;
-}
+    .floating-avatar:hover {
+      transform: scale(1.08);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
 
-/* Chat Window */
-.chat-window {
-  position: fixed;
-  bottom: 100px;
-  right: 24px;
-  width: 360px;
-  height: 480px;
-  background: #f9f9f9;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  display: flex;
-  flex-direction: column;
-  resize: both;
-  overflow: hidden;
-  z-index: 999;
-}
+    .hover-greeting {
+      position: absolute;
+      bottom: 88px;
+      right: 0;
+      background: var(--ios-blue);
+      color: var(--text-light);
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      pointer-events: none;
+      box-shadow: var(--ios-shadow);
+    }
 
-/* Header */
-.chat-header {
-  background: #0078d4;
-  color: white;
-  padding: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: bold;
-  cursor: move;
-}
+    .floating-avatar:hover + .hover-greeting {
+      opacity: 1;
+    }
 
-.chat-header select {
-  margin-left: 8px;
-  padding: 4px;
-  border-radius: 6px;
-  border: none;
-  font-size: 14px;
-}
+    /* Chat Window */
+    .chat-window {
+      position: fixed;
+      bottom: 100px;
+      right: 24px;
+      width: 360px;
+      height: 500px;
+      background: var(--ios-bg);
+      backdrop-filter: blur(20px);
+      border-radius: var(--ios-radius);
+      border: 1px solid var(--ios-border);
+      box-shadow: var(--ios-shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 999;
+      transition: all 0.3s ease;
+    }
 
-.chat-header button {
-  background: transparent;
-  border: none;
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-}
+    /* Header */
+    .chat-header {
+      background: rgba(255,255,255,0.3);
+      backdrop-filter: blur(15px);
+      color: var(--text-dark);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 600;
+      cursor: move;
+      border-bottom: 1px solid var(--ios-border);
+    }
 
-/* Chat Log */
-.chat-log {
-  flex: 1;
-  padding: 12px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
+    .chat-header select {
+      margin-left: 8px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.6);
+      font-size: 13px;
+      color: var(--text-dark);
+      outline: none;
+    }
 
-.chat-log div {
-  margin-bottom: 10px;
-  padding: 10px 14px;
-  border-radius: 18px;
-  max-width: 80%;
-  font-size: 14px;
-  line-height: 1.4;
-  word-wrap: break-word;
-}
+    .chat-header button {
+      background: transparent;
+      border: none;
+      color: var(--text-dark);
+      font-size: 18px;
+      cursor: pointer;
+    }
 
-.chat-log .user {
-  background: #0078d4;
-  color: white;
-  align-self: flex-end;
-}
+    /* Chat Log */
+    .chat-log {
+      flex: 1;
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      scroll-behavior: smooth;
+    }
 
-.chat-log .assistant {
-  background: #eaeaea;
-  color: black;
-  align-self: flex-start;
-}
+    .chat-log div {
+      margin-bottom: 10px;
+      padding: 10px 14px;
+      border-radius: 18px;
+      max-width: 80%;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
 
-/* Typing Indicator */
-.typing-indicator {
-  display: none;
-  justify-content: center;
-  align-items: center;
-  height: 24px;
-  margin-bottom: 8px;
-}
+    .chat-log .user {
+      background: var(--ios-blue);
+      color: white;
+      align-self: flex-end;
+    }
 
-.typing-indicator span {
-  width: 6px;
-  height: 6px;
-  margin: 0 2px;
-  background: #ccc;
-  border-radius: 50%;
-  animation: blink 1.4s infinite ease-in-out;
-}
+    .chat-log .assistant {
+      background: rgba(255,255,255,0.7);
+      color: var(--text-dark);
+      align-self: flex-start;
+      backdrop-filter: blur(12px);
+    }
 
-.typing-indicator span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.typing-indicator span:nth-child(3) {
-  animation-delay: 0.4s;
-}
+    /* Typing Indicator */
+    .typing-indicator {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      height: 24px;
+      margin-bottom: 8px;
+    }
 
-@keyframes blink {
-  0%, 80%, 100% { opacity: 0.2; }
-  40% { opacity: 1; }
-}
+    .typing-indicator span {
+      width: 6px;
+      height: 6px;
+      margin: 0 2px;
+      background: #ccc;
+      border-radius: 50%;
+      animation: blink 1.4s infinite ease-in-out;
+    }
 
-/* Chat Form */
-#chat-form {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
-  border-top: 1px solid #eee;
-  background: #fff;
-}
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
-#chat-input {
-  flex: 1;
-  padding: 8px;
-  border-radius: 12px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-}
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.2; }
+      40% { opacity: 1; }
+    }
 
-button {
-  padding: 8px 12px;
-  border: none;
-  background: #0078d4;
-  color: white;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: 14px;
-}
+    /* Chat Form */
+    #chat-form {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      border-top: 1px solid var(--ios-border);
+      background: rgba(255,255,255,0.4);
+      backdrop-filter: blur(15px);
+    }
 
+    #chat-input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: rgba(255,255,255,0.8);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    #chat-input:focus {
+      border-color: var(--ios-blue);
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      background: var(--ios-blue);
+      color: white;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+
+    button:active {
+      transform: scale(0.97);
+      background: #005bbb;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.1);
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
   <!-- Floating Avatar Trigger -->
- <div class="floating-avatar-wrapper">
-  <img src="avatar.gif" alt="Assistant Avatar" class="floating-avatar" onclick="toggleChat()" />
-  <div class="hover-greeting">Hi there, I’m your work buddie 👋</div>
-</div>
-
-<div class="chat-window" id="chat-window">
-  <div class="chat-header" id="chat-header">
-    <span>SmartDent Assistant</span>
-    <select id="agent-select" onchange="switchAgent()">
-      <option value="assistant">Assistant Agent</option>
-      <option value="clinical">Clinical Agent</option>
-      <option value="billing">Billing Agent</option>
-      <option value="research">Research Agent</option>
-      <option value="accounting">Accounting Agent</option>
-    </select>
-    <button onclick="toggleChat()">⛶</button>
+  <div class="floating-avatar-wrapper">
+    <img src="avatar.gif" alt="Assistant Avatar" class="floating-avatar" onclick="toggleChat()" />
+    <div class="hover-greeting">Hi there, I’m your work buddie 👋</div>
   </div>
 
-  <div class="chat-log" id="chat-log"></div>
+  <!-- Chat Window -->
+  <div class="chat-window" id="chat-window">
+    <div class="chat-header" id="chat-header">
+      <span>SmartDent Assistant</span>
+      <select id="agent-select" onchange="switchAgent()">
+        <option value="assistant">Assistant Agent</option>
+        <option value="clinical">Clinical Agent</option>
+        <option value="billing">Billing Agent</option>
+        <option value="research">Research Agent</option>
+        <option value="accounting">Accounting Agent</option>
+      </select>
+      <button onclick="toggleChat()">⛶</button>
+    </div>
 
-  <div class="typing-indicator" id="typing-indicator">
-    <span></span><span></span><span></span>
+    <div class="chat-log" id="chat-log"></div>
+
+    <div class="typing-indicator" id="typing-indicator">
+      <span></span><span></span><span></span>
+    </div>
+
+    <form id="chat-form">
+      <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
   </div>
-
-  <form id="chat-form">
-    <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
-    <button type="submit">Send</button>
-  </form>
-</div>
-
 
   <script>
-let currentAgent = "assistant";
-let isMinimized = false;
+    let currentAgent = "assistant";
+    let isMinimized = false;
 
-function toggleChat() {
-  const chatWindow = document.getElementById("chat-window");
-  isMinimized = !isMinimized;
-  chatWindow.style.display = isMinimized ? "none" : "flex";
-}
+    function toggleChat() {
+      const chatWindow = document.getElementById("chat-window");
+      isMinimized = !isMinimized;
+      chatWindow.style.display = isMinimized ? "none" : "flex";
+    }
 
-function switchAgent() {
-  const select = document.getElementById("agent-select");
-  currentAgent = select.value;
-  appendMessage("assistant", `Switched to ${currentAgent} agent.`);
-}
+    function switchAgent() {
+      const select = document.getElementById("agent-select");
+      currentAgent = select.value;
+      appendMessage("assistant", `Switched to ${currentAgent} agent.`);
+    }
 
-document.getElementById("chat-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const input = document.getElementById("chat-input");
-  const message = input.value.trim();
-  if (!message) return;
+    document.getElementById("chat-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("chat-input");
+      const message = input.value.trim();
+      if (!message) return;
 
-  appendMessage("user", message);
-  input.value = "";
-  showTyping(true);
+      appendMessage("user", message);
+      input.value = "";
+      showTyping(true);
 
-  // Smart reactions
-  const lower = message.toLowerCase();
-  if (["hi", "hey", "hello"].includes(lower)) {
-    return respond("Hey there! 😊 How can I help you today?");
-  }
-  if (lower.includes("how are you") || lower.includes("how’s your day")) {
-    return respond("I'm doing great, thanks for asking! Ready to assist you anytime.");
-  }
-  if (lower.includes("what can you do")) {
-    return respond("I can help with clinical records, billing, scheduling, research, and more. Just ask!");
-  }
+      const lower = message.toLowerCase();
+      if (["hi", "hey", "hello"].includes(lower)) return respond("Hey there! 😊 How can I help you today?");
+      if (lower.includes("how are you")) return respond("I'm doing great, thanks for asking! Ready to assist you anytime.");
+      if (lower.includes("what can you do")) return respond("I can help with clinical records, billing, scheduling, research, and more. Just ask!");
 
-  try {
-    const res = await fetch(`/api/${currentAgent}?chat=true&message=${encodeURIComponent(message)}`);
-    const data = await res.json();
-    respond(data.reply || "I didn’t quite catch that.");
-  } catch (err) {
-    respond("Sorry, something went wrong.");
-  }
-});
+      try {
+        const res = await fetch(`/api/${currentAgent}?chat=true&message=${encodeURIComponent(message)}`);
+        const data = await res.json();
+        respond(data.reply || "I didn’t quite catch that.");
+      } catch {
+        respond("Sorry, something went wrong.");
+      }
+    });
 
-function respond(text) {
-  showTyping(false);
-  appendMessage("assistant", text);
-}
+    function respond(text) {
+      showTyping(false);
+      appendMessage("assistant", text);
+    }
 
-function appendMessage(role, text) {
-  const log = document.getElementById("chat-log");
-  const msg = document.createElement("div");
-  msg.className = role;
-  msg.textContent = text;
-  log.appendChild(msg);
-  log.scrollTop = log.scrollHeight;
-}
+    function appendMessage(role, text) {
+      const log = document.getElementById("chat-log");
+      const msg = document.createElement("div");
+      msg.className = role;
+      msg.textContent = text;
+      log.appendChild(msg);
+      log.scrollTop = log.scrollHeight;
+    }
 
-function showTyping(show) {
-  document.getElementById("typing-indicator").style.display = show ? "flex" : "none";
-}
+    function showTyping(show) {
+      document.getElementById("typing-indicator").style.display = show ? "flex" : "none";
+    }
 
-// Drag to move
-const chatWindow = document.getElementById("chat-window");
-const header = document.getElementById("chat-header");
-let offsetX, offsetY, isDragging = false;
+    // Drag to move
+    const chatWindow = document.getElementById("chat-window");
+    const header = document.getElementById("chat-header");
+    let offsetX, offsetY, isDragging = false;
 
-header.addEventListener("mousedown", (e) => {
-  isDragging = true;
-  offsetX = e.clientX - chatWindow.offsetLeft;
-  offsetY = e.clientY - chatWindow.offsetTop;
-});
+    header.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      offsetX = e.clientX - chatWindow.offsetLeft;
+      offsetY = e.clientY - chatWindow.offsetTop;
+    });
 
-document.addEventListener("mouseup", () => isDragging = false);
-document.addEventListener("mousemove", (e) => {
-  if (isDragging) {
-    chatWindow.style.left = `${e.clientX - offsetX}px`;
-    chatWindow.style.top = `${e.clientY - offsetY}px`;
-    chatWindow.style.bottom = "auto";
-    chatWindow.style.right = "auto";
-  }
-});
-
+    document.addEventListener("mouseup", () => isDragging = false);
+    document.addEventListener("mousemove", (e) => {
+      if (isDragging) {
+        chatWindow.style.left = `${e.clientX - offsetX}px`;
+        chatWindow.style.top = `${e.clientY - offsetY}px`;
+        chatWindow.style.bottom = "auto";
+        chatWindow.style.right = "auto";
+      }
+    });
   </script>
 </body>
 </html>
