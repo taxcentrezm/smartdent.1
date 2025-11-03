@@ -1,338 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SmartDent Assistant (iOS 16 Style)</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartDent Agent Switcher</title>
+  <script src="https://unpkg.com/feather-icons"></script>
   <style>
     :root {
-      --ios-blue: #007aff;
-      --ios-bg: rgba(255, 255, 255, 0.55);
-      --ios-border: rgba(255, 255, 255, 0.3);
-      --ios-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      --ios-radius: 18px;
-      --text-dark: #1c1c1e;
-      --text-light: #ffffff;
+      --bg: rgba(255, 255, 255, 0.8);
+      --blur-bg: rgba(255, 255, 255, 0.6);
+      --text-dark: #222;
+      --text-light: #666;
+      --accent: #3b82f6;
+      --font: 'Inter', system-ui, sans-serif;
     }
 
-    /* Floating Avatar */
-    .floating-avatar-wrapper {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 1000;
+    body {
+      font-family: var(--font);
+      margin: 0;
+      background: #f2f4f8;
+      height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
-    .floating-avatar {
-      width: 68px;
-      height: 68px;
-      border-radius: 50%;
+    /* Button */
+    #agentBtn {
+      background: var(--accent);
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
       cursor: pointer;
-      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(255,255,255,0.4);
-    }
-
-    .floating-avatar:hover {
-      transform: scale(1.08);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-    }
-
-    .hover-greeting {
-      position: absolute;
-      bottom: 88px;
-      right: 0;
-      background: var(--ios-blue);
-      color: var(--text-light);
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.5s ease-in-out;
-      pointer-events: none;
-      box-shadow: var(--ios-shadow);
-    }
-
-    .floating-avatar:hover + .hover-greeting {
-      opacity: 1;
-    }
-
-    /* Chat Window */
-    .chat-window {
-      position: fixed;
-      bottom: 100px;
-      right: 24px;
-      width: 360px;
-      height: 500px;
-      background: var(--ios-bg);
-      backdrop-filter: blur(20px);
-      border-radius: var(--ios-radius);
-      border: 1px solid var(--ios-border);
-      box-shadow: var(--ios-shadow);
       display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      z-index: 999;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.2s ease;
+    }
+    #agentBtn:hover { transform: scale(1.05); }
+
+    /* Modal backdrop */
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.2);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .sheet-backdrop.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* Sheet */
+    .sheet {
+      position: fixed;
+      bottom: -100%;
+      left: 0;
+      right: 0;
+      background: var(--blur-bg);
+      backdrop-filter: blur(30px);
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      padding: 20px;
+      transition: bottom 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.1);
+    }
+
+    .sheet.active {
+      bottom: 0;
+    }
+
+    .agent-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      color: var(--text-dark);
+    }
+
+    .agent-option:hover {
+      background: rgba(0,0,0,0.05);
+    }
+
+    .agent-option span {
+      font-weight: 500;
+      font-size: 1rem;
+    }
+
+    /* Greeting / Info area */
+    #hoverGreeting {
+      position: absolute;
+      top: 30px;
+      background: white;
+      color: var(--text-dark);
+      padding: 14px 18px;
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      font-family: "Poppins", sans-serif;
+      font-size: 0.95rem;
+      opacity: 0;
+      transform: translateY(-10px);
       transition: all 0.3s ease;
     }
 
-    /* Header */
-    .chat-header {
-      background: rgba(255,255,255,0.3);
-      backdrop-filter: blur(15px);
-      color: var(--text-dark);
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-weight: 600;
-      cursor: move;
-      border-bottom: 1px solid var(--ios-border);
-    }
-
-    .chat-header select {
-      margin-left: 8px;
-      padding: 4px 8px;
-      border-radius: 8px;
-      border: 1px solid rgba(0,0,0,0.1);
-      background: rgba(255,255,255,0.6);
-      font-size: 13px;
-      color: var(--text-dark);
-      outline: none;
-    }
-
-    .chat-header button {
-      background: transparent;
-      border: none;
-      color: var(--text-dark);
-      font-size: 18px;
-      cursor: pointer;
-    }
-
-    /* Chat Log */
-    .chat-log {
-      flex: 1;
-      padding: 14px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      scroll-behavior: smooth;
-    }
-
-    .chat-log div {
-      margin-bottom: 10px;
-      padding: 10px 14px;
-      border-radius: 18px;
-      max-width: 80%;
-      font-size: 14px;
-      line-height: 1.4;
-      word-wrap: break-word;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    }
-
-    .chat-log .user {
-      background: var(--ios-blue);
-      color: white;
-      align-self: flex-end;
-    }
-
-    .chat-log .assistant {
-      background: rgba(255,255,255,0.7);
-      color: var(--text-dark);
-      align-self: flex-start;
-      backdrop-filter: blur(12px);
-    }
-
-    /* Typing Indicator */
-    .typing-indicator {
-      display: none;
-      justify-content: center;
-      align-items: center;
-      height: 24px;
-      margin-bottom: 8px;
-    }
-
-    .typing-indicator span {
-      width: 6px;
-      height: 6px;
-      margin: 0 2px;
-      background: #ccc;
-      border-radius: 50%;
-      animation: blink 1.4s infinite ease-in-out;
-    }
-
-    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes blink {
-      0%, 80%, 100% { opacity: 0.2; }
-      40% { opacity: 1; }
-    }
-
-    /* Chat Form */
-    #chat-form {
-      display: flex;
-      gap: 8px;
-      padding: 12px;
-      border-top: 1px solid var(--ios-border);
-      background: rgba(255,255,255,0.4);
-      backdrop-filter: blur(15px);
-    }
-
-    #chat-input {
-      flex: 1;
-      padding: 10px 12px;
-      border-radius: 12px;
-      border: 1px solid rgba(0,0,0,0.1);
-      background: rgba(255,255,255,0.8);
-      font-size: 14px;
-      outline: none;
-      transition: border-color 0.2s ease;
-    }
-
-    #chat-input:focus {
-      border-color: var(--ios-blue);
-    }
-
-    button {
-      padding: 8px 12px;
-      border: none;
-      background: var(--ios-blue);
-      color: white;
-      border-radius: 12px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background 0.2s ease, transform 0.1s ease;
-    }
-
-    button:active {
-      transform: scale(0.97);
-      background: #005bbb;
-    }
-
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(0,0,0,0.1);
-      border-radius: 4px;
+    #hoverGreeting.active {
+      opacity: 1;
+      transform: translateY(0);
     }
   </style>
 </head>
 <body>
-  <!-- Floating Avatar Trigger -->
-  <div class="floating-avatar-wrapper">
-    <img src="avatar.gif" alt="Assistant Avatar" class="floating-avatar" onclick="toggleChat()" />
-    <div class="hover-greeting">Hi there, I’m your work buddie 👋</div>
+  <button id="agentBtn"><i data-feather="users"></i> Switch Agent</button>
+
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+  <div class="sheet" id="sheet">
+    <div class="agent-option" data-agent="AI Assistant">
+      <i data-feather="cpu"></i><span>AI Assistant</span>
+    </div>
+    <div class="agent-option" data-agent="Dental Advisor">
+      <i data-feather="activity"></i><span>Dental Advisor</span>
+    </div>
+    <div class="agent-option" data-agent="Finance Agent">
+      <i data-feather="dollar-sign"></i><span>Finance Agent</span>
+    </div>
+    <div class="agent-option" data-agent="Clinical Support">
+      <i data-feather="stethoscope"></i><span>Clinical Support</span>
+    </div>
   </div>
 
-  <!-- Chat Window -->
-  <div class="chat-window" id="chat-window">
-    <div class="chat-header" id="chat-header">
-      <span>SmartDent Assistant</span>
-      <select id="agent-select" onchange="switchAgent()">
-        <option value="assistant">Assistant Agent</option>
-        <option value="clinical">Clinical Agent</option>
-        <option value="billing">Billing Agent</option>
-        <option value="research">Research Agent</option>
-        <option value="accounting">Accounting Agent</option>
-      </select>
-      <button onclick="toggleChat()">⛶</button>
-    </div>
-
-    <div class="chat-log" id="chat-log"></div>
-
-    <div class="typing-indicator" id="typing-indicator">
-      <span></span><span></span><span></span>
-    </div>
-
-    <form id="chat-form">
-      <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
-      <button type="submit">Send</button>
-    </form>
-  </div>
+  <div id="hoverGreeting"></div>
 
   <script>
-    let currentAgent = "assistant";
-    let isMinimized = false;
+    feather.replace();
 
-    function toggleChat() {
-      const chatWindow = document.getElementById("chat-window");
-      isMinimized = !isMinimized;
-      chatWindow.style.display = isMinimized ? "none" : "flex";
-    }
+    const agentBtn = document.getElementById('agentBtn');
+    const sheet = document.getElementById('sheet');
+    const backdrop = document.getElementById('sheetBackdrop');
+    const greeting = document.getElementById('hoverGreeting');
 
-    function switchAgent() {
-      const select = document.getElementById("agent-select");
-      currentAgent = select.value;
-      appendMessage("assistant", `Switched to ${currentAgent} agent.`);
-    }
+    agentBtn.onclick = () => {
+      sheet.classList.add('active');
+      backdrop.classList.add('active');
+    };
 
-    document.getElementById("chat-form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const input = document.getElementById("chat-input");
-      const message = input.value.trim();
-      if (!message) return;
+    backdrop.onclick = () => {
+      sheet.classList.remove('active');
+      backdrop.classList.remove('active');
+    };
 
-      appendMessage("user", message);
-      input.value = "";
-      showTyping(true);
+    document.querySelectorAll('.agent-option').forEach(option => {
+      option.onclick = () => {
+        const agent = option.dataset.agent;
+        sheet.classList.remove('active');
+        backdrop.classList.remove('active');
 
-      const lower = message.toLowerCase();
-      if (["hi", "hey", "hello"].includes(lower)) return respond("Hey there! 😊 How can I help you today?");
-      if (lower.includes("how are you")) return respond("I'm doing great, thanks for asking! Ready to assist you anytime.");
-      if (lower.includes("what can you do")) return respond("I can help with clinical records, billing, scheduling, research, and more. Just ask!");
+        // Fancy interactive greeting
+        const info = {
+          "AI Assistant": "The AI Assistant helps with clinical summaries, scheduling, and smart suggestions.",
+          "Dental Advisor": "Your Dental Advisor provides treatment insights, diagnosis tips, and workflow optimizations.",
+          "Finance Agent": "Finance Agent tracks payments, invoices, and automates accounting tasks.",
+          "Clinical Support": "Clinical Support offers chairside assistance, patient record access, and procedure logs."
+        };
 
-      try {
-        const res = await fetch(`/api/${currentAgent}?chat=true&message=${encodeURIComponent(message)}`);
-        const data = await res.json();
-        respond(data.reply || "I didn’t quite catch that.");
-      } catch {
-        respond("Sorry, something went wrong.");
-      }
-    });
+        greeting.innerHTML = `<b>Switched to ${agent}</b><br>${info[agent] || ''}`;
+        greeting.classList.add('active');
 
-    function respond(text) {
-      showTyping(false);
-      appendMessage("assistant", text);
-    }
-
-    function appendMessage(role, text) {
-      const log = document.getElementById("chat-log");
-      const msg = document.createElement("div");
-      msg.className = role;
-      msg.textContent = text;
-      log.appendChild(msg);
-      log.scrollTop = log.scrollHeight;
-    }
-
-    function showTyping(show) {
-      document.getElementById("typing-indicator").style.display = show ? "flex" : "none";
-    }
-
-    // Drag to move
-    const chatWindow = document.getElementById("chat-window");
-    const header = document.getElementById("chat-header");
-    let offsetX, offsetY, isDragging = false;
-
-    header.addEventListener("mousedown", (e) => {
-      isDragging = true;
-      offsetX = e.clientX - chatWindow.offsetLeft;
-      offsetY = e.clientY - chatWindow.offsetTop;
-    });
-
-    document.addEventListener("mouseup", () => isDragging = false);
-    document.addEventListener("mousemove", (e) => {
-      if (isDragging) {
-        chatWindow.style.left = `${e.clientX - offsetX}px`;
-        chatWindow.style.top = `${e.clientY - offsetY}px`;
-        chatWindow.style.bottom = "auto";
-        chatWindow.style.right = "auto";
-      }
+        setTimeout(() => greeting.classList.remove('active'), 4000);
+      };
     });
   </script>
 </body>
