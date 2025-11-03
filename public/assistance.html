@@ -234,68 +234,71 @@
 
     button:active { transform: scale(0.97); }
 
-/* Sheet backdrop (same but slightly refined blur) */
-.sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.25);
-  backdrop-filter: blur(10px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  z-index: 1100;
-}
-.sheet-backdrop.active {
-  opacity: 1;
-  pointer-events: all;
-}
-
-/* Sheet attached to chat window size */
+/* Sheet (anchored to chat window) */
 .sheet {
   position: fixed;
-  left: auto;
-  right: 24px;
-  bottom: -100%;
-  width: 360px; /* match chat window */
-  height: auto;
-  background: rgba(255,255,255,0.85);
+  bottom: 100px; /* same height as chat window bottom position */
+  right: 24px;   /* align with chat window */
+  width: 360px;  /* match chat width */
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(25px);
   border-top-left-radius: 18px;
   border-top-right-radius: 18px;
   padding: 16px;
-  box-shadow: 0 -8px 25px rgba(0,0,0,0.15);
-  transition: transform 0.5s cubic-bezier(0.22, 1.4, 0.36, 1); /* subtle bounce */
-  transform: translateY(110%);
-  z-index: 1200;
+  box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.15);
+  transform: translateY(120%);
+  transition: transform 0.5s cubic-bezier(0.22, 1.4, 0.36, 1);
+  z-index: 2000; /* ensure it's above chat */
 }
 
-/* Animate upward with subtle bounce */
+/* Bounce-up animation when active */
 .sheet.active {
-  transform: translateY(0%);
+  transform: translateY(0);
+}
+
+/* Backdrop */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 1500;
+}
+
+.sheet-backdrop.active {
+  opacity: 1;
+  pointer-events: all;
 }
 
 /* Agent options */
 .agent-option {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: 12px;
+  padding: 12px;
   border-radius: 12px;
   cursor: pointer;
   color: var(--text-dark);
   transition: background 0.2s ease, transform 0.15s ease;
 }
+
 .agent-option:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
   transform: scale(1.02);
 }
+
 .agent-option i {
   width: 18px;
   height: 18px;
 }
+
 .agent-option span {
   font-weight: 500;
 }
+
   </style>
 </head>
 <body>
@@ -370,10 +373,6 @@
     }
 
     agentSelect.onclick = () => {
-  // Position sheet just above the chat window
-  const chatRect = chatWindow.getBoundingClientRect();
-  sheet.style.right = `${window.innerWidth - chatRect.right}px`;
-  sheet.style.width = `${chatRect.width}px`;
   sheet.classList.add("active");
   backdrop.classList.add("active");
 };
@@ -387,16 +386,18 @@ document.querySelectorAll(".agent-option").forEach(opt => {
   opt.onclick = () => {
     const name = opt.dataset.agent;
     const icon = opt.dataset.icon;
+
     document.getElementById("agent-name").textContent = name;
     document.querySelector("#agent-select i").setAttribute("data-feather", icon);
     feather.replace();
 
-    // Friendly response
-    appendMessage("assistant", `✨ Switched to <b>${name}</b> Mode.<br>${agentDetails[name]}`);
+    appendMessage("assistant", `✨ You’re now in <b>${name}</b> Mode.<br>${agentDetails[name]}`);
+    
     sheet.classList.remove("active");
     backdrop.classList.remove("active");
   };
 });
+
 
     function appendMessage(role, text) {
       const msg = document.createElement("div");
