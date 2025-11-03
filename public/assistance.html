@@ -5,76 +5,131 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartDent Assistant</title>
   <style>
-    body {
-  font-family: Arial, sans-serif;
-  background: #f4f6f9;
-  margin: 0;
-  padding: 0;
+    /* Floating Avatar */
+.floating-avatar {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1000;
 }
 
-.assistant-container {
-  max-width: 400px;
-  margin: 40px auto;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  overflow: hidden;
-}
-
-.avatar {
-  display: flex;
-  align-items: center;
-  padding: 16px;
+/* Hover Greeting */
+.hover-greeting {
+  position: fixed;
+  bottom: 100px;
+  right: 24px;
   background: #0078d4;
   color: white;
-  animation: fadeIn 1s ease-in-out;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out;
+  z-index: 999;
 }
 
-.avatar-face {
-  font-size: 32px;
-  margin-right: 12px;
+.floating-avatar:hover + .hover-greeting {
+  opacity: 1;
 }
 
-.avatar-message {
-  font-size: 16px;
-  font-weight: bold;
-}
-
+/* Chat Window */
 .chat-window {
-  padding: 16px;
+  position: fixed;
+  bottom: 100px;
+  right: 24px;
+  width: 360px;
+  background: #f9f9f9;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Agent Dropdown */
+.agent-selector {
+  padding: 12px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+}
+
+/* Chat Log */
 .chat-log {
-  max-height: 200px;
+  flex: 1;
+  padding: 12px;
   overflow-y: auto;
-  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-log div {
-  margin-bottom: 8px;
-  padding: 8px;
-  border-radius: 6px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  max-width: 80%;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .chat-log .user {
-  background: #e0f7fa;
-  text-align: right;
+  background: #0078d4;
+  color: white;
+  align-self: flex-end;
 }
 
 .chat-log .assistant {
-  background: #f1f1f1;
-  text-align: left;
+  background: #eaeaea;
+  color: black;
+  align-self: flex-start;
 }
 
+/* Typing Indicator */
+.typing-indicator {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  height: 24px;
+  margin-bottom: 8px;
+}
+
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  margin: 0 2px;
+  background: #ccc;
+  border-radius: 50%;
+  animation: blink 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0.2; }
+  40% { opacity: 1; }
+}
+
+/* Chat Form */
 #chat-form {
   display: flex;
   gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #eee;
 }
 
 #chat-input {
   flex: 1;
   padding: 8px;
-  border-radius: 6px;
+  border-radius: 12px;
   border: 1px solid #ccc;
 }
 
@@ -83,49 +138,58 @@ button {
   border: none;
   background: #0078d4;
   color: white;
-  border-radius: 6px;
+  border-radius: 12px;
   cursor: pointer;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-    .avatar-img {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  margin-right: 12px;
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
 }
 
   </style>
 </head>
 <body>
- <div class="avatar">
-  <img src="avatar.gif" alt="Assistant Avatar" class="avatar-img" onclick="toggleChat()" />
-  <div class="avatar-message">Hi there, I’m your work buddie 👋</div>
-</div>
+  <!-- Floating Avatar Trigger -->
+  <img src="avatar.gif" alt="Assistant Avatar" class="floating-avatar" onclick="toggleChat()" />
 
-<div class="chat-window" id="chat-window" style="display: none;">
-  <div class="chat-log" id="chat-log"></div>
-  <form id="chat-form">
-    <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
-    <button type="submit">Send</button>
-  </form>
-</div>
+  <!-- Hover Greeting -->
+  <div class="hover-greeting">Hi there, I’m your work buddie 👋</div>
 
-</div>
+  <!-- Chat Window -->
+  <div class="chat-window" id="chat-window" style="display: none;">
+    <div class="agent-selector">
+      <select id="agent-select" onchange="switchAgent()">
+        <option value="assistant">Assistant Agent</option>
+        <option value="clinical">Clinical Agent</option>
+        <option value="billing">Billing Agent</option>
+        <option value="research">Research Agent</option>
+        <option value="accounting">Accounting Agent</option>
+      </select>
+    </div>
+
+    <div class="chat-log" id="chat-log"></div>
+
+    <div class="typing-indicator" id="typing-indicator">
+      <span></span><span></span><span></span>
+    </div>
+
+    <form id="chat-form">
+      <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
 
   <script>
-    document.getElementById("chat-form").addEventListener("submit", async (e) => {
+    let currentAgent = "assistant";
+
+function toggleChat() {
+  const chatWindow = document.getElementById("chat-window");
+  chatWindow.style.display = chatWindow.style.display === "none" ? "flex" : "none";
+}
+
+function switchAgent() {
+  const select = document.getElementById("agent-select");
+  currentAgent = select.value;
+  appendMessage("assistant", `Switched to ${currentAgent} agent.`);
+}
+
+document.getElementById("chat-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const input = document.getElementById("chat-input");
   const message = input.value.trim();
@@ -133,28 +197,18 @@ button {
 
   appendMessage("user", message);
   input.value = "";
+  showTyping(true);
 
-  // Simple command: "show clinic info"
-  if (message.toLowerCase().includes("clinic")) {
-    try {
-     const res = await fetch(`/api/clinic?chat=true&message=how many clinics`);
-const clinics = await res.json();
-      const reply = clinics.length
-        ? `Found ${clinics.length} clinic(s): ${clinics.map(c => c.name).join(", ")}`
-        : "No clinics found.";
-      appendMessage("assistant", reply);
-    } catch (err) {
-      appendMessage("assistant", "Sorry, I couldn’t fetch clinic info.");
-    }
-  } else {
-    appendMessage("assistant", "I'm still learning! Try asking about clinic info.");
+  try {
+    const res = await fetch(`/api/${currentAgent}?chat=true&message=${encodeURIComponent(message)}`);
+    const data = await res.json();
+    showTyping(false);
+    appendMessage("assistant", data.reply || "I didn’t quite catch that.");
+  } catch (err) {
+    showTyping(false);
+    appendMessage("assistant", "Sorry, something went wrong.");
   }
 });
-    
-function toggleChat() {
-  const chatWindow = document.getElementById("chat-window");
-  chatWindow.style.display = chatWindow.style.display === "none" ? "block" : "none";
-}
 
 function appendMessage(role, text) {
   const log = document.getElementById("chat-log");
@@ -165,10 +219,8 @@ function appendMessage(role, text) {
   log.scrollTop = log.scrollHeight;
 }
 
-    function updateAvatarMood(mood) {
-  const avatar = document.querySelector(".avatar-img");
-  if (mood === "thinking") avatar.src = "avatar-thinking.gif";
-  else avatar.src = "avatar.gif";
+function showTyping(show) {
+  document.getElementById("typing-indicator").style.display = show ? "flex" : "none";
 }
 
   </script>
