@@ -5,23 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>SmartDent Assistant</title>
   <style>
-    /* Floating Avatar */
-.floating-avatar {
+/* Floating Avatar */
+.floating-avatar-wrapper {
   position: fixed;
   bottom: 24px;
   right: 24px;
+  z-index: 1000;
+}
+
+.floating-avatar {
   width: 64px;
   height: 64px;
   border-radius: 50%;
   cursor: pointer;
-  z-index: 1000;
 }
 
-/* Hover Greeting */
 .hover-greeting {
-  position: fixed;
-  bottom: 100px;
-  right: 24px;
+  position: absolute;
+  bottom: 80px;
+  right: 0;
   background: #0078d4;
   color: white;
   padding: 8px 12px;
@@ -29,7 +31,6 @@
   font-size: 14px;
   opacity: 0;
   transition: opacity 0.5s ease-in-out;
-  z-index: 999;
   pointer-events: none;
 }
 
@@ -43,29 +44,43 @@
   bottom: 100px;
   right: 24px;
   width: 360px;
+  height: 480px;
   background: #f9f9f9;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  overflow: hidden;
-  z-index: 999;
   display: flex;
   flex-direction: column;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  resize: both;
+  overflow: hidden;
+  z-index: 999;
 }
 
-/* Agent Dropdown */
-.agent-selector {
-  padding: 12px;
-  background: #fff;
-  border-bottom: 1px solid #eee;
+/* Header */
+.chat-header {
+  background: #0078d4;
+  color: white;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: bold;
+  cursor: move;
 }
 
-.agent-selector select {
-  width: 100%;
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+.chat-header select {
+  margin-left: 8px;
+  padding: 4px;
+  border-radius: 6px;
+  border: none;
   font-size: 14px;
+}
+
+.chat-header button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
 }
 
 /* Chat Log */
@@ -160,41 +175,45 @@ button {
 </head>
 <body>
   <!-- Floating Avatar Trigger -->
+ <div class="floating-avatar-wrapper">
   <img src="avatar.gif" alt="Assistant Avatar" class="floating-avatar" onclick="toggleChat()" />
-
-  <!-- Hover Greeting -->
   <div class="hover-greeting">Hi there, I’m your work buddie 👋</div>
+</div>
 
-  <!-- Chat Window -->
-  <div class="chat-window" id="chat-window" style="display: none;">
-    <div class="agent-selector">
-      <select id="agent-select" onchange="switchAgent()">
-        <option value="assistant">Assistant Agent</option>
-        <option value="clinical">Clinical Agent</option>
-        <option value="billing">Billing Agent</option>
-        <option value="research">Research Agent</option>
-        <option value="accounting">Accounting Agent</option>
-      </select>
-    </div>
-
-    <div class="chat-log" id="chat-log"></div>
-
-    <div class="typing-indicator" id="typing-indicator">
-      <span></span><span></span><span></span>
-    </div>
-
-    <form id="chat-form">
-      <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
-      <button type="submit">Send</button>
-    </form>
+<div class="chat-window" id="chat-window">
+  <div class="chat-header" id="chat-header">
+    <span>SmartDent Assistant</span>
+    <select id="agent-select" onchange="switchAgent()">
+      <option value="assistant">Assistant Agent</option>
+      <option value="clinical">Clinical Agent</option>
+      <option value="billing">Billing Agent</option>
+      <option value="research">Research Agent</option>
+      <option value="accounting">Accounting Agent</option>
+    </select>
+    <button onclick="toggleChat()">⛶</button>
   </div>
 
+  <div class="chat-log" id="chat-log"></div>
+
+  <div class="typing-indicator" id="typing-indicator">
+    <span></span><span></span><span></span>
+  </div>
+
+  <form id="chat-form">
+    <input type="text" id="chat-input" placeholder="Ask me anything..." autocomplete="off" />
+    <button type="submit">Send</button>
+  </form>
+</div>
+
+
   <script>
-    let currentAgent = "assistant";
+let currentAgent = "assistant";
+let isMinimized = false;
 
 function toggleChat() {
   const chatWindow = document.getElementById("chat-window");
-  chatWindow.style.display = chatWindow.style.display === "none" ? "flex" : "none";
+  isMinimized = !isMinimized;
+  chatWindow.style.display = isMinimized ? "none" : "flex";
 }
 
 function switchAgent() {
@@ -213,16 +232,31 @@ document.getElementById("chat-form").addEventListener("submit", async (e) => {
   input.value = "";
   showTyping(true);
 
+  // Smart reactions
+  const lower = message.toLowerCase();
+  if (["hi", "hey", "hello"].includes(lower)) {
+    return respond("Hey there! 😊 How can I help you today?");
+  }
+  if (lower.includes("how are you") || lower.includes("how’s your day")) {
+    return respond("I'm doing great, thanks for asking! Ready to assist you anytime.");
+  }
+  if (lower.includes("what can you do")) {
+    return respond("I can help with clinical records, billing, scheduling, research, and more. Just ask!");
+  }
+
   try {
     const res = await fetch(`/api/${currentAgent}?chat=true&message=${encodeURIComponent(message)}`);
     const data = await res.json();
-    showTyping(false);
-    appendMessage("assistant", data.reply || "I didn’t quite catch that.");
+    respond(data.reply || "I didn’t quite catch that.");
   } catch (err) {
-    showTyping(false);
-    appendMessage("assistant", "Sorry, something went wrong.");
+    respond("Sorry, something went wrong.");
   }
 });
+
+function respond(text) {
+  showTyping(false);
+  appendMessage("assistant", text);
+}
 
 function appendMessage(role, text) {
   const log = document.getElementById("chat-log");
@@ -236,6 +270,27 @@ function appendMessage(role, text) {
 function showTyping(show) {
   document.getElementById("typing-indicator").style.display = show ? "flex" : "none";
 }
+
+// Drag to move
+const chatWindow = document.getElementById("chat-window");
+const header = document.getElementById("chat-header");
+let offsetX, offsetY, isDragging = false;
+
+header.addEventListener("mousedown", (e) => {
+  isDragging = true;
+  offsetX = e.clientX - chatWindow.offsetLeft;
+  offsetY = e.clientY - chatWindow.offsetTop;
+});
+
+document.addEventListener("mouseup", () => isDragging = false);
+document.addEventListener("mousemove", (e) => {
+  if (isDragging) {
+    chatWindow.style.left = `${e.clientX - offsetX}px`;
+    chatWindow.style.top = `${e.clientY - offsetY}px`;
+    chatWindow.style.bottom = "auto";
+    chatWindow.style.right = "auto";
+  }
+});
 
   </script>
 </body>
