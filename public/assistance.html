@@ -358,120 +358,133 @@
   </div>
 
   <script>
+feather.replace();
+
+const chatWindow = document.getElementById("chat-window");
+const agentSelect = document.getElementById("agent-select");
+const sheet = document.getElementById("sheet");
+const backdrop = document.getElementById("sheetBackdrop");
+const log = document.getElementById("chat-log");
+
+const modal = document.getElementById("modal");
+const modalBackdrop = document.getElementById("modalBackdrop");
+const modalText = document.getElementById("modal-text");
+const modalAccept = document.getElementById("modal-accept");
+const modalDecline = document.getElementById("modal-decline");
+
+let pendingAgent = null;
+
+const agentDetails = {
+  "Assistant": "I'm your general assistant 🤖 — guiding you across SmartDent tasks and features.",
+  "Clinical": "Clinical Mode 🦷 — Manage patient data, treatments, and appointments efficiently.",
+  "Billing": "Billing Mode 💳 — Handle invoices, payments, and receipts like a pro.",
+  "Research": "Research Mode 🔬 — Access dental research, case data, and insights.",
+  "Accounting": "Accounting Mode 📊 — Track payrolls, reports, and financial summaries."
+};
+
+// Toggle chat window
+function toggleChat() {
+  chatWindow.style.display = chatWindow.style.display === "none" ? "flex" : "none";
+}
+
+// Open/close agent sheet
+agentSelect.onclick = () => {
+  sheet.classList.add("active");
+  backdrop.classList.add("active");
+};
+
+backdrop.onclick = () => {
+  sheet.classList.remove("active");
+  backdrop.classList.remove("active");
+};
+
+// Agent option click → show modal
+document.querySelectorAll(".agent-option").forEach(opt => {
+  opt.onclick = () => {
+    const name = opt.dataset.agent;
+    pendingAgent = { name, icon: opt.dataset.icon };
+    modalText.textContent = `Would you like to switch to ${name} agent?`;
+    modal.classList.add("active");
+    modalBackdrop.classList.add("active");
+  };
+});
+
+// Accept modal → switch agent
+modalAccept.onclick = () => {
+  if (!pendingAgent) return;
+  const { name, icon } = pendingAgent;
+
+  // Update agent name
+  document.getElementById("agent-name").textContent = name;
+
+  // Safely replace Feather icon
+  const agentIconOld = document.querySelector("#agent-select i");
+  if (agentIconOld) {
+    const agentIconNew = document.createElement("i");
+    agentIconNew.setAttribute("data-feather", icon);
+    agentIconOld.replaceWith(agentIconNew);
     feather.replace();
+  }
 
-    const chatWindow = document.getElementById("chat-window");
-    const agentSelect = document.getElementById("agent-select");
-    const sheet = document.getElementById("sheet");
-    const backdrop = document.getElementById("sheetBackdrop");
-    const log = document.getElementById("chat-log");
+  // Send first message
+  appendMessage("assistant", `✨ Welcome to <b>${name}</b> Mode! ${agentDetails[name]}`);
 
-    const modal = document.getElementById("modal");
-    const modalBackdrop = document.getElementById("modalBackdrop");
-    const modalText = document.getElementById("modal-text");
-    const modalAccept = document.getElementById("modal-accept");
-    const modalDecline = document.getElementById("modal-decline");
+  // Close sheet & modal
+  sheet.classList.remove("active");
+  backdrop.classList.remove("active");
+  modal.classList.remove("active");
+  modalBackdrop.classList.remove("active");
 
-    let pendingAgent = null;
+  pendingAgent = null;
+};
 
-    const agentDetails = {
-      "Assistant": "I'm your general assistant 🤖 — guiding you across SmartDent tasks and features.",
-      "Clinical": "Clinical Mode 🦷 — Manage patient data, treatments, and appointments efficiently.",
-      "Billing": "Billing Mode 💳 — Handle invoices, payments, and receipts like a pro.",
-      "Research": "Research Mode 🔬 — Access dental research, case data, and insights.",
-      "Accounting": "Accounting Mode 📊 — Track payrolls, reports, and financial summaries."
-    };
+// Decline modal → cancel
+modalDecline.onclick = () => {
+  modal.classList.remove("active");
+  modalBackdrop.classList.remove("active");
+  pendingAgent = null;
+};
 
-    function toggleChat() {
-      chatWindow.style.display = chatWindow.style.display === "none" ? "flex" : "none";
-    }
+// Chat messages
+function appendMessage(role, text) {
+  const msg = document.createElement("div");
+  msg.className = role;
+  msg.innerHTML = text; // support HTML like <b>
+  log.appendChild(msg);
+  log.scrollTop = log.scrollHeight;
+}
 
-    // Sheet open/close
-    agentSelect.onclick = () => {
-      sheet.classList.add("active");
-      backdrop.classList.add("active");
-    };
+document.getElementById("chat-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const input = document.getElementById("chat-input");
+  const msg = input.value.trim();
+  if (!msg) return;
+  appendMessage("user", msg);
+  input.value = "";
+  respond("assistant", "Got it! I'm processing your request...");
+});
 
-    backdrop.onclick = () => {
-      sheet.classList.remove("active");
-      backdrop.classList.remove("active");
-    };
+function respond(role, text) {
+  setTimeout(() => appendMessage(role, text), 600);
+}
 
-    // Agent click → confirmation modal
-    document.querySelectorAll(".agent-option").forEach(opt => {
-      opt.onclick = () => {
-        const name = opt.dataset.agent;
-        pendingAgent = { name, icon: opt.dataset.icon };
-        modalText.textContent = `Would you like to switch to ${name} agent?`;
-        modal.classList.add("active");
-        modalBackdrop.classList.add("active");
-      };
-    });
-
-    modalAccept.onclick = () => {
-      if (!pendingAgent) return;
-      const { name, icon } = pendingAgent;
-
-      document.getElementById("agent-name").textContent = name;
-      document.querySelector("#agent-select i").setAttribute("data-feather", icon);
-      feather.replace();
-
-      appendMessage("assistant", `✨ Welcome to ${name} Mode! ${agentDetails[name]}`);
-
-      sheet.classList.remove("active");
-      backdrop.classList.remove("active");
-      modal.classList.remove("active");
-      modalBackdrop.classList.remove("active");
-
-      pendingAgent = null;
-    };
-
-    modalDecline.onclick = () => {
-      modal.classList.remove("active");
-      modalBackdrop.classList.remove("active");
-      pendingAgent = null;
-    };
-
-    // Chat messages
-    function appendMessage(role, text) {
-      const msg = document.createElement("div");
-      msg.className = role;
-      msg.innerHTML = text; // support bold/HTML
-      log.appendChild(msg);
-      log.scrollTop = log.scrollHeight;
-    }
-
-    document.getElementById("chat-form").addEventListener("submit", e => {
-      e.preventDefault();
-      const input = document.getElementById("chat-input");
-      const msg = input.value.trim();
-      if (!msg) return;
-      appendMessage("user", msg);
-      input.value = "";
-      respond("assistant", "Got it! I'm processing your request...");
-    });
-
-    function respond(role, text) {
-      setTimeout(() => appendMessage(role, text), 600);
-    }
-
-    // Dragging chat window
-    const header = document.getElementById("chat-header");
-    let offsetX, offsetY, isDragging = false;
-    header.addEventListener("mousedown", e => {
-      isDragging = true;
-      offsetX = e.clientX - chatWindow.offsetLeft;
-      offsetY = e.clientY - chatWindow.offsetTop;
-    });
-    document.addEventListener("mouseup", () => isDragging = false);
-    document.addEventListener("mousemove", e => {
-      if (isDragging) {
-        chatWindow.style.left = `${e.clientX - offsetX}px`;
-        chatWindow.style.top = `${e.clientY - offsetY}px`;
-        chatWindow.style.bottom = "auto";
-        chatWindow.style.right = "auto";
-      }
-    });
-  </script>
+// Drag chat window
+const header = document.getElementById("chat-header");
+let offsetX, offsetY, isDragging = false;
+header.addEventListener("mousedown", e => {
+  isDragging = true;
+  offsetX = e.clientX - chatWindow.offsetLeft;
+  offsetY = e.clientY - chatWindow.offsetTop;
+});
+document.addEventListener("mouseup", () => isDragging = false);
+document.addEventListener("mousemove", e => {
+  if (isDragging) {
+    chatWindow.style.left = `${e.clientX - offsetX}px`;
+    chatWindow.style.top = `${e.clientY - offsetY}px`;
+    chatWindow.style.bottom = "auto";
+    chatWindow.style.right = "auto";
+  }
+});
+</script>
 </body>
 </html>
